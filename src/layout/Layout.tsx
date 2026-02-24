@@ -11,11 +11,9 @@ import {
 import Container from '../imports/Container';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 
-interface LayoutProps {
-  onLogout: () => void;
-}
+interface LayoutProps {}
 
-export function Layout({ onLogout }: LayoutProps) {
+export function Layout() {
 const { user, clearAuth } = useAuthStore();
   const { t } = useTranslation(['navigation', 'roles']); // استخدام Namespaces الخاصة بك
   const navigate = useNavigate(); // هوك التنقل

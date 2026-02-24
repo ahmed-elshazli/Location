@@ -39,7 +39,7 @@ export const AppRoutes = () => {
 
         {/* ✅ 3. المسارات المحمية داخل الـ Layout لظهار السايدبار */}
         <Route element={<ProtectedRoute />}>
-          <Route element={<Layout onLogout={handleLogout} />}>
+          <Route element={<Layout  />}>
             {/* المسارات المشتركة والمستقلة بناءً على السايدبار */}
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="leads" element={<Leads />} />
