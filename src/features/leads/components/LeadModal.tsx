@@ -32,32 +32,19 @@ export function LeadModal({ lead, onClose, onSave }: LeadModalProps) {
   const isRTL = dir === 'rtl';
 
   // ✅ إدارة حالة الفورم
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    email: '',
-    source: 'Website',
-    assignedTo: salesAgents[0],
-    status: 'New' as const,
-    notes: '',
-    interestedIn: '',
-  });
+  // 1. تعريف الحالة مع تحديد النوع (Interface) لضمان قبول كل الحالات
+const [formData, setFormData] = useState<Lead>(() => ({
+    name: lead?.name || '',
+    phone: lead?.phone || '',
+    email: lead?.email || '',
+    source: lead?.source || 'Website',
+    assignedTo: lead?.assignedTo || 'Abdallah Elgamal',
+    status: lead?.status || 'New', // ✅ تم تصحيح الـ Syntax Error هنا
+    notes: lead?.notes || '',
+    interestedIn: lead?.interestedIn || '',
+  }));
 
-  // ✅ تحديث البيانات عند فتح المودال لتعديل عميل موجود
-  useEffect(() => {
-    if (lead) {
-      setFormData({
-        name: lead.name || '',
-        phone: lead.phone || '',
-        email: lead.email || '',
-        source: lead.source || 'Website',
-        assignedTo: lead.assignedTo || salesAgents[0],
-        status: lead.status || 'New',
-        notes: lead.notes || '',
-        interestedIn: lead.interestedIn || '',
-      });
-    }
-  }, [lead]);
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,15 +55,12 @@ export function LeadModal({ lead, onClose, onSave }: LeadModalProps) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        {/* Header */}
         <div className={`sticky top-0 bg-white border-b border-[#E5E5E5] px-6 py-4 flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
           <h2 className="font-bold text-[#16100A]">
-            {lead ? t('leads.editLead') : t('leads.addNewLead')}
+            {/* ✅ تحديث نداء الترجمة فقط ليعمل مع نظام الـ Namespaces */}
+            {lead ? t('leads:editLead') : t('leads:addNewLead')}
           </h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-[#F7F7F7] rounded-lg transition-colors"
-          >
+          <button onClick={onClose} className="p-2 hover:bg-[#F7F7F7] rounded-lg transition-colors">
             <X className="w-5 h-5 text-[#555555]" />
           </button>
         </div>

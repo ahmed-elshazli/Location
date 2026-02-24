@@ -1,12 +1,29 @@
-import React, { useState } from 'react';
-import { Plus, DollarSign, User as UserIcon, Building2, Calendar, Edit2 } from 'lucide-react';
-import { useTranslation } from 'react-i18next'; // ✅ البديل الصحيح
-import { useConfigStore } from '../../store/useConfigStore'; // ✅ لجلب الاتجاه
-import { useAuthStore } from '../../store/useAuthStore'; // ✅ لجلب بيانات المستخدم
+import { useState } from 'react'; // ✅ مسحنا React لتجنب خطأ TS6133
+import { Plus, User as UserIcon, Building2, Calendar } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { useConfigStore } from '../../store/useConfigStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import { DealModal } from './components/DealModal';
 import { ImageWithFallback } from './components/ImageWithFallback';
 
-// ... (واجهة Deal ومصفوفة mockDeals ومصفوفة stages تبقى كما هي)
+export interface Deal {
+  id: string;
+  title: string;
+  titleAr?: string;
+  client: string;
+  clientAr?: string;
+  property: string;
+  propertyAr?: string;
+  propertyName: string; // ✅ جعلناه مطابقاً لما طلبه الـ Compiler
+  price: number;
+status: 'New' | 'New Deal' | 'Negotiation' | 'Reservation' | 'Closed Won' | 'Closed Lost';  createdAt: string;
+  salesAgent: string;
+  salesAgentAr?: string;
+  notes?: string;
+  notesAr?: string;
+  image?: string;
+}
+
 const mockDeals: Deal[] = [
   {
     id: '1',
@@ -16,6 +33,7 @@ const mockDeals: Deal[] = [
     clientAr: 'أحمد خالد',
     property: 'Villa B1-034, Madinaty',
     propertyAr: 'فيلا B1-034، مدينتي',
+    propertyName: 'Villa B1-034', // ✅ تم الإضافة
     price: 8500000,
     salesAgent: 'Abdallah Elgamal',
     salesAgentAr: 'عبدالله الجمال',
@@ -33,6 +51,7 @@ const mockDeals: Deal[] = [
     clientAr: 'سارة محمد',
     property: 'Apartment 45, Rehab',
     propertyAr: 'شقة 45، الرحاب',
+    propertyName: 'Apartment 45', // ✅ تم الإضافة
     price: 2500000,
     salesAgent: 'Esmaeil Mohamed',
     salesAgentAr: 'إسماعيل محمد',
@@ -50,6 +69,7 @@ const mockDeals: Deal[] = [
     clientAr: 'مجموعة عمر التجارية',
     property: 'COM-012, Thousand',
     propertyAr: 'COM-012، ألف',
+    propertyName: 'COM-012', // ✅ تم الإضافة
     price: 5500000,
     salesAgent: 'Raghad',
     salesAgentAr: 'رغد',
@@ -65,6 +85,7 @@ const mockDeals: Deal[] = [
     clientAr: 'فاطمة حسن',
     property: 'Apartment 78, Rehab',
     propertyAr: 'شقة 78، الرحاب',
+    propertyName: 'Apartment 78', // ✅ تم الإضافة
     price: 180000,
     salesAgent: 'Noha',
     salesAgentAr: 'نهى',
@@ -82,6 +103,7 @@ const mockDeals: Deal[] = [
     clientAr: 'يوسف علي',
     property: 'Villa B3-023, Madinaty',
     propertyAr: 'فيلا B3-023، مدينتي',
+    propertyName: 'Villa B3-023', // ✅ تم الإضافة
     price: 9200000,
     salesAgent: 'Mohamed Elbaze',
     salesAgentAr: 'محمد الباز',
@@ -97,6 +119,7 @@ const mockDeals: Deal[] = [
     clientAr: 'نور أحمد',
     property: 'Apartment 156, Celia',
     propertyAr: 'شقة 156، سيليا',
+    propertyName: 'Apartment 156', // ✅ تم الإضافة
     price: 3200000,
     salesAgent: 'Abdallah Elgamal',
     salesAgentAr: 'عبدالله الجمال',
@@ -112,6 +135,7 @@ const mockDeals: Deal[] = [
     clientAr: 'حسن إبراهيم',
     property: 'Villa B6-078, Madinaty',
     propertyAr: 'فيلا B6-078، مدينتي',
+    propertyName: 'Villa B6-078', // ✅ تم الإضافة
     price: 11000000,
     salesAgent: 'Esmaeil Mohamed',
     salesAgentAr: 'إسماعيل محمد',
@@ -127,6 +151,7 @@ const mockDeals: Deal[] = [
     clientAr: 'ليلى محمد',
     property: 'Apartment 92, Sharm Bay',
     propertyAr: 'شقة 92، شرم باي',
+    propertyName: 'Apartment 92', // ✅ تم الإضافة
     price: 1800000,
     salesAgent: 'Raghad',
     salesAgentAr: 'رغد',
@@ -134,7 +159,7 @@ const mockDeals: Deal[] = [
     createdAt: '2026-02-01',
     notes: 'Client found alternative',
     notesAr: 'العميل وجد بديل',
-    image: 'https://images.unsplash.com/photo-1627141234469-24711efb373c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZWFsJTIwZXN0YXRlJTIwaG91c2UlMjBleHRlcmlvcnxlbnwxfHx8fDE3NzA5MDUyMTF8MA&ixlib=rb-4.1.0&q=80&w=1080'
+    image: 'https://images.unsplash.com/photo-1627141234469-24711efb373c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZXNpZGVudGlwaG90by0xNjI3MTQxMjM0NDY5LTI0NzExZWZiMzczYw&ixlib=rb-4.1.0&q=80&w=1080'
   },
 ];
 
@@ -145,21 +170,19 @@ const stages = [
   { id: 'Closed Won', color: 'bg-green-500' },
   { id: 'Closed Lost', color: 'bg-gray-500' },
 ];
-export function Deals() { // ✅ شلنا الـ Props لتعارضها مع نظام الـ Store الحالي
+
+export default function Deals() { // ✅ استخدمنا Default Export لـ Lazy Loading
   const [modalOpen, setModalOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
 
-  // ✅ ربط المتغيرات بالسيستم الجديد
   const { t, i18n } = useTranslation(['deals', 'common']); 
   const { dir } = useConfigStore(); 
   const { user } = useAuthStore();
   
-  const isRTL = dir === 'rtl'; // ✅ المتغير المستخدم في الـ UI
-  const language = i18n.language; // ✅ المتغير المستخدم في الـ UI
+  const isRTL = dir === 'rtl';
+  const language = i18n.language;
 
-  // ✅ حماية الـ Logic والتأكد من الصلاحيات
   const canEdit = user?.role === 'super_admin' || user?.role === 'admin' || user?.role === 'sales';
-
   const handleAddDeal = () => {
     setEditingDeal(null);
     setModalOpen(true);

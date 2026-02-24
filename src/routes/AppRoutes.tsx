@@ -4,7 +4,6 @@ import { Layout } from '../layout/Layout';
 import { Login } from '../features/auth/Login';
 import { ProtectedRoute } from './ProtectedRoute';
 import { useAuthStore } from '../store/useAuthStore'; //
-import { Deals } from '../features/deals/Deals';
 
 // ✅ 1. Lazy Loading لكل الصفحات لضمان سرعة التحميل
 const Dashboard = lazy(() => import('../features/dashboard/Dashboard'));
@@ -19,6 +18,7 @@ const Projects = lazy(() => import('../features/projects/Projects'));
 const Areas = lazy(() => import('../features/areas/Areas')); 
 const Reports = lazy(() => import('../features/reports/Reports')); 
 const SystemSettings = lazy(() => import('../features/settings/SystemSettings')); 
+const Deals = lazy(() => import('../features/deals/Deals')); 
 
 export const AppRoutes = () => {
   const { clearAuth } = useAuthStore(); //

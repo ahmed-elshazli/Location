@@ -6,6 +6,7 @@ import { useConfigStore } from '../../store/useConfigStore'; // مخزن الإ�
 import Container from '../../imports/Container';
 
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
+import { User } from '../../types/auth';
 
 // البيانات التجريبية
 const mockUsers = [
@@ -41,7 +42,7 @@ export function Login() {
   if (foundUser && password === 'demo123') {
     // 3. تسجيل البيانات في Zustand
     // سيتم تخزين الـ role تلقائياً (super_admin, admin, sales)
-    setAuth('fake-token-123', foundUser); 
+    setAuth('fake-token-123', foundUser as User); 
     
     // 4. التوجه للداشبورد (الـ Layout هيتولى إظهار الخيارات بناءً على الـ Role)
     navigate('/dashboard'); 

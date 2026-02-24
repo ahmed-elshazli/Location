@@ -194,6 +194,18 @@ const mockLeads: Lead[] = [
     }
   };
 
+  // ✅ تعريف الدالة اللي المودال هينادي عليها لما نضغط "حفظ"
+const handleSave = (data: Lead) => {
+  if (editingLead) {
+    // 📝 منطق التعديل: هنا ممكن تحدث مصفوفة الـ mockLeads أو تنادي على API
+    console.log('Updating existing lead:', data);
+  } else {
+    // ✨ منطق الإضافة: إضافة عميل جديد
+    console.log('Adding new lead:', data);
+  }
+  setModalOpen(false); // إغلاق المودال بعد الحفظ
+};
+
   return (
     <div className="p-6" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
@@ -337,15 +349,14 @@ const mockLeads: Lead[] = [
 
       {/* Lead Modal */}
       {modalOpen && (
-        <LeadModal
-          lead={editingLead}
-          onClose={() => setModalOpen(false)}
-          onSave={() => {
-            setModalOpen(false);
-            // Handle save logic
-          }}
-        />
-      )}
+  <LeadModal
+    // ✅ الـ key ده هيخلي المودال يعمل Reset لنفسه كل ما العميل يتغير
+    key={editingLead?.id || 'new'} 
+    lead={editingLead}
+    onClose={() => setModalOpen(false)}
+    onSave={handleSave}
+  />
+)}
     </div>
   );
 }

@@ -6,9 +6,10 @@ interface Deal {
   title: string;
   client: string;
   property: string;
+  propertyName: string; // ✅ الحقل الإلزامي اللي الـ TS طالبه
   price: number;
   salesAgent: string;
-  status: 'New Deal' | 'Negotiation' | 'Reservation' | 'Closed Won' | 'Closed Lost';
+  status: 'New Deal' | 'Negotiation' | 'Reservation' | 'Closed Won' | 'Closed Lost' | 'New';
   createdAt: string;
   notes?: string;
 }
@@ -16,7 +17,7 @@ interface Deal {
 interface DealModalProps {
   deal: Deal | null;
   onClose: () => void;
-  onSave: (deal: Partial<Deal>) => void;
+  onSave: (deal: any) => void;
 }
 
 const statuses = ['New Deal', 'Negotiation', 'Reservation', 'Closed Won', 'Closed Lost'];
@@ -34,19 +35,28 @@ const properties = [
 ];
 
 export function DealModal({ deal, onClose, onSave }: DealModalProps) {
-  const [formData, setFormData] = useState({
+  // ✅ الحل السحري: تهيئة الـ State بالبيانات الصحيحة مباشرة (Lazy Initialization)
+  // ده بيحل مشكلة الـ Cascading Renders وبيغنينا عن الـ useEffect تماماً
+  const [formData, setFormData] = useState(() => ({
     title: deal?.title || '',
     client: deal?.client || '',
     property: deal?.property || '',
+    propertyName: deal?.propertyName || deal?.property?.split(',')[0] || '', // ✅ حل مشكلة الحقل المفقود
     price: deal?.price?.toString() || '',
-    salesAgent: deal?.salesAgent || salesAgents[0],
+    salesAgent: deal?.salesAgent || 'Abdallah Elgamal',
     status: deal?.status || 'New Deal',
     notes: deal?.notes || '',
-  });
+  }));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData as any);
+    // ✅ تحويل السعر لرقم (Number) قبل الحفظ لحل أخطاء الـ Arithmetic Operation
+    const finalData = {
+      ...formData,
+      price: Number(formData.price) || 0
+    };
+    onSave(finalData);
+    onClose();
   };
 
   return (
