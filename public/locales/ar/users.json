@@ -1,0 +1,19 @@
+{
+  "users": {
+    "title": "المستخدمين",
+    "subtitle": "إدارة مستخدمي النظام والصلاحيات",
+    "addUser": "إضافة مستخدم",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "management": "إدارة المستخدمين",
+    "managementSubtitle": "إدارة أعضاء الفريق وصلاحياتهم",
+    "searchPlaceholder": "بحث عن مستخدم...",
+    "allRoles": "جميع الأدوار",
+    "allStatus": "جميع الحالات",
+    "user": "المستخدم",
+    "contact": "معلومات الاتصال",
+    "joinedDate": "تاريخ الانضمام",
+    "performance": "الأداء",
+    "sales": "المبيعات"
+  }
+}

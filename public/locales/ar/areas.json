@@ -1,0 +1,23 @@
+{
+  "areas": {
+    "title": "المناطق",
+    "subtitle": "إدارة المناطق الجغرافية",
+    "addArea": "إضافة منطقة",
+    "management": "إدارة المناطق",
+    "managementSubtitle": "إدارة المواقع والمناطق الجغرافية",
+    "searchPlaceholder": "بحث عن المناطق...",
+    "allTypes": "جميع الأنواع",
+    "villaZone": "منطقة فلل",
+    "apartmentZone": "منطقة شقق",
+    "serviceArea": "منطقة خدمات",
+    "mixed": "مختلط",
+    "madinatyMap": "خريطة فلل مدينتي",
+    "madinatyMapSubtitle": "خريطة تفاعلية لفلل مدينتي وتوفرها",
+    "units": "وحدات",
+    "highAvailability": "توفر عالٍ",
+    "mediumAvailability": "توفر متوسط",
+    "lowAvailability": "توفر منخفض",
+    "availability": "حالة التوفر",
+    "group": "المجموعة"
+  }
+}

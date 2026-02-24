@@ -1,0 +1,18 @@
+{
+  "calendar": {
+    "title": "Calendar",
+    "subtitle": "Manage appointments and events",
+    "addEvent": "Add Event",
+    "today": "Today",
+    "month": "Month",
+    "week": "Week",
+    "day": "Day",
+    "upcomingEvents": "Upcoming Events",
+    "propertyViewing": "Property Viewing",
+    "clientMeeting": "Client Meeting",
+    "dealClosing": "Deal Closing",
+    "followUp": "Follow Up",
+    "noEvents": "No events scheduled",
+    "with": "with"
+  }
+}

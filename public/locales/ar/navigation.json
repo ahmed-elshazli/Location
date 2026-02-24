@@ -1,0 +1,17 @@
+{
+  "nav": {
+    "dashboard": "لوحة التحكم",
+    "users": "المستخدمين",
+    "properties": "العقارات",
+    "leads": "العملاء المحتملين",
+    "deals": "الصفقات",
+    "clients": "العملاء",
+    "developers": "المطورين",
+    "projects": "المشاريع",
+    "areas": "المناطق",
+    "calendar": "التقويم",
+    "reports": "التقارير",
+    "systemSettings": "إعدادات النظام",
+    "signOut": "تسجيل الخروج"
+  }
+}

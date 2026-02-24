@@ -1,0 +1,19 @@
+{
+  "projects": {
+    "title": "المشاريع",
+    "subtitle": "إدارة المشاريع العقارية",
+    "addProject": "إضافة مشروع",
+    "management": "إدارة المشاريع",
+    "managementSubtitle": "إدارة جميع المشاريع العقارية",
+    "searchPlaceholder": "بحث عن المشاريع...",
+    "totalProjects": "إجمالي المشاريع",
+    "availableUnits": "الوحدات المتاحة",
+    "soldUnits": "الوحدات المباعة",
+    "active": "نشط",
+    "completed": "مكتمل",
+    "upcoming": "قادم",
+    "startDate": "تاريخ البدء",
+    "salesProgress": "تقدم المبيعات",
+    "viewDetails": "عرض التفاصيل"
+  }
+}

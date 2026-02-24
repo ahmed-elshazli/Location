@@ -1,0 +1,36 @@
+{
+  "leads": {
+    "title": "Leads",
+    "subtitle": "Manage and track all leads",
+    "addLead": "Add Lead",
+    "editLead": "Edit Lead",
+    "addNewLead": "Add New Lead",
+    "fullName": "Full Name",
+    "phoneNumber": "Phone Number",
+    "emailAddress": "Email Address",
+    "source": "Source",
+    "assignTo": "Assign To",
+    "interestedIn": "Interested in",
+    "updateStatus": "Update Status",
+    "searchPlaceholder": "Search leads by name, phone, or email...",
+    "assignedTo": "Assigned to",
+    "saveChanges": "Save Changes"
+  },
+  "source": {
+    "Website": "Website",
+    "Facebook": "Facebook",
+    "Instagram": "Instagram",
+    "Referral": "Referral",
+    "Walk-in": "Walk-in",
+    "Phone Call": "Phone Call",
+    "Data Office": "Data Office",
+    "Other": "Other"
+  },
+  "status": {
+    "New": "New",
+    "Contacted": "Contacted",
+    "Interested": "Interested",
+    "Not Interested": "Not Interested",
+    "Converted": "Converted"
+  }
+}

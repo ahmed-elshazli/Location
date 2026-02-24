@@ -1,0 +1,17 @@
+{
+  "developers": {
+    "title": "Developers",
+    "subtitle": "Manage real estate developers",
+    "addDeveloper": "Add Developer",
+    "management": "Developers Management",
+    "managementSubtitle": "Manage developer relationships and projects",
+    "searchPlaceholder": "Search developers...",
+    "totalDevelopers": "Total Developers",
+    "totalProjects": "Total Projects",
+    "totalUnits": "Total Units",
+    "developerId": "Developer ID",
+    "projects": "Projects",
+    "activeAreas": "Active Areas",
+    "website": "Website"
+  }
+}

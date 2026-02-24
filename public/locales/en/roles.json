@@ -1,0 +1,7 @@
+{
+  "roles": {
+  "superAdmin": "Super Admin",
+  "admin": "Admin",
+  "sales": "Sales"
+}
+}

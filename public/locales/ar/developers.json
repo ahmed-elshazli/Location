@@ -1,0 +1,17 @@
+{
+  "developers": {
+    "title": "المطورين",
+    "subtitle": "إدارة مطوري العقارات",
+    "addDeveloper": "إضافة مطور",
+    "management": "إدارة المطورين",
+    "managementSubtitle": "إدارة علاقات المطورين والمشاريع",
+    "searchPlaceholder": "بحث المطورين...",
+    "totalDevelopers": "إجمالي المطورين",
+    "totalProjects": "إجمالي المشاريع",
+    "totalUnits": "إجمالي الوحدات",
+    "developerId": "رقم المطور",
+    "projects": "المشاريع",
+    "activeAreas": "المناطق النشطة",
+    "website": "الموقع الإلكتروني"
+  }
+}

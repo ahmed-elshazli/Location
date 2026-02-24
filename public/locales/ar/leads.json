@@ -1,0 +1,36 @@
+{
+  "leads": {
+    "title": "العملاء المحتملين",
+    "subtitle": "إدارة ومتابعة جميع العملاء المحتملين",
+    "addLead": "إضافة عميل محتمل",
+    "editLead": "تعديل عميل محتمل",
+    "addNewLead": "إضافة عميل محتمل جديد",
+    "fullName": "الاسم الكامل",
+    "phoneNumber": "رقم الهاتف",
+    "emailAddress": "البريد الإلكتروني",
+    "source": "المصدر",
+    "assignTo": "تعيين إلى",
+    "interestedIn": "مهتم بـ",
+    "updateStatus": "تحديث الحالة",
+    "searchPlaceholder": "ابحث عن عميل بالاسم أو الهاتف أو البريد...",
+    "assignedTo": "معين إلى",
+    "saveChanges": "حفظ التغييرات"
+  },
+  "source": {
+    "Website": "موقع إلكتروني",
+    "Facebook": "فيسبوك",
+    "Instagram": "انستجرام",
+    "Referral": "إحالة",
+    "Walk-in": "زيارة مباشرة",
+    "Phone Call": "مكالمة هاتفية",
+    "Data Office": "مكتب البيانات",
+    "Other": "أخرى"
+  },
+  "status": {
+    "New": "جديد",
+    "Contacted": "تم التواصل",
+    "Interested": "مهتم",
+    "Not Interested": "غير مهتم",
+    "Converted": "تم التحويل"
+  }
+}

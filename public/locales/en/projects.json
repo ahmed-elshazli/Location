@@ -1,0 +1,19 @@
+{
+  "projects": {
+    "title": "Projects",
+    "subtitle": "Manage real estate projects",
+    "addProject": "Add Project",
+    "management": "Projects",
+    "managementSubtitle": "Manage all real estate projects",
+    "searchPlaceholder": "Search projects...",
+    "totalProjects": "Total Projects",
+    "availableUnits": "Available Units",
+    "soldUnits": "Sold Units",
+    "active": "Active",
+    "completed": "Completed",
+    "upcoming": "Upcoming",
+    "startDate": "Start Date",
+    "salesProgress": "Sales Progress",
+    "viewDetails": "View Details"
+  }
+}

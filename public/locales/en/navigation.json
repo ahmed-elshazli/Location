@@ -1,0 +1,17 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "properties": "Properties",
+    "leads": "Leads",
+    "deals": "Deals",
+    "clients": "Clients",
+    "developers": "Developers",
+    "projects": "Projects",
+    "areas": "Areas",
+    "calendar": "Calendar",
+    "reports": "Reports",
+    "systemSettings": "System Settings",
+    "signOut": "Sign Out"
+  }
+}

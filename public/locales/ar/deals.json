@@ -1,0 +1,22 @@
+{
+  "deals": {
+    "title": "التعاقدات",
+    "subtitle": "تتبع جميع صفقاتك ومعاملاتك المالية",
+    "addDeal": "إضافة صفقة",
+    "value": "قيمة الصفقة",
+    "closingDate": "تاريخ الإغلاق",
+    "probability": "نسبة النجاح",
+    "pipeline": "مخطط الصفقات",
+    "pipelineSubtitle": "تتبع وإدارة جميع الصفقات من خلال مراحل المبيعات",
+    "newDeal": "صفقة جديدة",
+    "salesAgent": "مسؤول المبيعات",
+    "noDealsinStage": "لا توجد صفقات في هذه المرحلة"
+  },
+  "dealStage": {
+    "New Deal": "صفقة جديدة",
+    "Negotiation": "تفاوض",
+    "Reservation": "حجز",
+    "Closed Won": "تم الإغلاق (نجاح)",
+    "Closed Lost": "تم الإغلاق (خسارة)"
+  }
+}

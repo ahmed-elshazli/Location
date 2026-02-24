@@ -1,0 +1,16 @@
+{
+  "clients": {
+    "title": "العملاء",
+    "subtitle": "إدارة قاعدة بيانات العملاء الخاصة بك",
+    "addClient": "إضافة عميل",
+    "management": "إدارة العملاء",
+    "managementSubtitle": "إدارة علاقات العملاء وتاريخ تعاملاتهم",
+    "searchPlaceholder": "بحث عن عميل...",
+    "totalClients": "إجمالي العملاء",
+    "totalDeals": "إجمالي الصفقات",
+    "totalRevenue": "إجمالي الإيرادات",
+    "clientId": "كود العميل",
+    "clientSince": "عميل منذ",
+    "propertiesOwned": "العقارات المملوكة"
+  }
+}

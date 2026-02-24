@@ -1,0 +1,23 @@
+{
+  "areas": {
+    "title": "Areas",
+    "subtitle": "Manage geographical areas",
+    "addArea": "Add Area",
+    "management": "Areas Management",
+    "managementSubtitle": "Manage locations and areas",
+    "searchPlaceholder": "Search areas...",
+    "allTypes": "All Types",
+    "villaZone": "Villa Zone",
+    "apartmentZone": "Apartment Zone",
+    "serviceArea": "Service Area",
+    "mixed": "Mixed",
+    "madinatyMap": "Madinaty Villas Map",
+    "madinatyMapSubtitle": "Interactive map for villas in Madinaty",
+    "units": "Units",
+    "highAvailability": "High Availability",
+    "mediumAvailability": "Medium Availability",
+    "lowAvailability": "Low Availability",
+    "availability": "Availability",
+    "group": "Group"
+  }
+}

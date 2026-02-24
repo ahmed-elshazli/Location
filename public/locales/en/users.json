@@ -1,0 +1,19 @@
+{
+  "users": {
+    "title": "Users",
+    "subtitle": "Manage system users and permissions",
+    "addUser": "Add User",
+    "active": "Active",
+    "inactive": "Inactive",
+    "management": "Users Management",
+    "managementSubtitle": "Manage team members and permissions",
+    "searchPlaceholder": "Search users...",
+    "allRoles": "All Roles",
+    "allStatus": "All Status",
+    "user": "User",
+    "contact": "Contact",
+    "joinedDate": "Joined Date",
+    "performance": "Performance",
+    "sales": "Sales"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "clients": {
+    "title": "Clients",
+    "subtitle": "Manage your clients database",
+    "addClient": "Add Client",
+    "management": "Clients Management",
+    "managementSubtitle": "Manage client relationships and history",
+    "searchPlaceholder": "Search clients...",
+    "totalClients": "Total Clients",
+    "totalDeals": "Total Deals",
+    "totalRevenue": "Total Revenue",
+    "clientId": "Client ID",
+    "clientSince": "Client since",
+    "propertiesOwned": "Properties Owned"
+  }
+}

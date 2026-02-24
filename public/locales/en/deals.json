@@ -1,0 +1,22 @@
+{
+  "deals": {
+    "title": "Deals",
+    "subtitle": "Track all your deals and transactions",
+    "addDeal": "Add Deal",
+    "value": "Deal Value",
+    "closingDate": "Closing Date",
+    "probability": "Probability",
+    "pipeline": "Deals Pipeline",
+    "pipelineSubtitle": "Track and manage all deals through the sales pipeline",
+    "newDeal": "New Deal",
+    "salesAgent": "Sales Agent",
+    "noDealsinStage": "No deals in this stage"
+  },
+  "dealStage": {
+    "New Deal": "New Deal",
+    "Negotiation": "Negotiation",
+    "Reservation": "Reservation",
+    "Closed Won": "Closed Won",
+    "Closed Lost": "Closed Lost"
+  }
+}

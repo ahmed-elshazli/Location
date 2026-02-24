@@ -1,0 +1,18 @@
+{
+  "calendar": {
+    "title": "التقويم",
+    "subtitle": "إدارة المواعيد والفعاليات",
+    "addEvent": "إضافة موعد",
+    "today": "اليوم",
+    "month": "شهر",
+    "week": "أسبوع",
+    "day": "يوم",
+    "upcomingEvents": "المواعيد القادمة",
+    "propertyViewing": "معاينة عقار",
+    "clientMeeting": "اجتماع عميل",
+    "dealClosing": "إغلاق صفقة",
+    "followUp": "متابعة",
+    "noEvents": "لا توجد مواعيد مجدولة",
+    "with": "مع"
+  }
+}
