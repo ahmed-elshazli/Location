@@ -228,7 +228,7 @@ export default function Clients() { // ✅ جعلناه Default Export لحل م
                 <p className="font-bold text-[#16100A]">{client.deals}</p>
               </div>
               <div className={isRTL ? 'text-right' : 'text-left'}>
-                <p className="text-xs text-[#555555] mb-1">{t('deals.value')}</p>
+                <p className="text-xs text-[#555555] mb-1">{t('deals:deals.value')}</p>
                 <p className="font-bold text-[#B5752A]" dir="ltr">{(client.totalSpent / 1000000).toFixed(1)} {language === 'ar' ? 'مليون جنيه' : 'M EGP'}</p>
               </div>
             </div>

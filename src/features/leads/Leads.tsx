@@ -236,7 +236,7 @@ const handleSave = (data: Lead) => {
                   : 'bg-white border border-[#E5E5E5] text-[#555555] hover:bg-[#F7F7F7]'
               }`}
             >
-              {status === 'all' ? t('common.all') : t(`status.${status}` as any)} ({statusCounts[status]})
+              {status === 'all' ? t('common:common.all') : t(`status.${status}` as any)} ({statusCounts[status]})
             </button>
           ))}
         </div>
@@ -308,7 +308,7 @@ const handleSave = (data: Lead) => {
                 <span className="font-medium text-[#16100A]">{language === 'ar' ? lead.assignedToAr : lead.assignedTo}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-[#555555]">{t('common.created')}</span>
+                <span className="text-[#555555]">{t('common:common.created')}</span>
                 <span className="font-medium text-[#16100A]" dir="ltr">{new Date(lead.createdAt).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US')}</span>
               </div>
             </div>
@@ -324,7 +324,7 @@ const handleSave = (data: Lead) => {
             {/* Notes */}
             {lead.notes && (
               <div className={`mt-4 pt-4 border-t border-[#E5E5E5] ${isRTL ? 'text-right' : 'text-left'}`}>
-                <p className="text-xs text-[#555555] mb-1">{t('common.notes')}</p>
+                <p className="text-xs text-[#555555] mb-1">{t('common:common.notes')}</p>
                 <p className="text-sm text-[#16100A]">{language === 'ar' ? lead.notesAr : lead.notes}</p>
               </div>
             )}

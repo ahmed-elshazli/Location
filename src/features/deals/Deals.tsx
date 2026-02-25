@@ -311,7 +311,7 @@ export default function Deals() { // ✅ استخدمنا Default Export لـ La
                       {/* Notes */}
                       {deal.notes && (
                         <div className={`mt-3 pt-3 border-t border-[#E5E5E5] ${isRTL ? 'text-right' : 'text-left'}`}>
-                          <p className="text-xs text-[#555555] mb-1">{t('common.notes')}</p>
+                          <p className="text-xs text-[#555555] mb-1">{t('common:common.notes')}</p>
                           <p className="text-xs text-[#16100A]">{language === 'ar' ? deal.notesAr : deal.notes}</p>
                         </div>
                       )}

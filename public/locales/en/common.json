@@ -1,4 +1,5 @@
 {
+  "common": {
   "search": "Search",
   "add": "Add",
   "edit": "Edit",
@@ -29,4 +30,5 @@
   "city": "City",
   "view": "View",
   "details": "Details"
+}
 }

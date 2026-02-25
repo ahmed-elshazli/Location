@@ -265,7 +265,7 @@ export default function Projects() { // ✅ جعلناه Default Export لحل �
               {/* Details */}
               <div className="space-y-3 mb-4 pb-4 border-b border-[#E5E5E5]">
                 <div className={`flex items-center justify-between text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <span className="text-[#555555]">{t('common.area')}:</span>
+                  <span className="text-[#555555]">{t('common:common.area')}:</span>
                   <span className="font-medium text-[#16100A]">{language === 'ar' ? project.areaAr : project.area}</span>
                 </div>
                 <div className={`flex items-center justify-between text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
