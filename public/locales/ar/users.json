@@ -3,6 +3,7 @@
     "title": "المستخدمين",
     "subtitle": "إدارة مستخدمي النظام والصلاحيات",
     "addUser": "إضافة مستخدم",
+    "editUser": "تحديث المستخدم",
     "active": "نشط",
     "inactive": "غير نشط",
     "management": "إدارة المستخدمين",
@@ -14,6 +15,9 @@
     "contact": "معلومات الاتصال",
     "joinedDate": "تاريخ الانضمام",
     "performance": "الأداء",
-    "sales": "المبيعات"
+    "sales": "المبيعات",
+    "userAddedSuccess": "تم اضافة المستخدم بنجاح",
+    "userUpdatedSuccess": "تم تحديث المستخدم بنجاح",
+    "userDeletedSuccess": "تم حذف المستخدم بنجاح"
   }
 }

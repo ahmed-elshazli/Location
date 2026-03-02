@@ -3,6 +3,7 @@
     "title": "Users",
     "subtitle": "Manage system users and permissions",
     "addUser": "Add User",
+    "editUser": "Edit User",
     "active": "Active",
     "inactive": "Inactive",
     "management": "Users Management",
@@ -14,6 +15,9 @@
     "contact": "Contact",
     "joinedDate": "Joined Date",
     "performance": "Performance",
-    "sales": "Sales"
+    "sales": "Sales",
+    "userAddedSuccess": "User added successfully",
+    "userUpdatedSuccess": "User updated successfully",
+    "userDeletedSuccess": "User deleted successfully"
   }
 }

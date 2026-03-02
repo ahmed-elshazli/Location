@@ -1,57 +1,41 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // 1. استيراد الهوك الخاص بالتنقل
-import { useTranslation } from 'react-i18next'; // نظام الترجمة الجديد
-import { useAuthStore } from '../../store/useAuthStore'; // 2. استيراد مخزن الحماية
-import { useConfigStore } from '../../store/useConfigStore'; // مخزن الإعدادات
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useConfigStore } from '../../store/useConfigStore';
 import Container from '../../imports/Container';
-
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
-import { User } from '../../types/auth';
+import { Shield, Plus } from 'lucide-react'; // أيقونات للتوست
 
-// البيانات التجريبية
-const mockUsers = [
-  { id: '1', name: 'Super Admin', email: 'superadmin@locationproperties.com', role: 'super_admin' },
-  { id: '2', name: 'Noha', email: 'noha@locationproperties.com', role: 'admin' },
-  { id: '3', name: 'Elbaze', email: 'elbaze@locationproperties.com', role: 'admin' },
-  { id: '4', name: 'Abdallah', email: 'abdallah@locationproperties.com', role: 'sales' },
-  { id: '5', name: 'Esmaeil', email: 'esmaeil@locationproperties.com', role: 'sales' },
-  { id: '6', name: 'Raghad', email: 'raghad@locationproperties.com', role: 'sales' },
-];
+// ✅ استيراد الهوك الجديد
+import { useLogin } from '../auth/hooks/useLogin'; 
 
 export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   
-  // 3. تعريف الهوكس الجديدة
+  // حالة التوست للخطأ
+  const [toast, setToast] = useState<{ show: boolean; msg: string }>({ show: false, msg: '' });
+
   const { t } = useTranslation('auth');
-  const navigate = useNavigate(); // هوك التنقل
   const { dir } = useConfigStore(); 
-  const { setAuth } = useAuthStore(); // دالة تحديث حالة الدخول في Zustand
-  
   const isRTL = dir === 'rtl';
 
+  // ✅ استخدام هوك اللوجين الجديد
+  const { mutate: login, isPending } = useLogin();
+
   const handleSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
-  setError('');
+    e.preventDefault();
 
-  // 1. البحث عن المستخدم بالإيميل
-  const foundUser = mockUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-  
-  // 2. التحقق من الباسورد الموحد
-  if (foundUser && password === 'demo123') {
-    // 3. تسجيل البيانات في Zustand
-    // سيتم تخزين الـ role تلقائياً (super_admin, admin, sales)
-    setAuth('fake-token-123', foundUser as User); 
-    
-    // 4. التوجه للداشبورد (الـ Layout هيتولى إظهار الخيارات بناءً على الـ Role)
-    navigate('/dashboard'); 
-  } else {
-    setError(t('login.error') || 'Invalid email or password');
-  }
-};
-
-  
+    // نبعت البيانات للباك إيند مباشرة
+    login({ email, password }, {
+      onError: (error: any) => {
+        // إظهار التوست في حالة فشل اللوجين
+        const errorMsg = error.response?.data?.message || "Invalid credentials";
+        setToast({ show: true, msg: Array.isArray(errorMsg) ? errorMsg[0] : errorMsg });
+        setTimeout(() => setToast({ show: false, msg: '' }), 4000);
+      }
+    });
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA]" dir={dir}>
@@ -102,11 +86,7 @@ export function Login() {
                 />
               </div>
 
-              {error && (
-                <div className={`bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {error}
-                </div>
-              )}
+              
 
               <button
                 type="submit"
@@ -152,6 +132,22 @@ export function Login() {
           </div>
         </div>
       </div>
+      {toast.show && (
+        <div className={`fixed bottom-10 ${isRTL ? 'left-10' : 'right-10'} z-[100] animate-in slide-in-from-bottom-5 duration-300`}>
+          <div className="bg-white border-r-4 border-red-600 shadow-2xl rounded-xl p-4 flex items-center gap-4 min-w-[300px]">
+            <div className="bg-red-100 p-2 rounded-full">
+              <Shield className="w-6 h-6 text-red-600" />
+            </div>
+            <div className={isRTL ? 'text-right' : 'text-left'}>
+              <h4 className="text-[#16100A] font-bold text-sm">{t('common:error')}</h4>
+              <p className="text-[#555555] text-xs">{toast.msg}</p>
+            </div>
+            <button onClick={() => setToast({ show: false, msg: '' })} className="ms-auto p-1 hover:bg-gray-100 rounded-full">
+              <Plus className="w-4 h-4 rotate-45 text-gray-400" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

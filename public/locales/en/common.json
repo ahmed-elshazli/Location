@@ -29,6 +29,10 @@
   "address": "Address",
   "city": "City",
   "view": "View",
-  "details": "Details"
+  "details": "Details",
+  "success": "Success",
+  "error": "Error",
+  "warning": "Warning",
+  "info": "Info"
 }
 }

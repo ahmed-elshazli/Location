@@ -10,11 +10,12 @@ import {
 } from 'lucide-react';
 import Container from '../imports/Container';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import { logoutApi } from '../features/auth/api/loginApi';
 
 interface LayoutProps {}
 
 export function Layout() {
-const { user, clearAuth } = useAuthStore();
+const { user, clearAuth , isAuthenticated, token } = useAuthStore();
   const { t } = useTranslation(['navigation', 'roles']); // استخدام Namespaces الخاصة بك
   const navigate = useNavigate(); // هوك التنقل
   const { dir } = useConfigStore();
@@ -74,9 +75,9 @@ const { user, clearAuth } = useAuthStore();
   };
 
   const navigationItems = getNavigationItems();
+console.log("DEBUG LAYOUT:", { user, isAuthenticated, token });
 
-  // منع الانهيار لحظة التحميل
-  if (!user) {
+  if (!user || !isAuthenticated) { // تأمين الشرط
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#B5752A]"></div>
@@ -85,14 +86,24 @@ const { user, clearAuth } = useAuthStore();
   }
 
   // دالة التعامل مع تسجيل الخروج
-  const handleLogout = () => {
-  // 1. مسح بيانات الجلسة من الـ Zustand Store
-  clearAuth(); 
+  const handleLogout = async () => {
+    try {
+      if (user?.id) {
+        // 1. نبلغ السيرفر أولاً
+        await logoutApi(user.id);
+        console.log("✅ تم إبلاغ السيرفر بتسجيل الخروج");
+      }
+    } catch (error) {
+      // حتى لو السيرفر فيه مشكلة، هنكمل ونخرج اليوزر من المتصفح
+      console.error("⚠️ فشل إبلاغ السيرفر:", error);
+    } finally {
+      // 2. مسح البيانات محلياً (Zustand & LocalStorage)
+      clearAuth();
 
-  // 2. التوجيه للمسار الرئيسي (/)
-  // استخدام replace: true بيخلي المسار الحالي في المتصفح يتم استبداله
-  navigate('/', { replace: true }); 
-};
+      // 3. التوجه للرئيسية
+      navigate('/', { replace: true });
+    }
+  };
 
   return (
     <div className="flex h-screen bg-[#FAFAFA]" dir={dir}>

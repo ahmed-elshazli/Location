@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from '../layout/Layout';
 import { Login } from '../features/auth/Login';
@@ -21,11 +21,28 @@ const SystemSettings = lazy(() => import('../features/settings/SystemSettings'))
 const Deals = lazy(() => import('../features/deals/Deals')); 
 
 export const AppRoutes = () => {
-  const { clearAuth } = useAuthStore(); //
+  const { token } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
+  const [isHydrated, setIsHydrated] = useState(() => useAuthStore.persist.hasHydrated());
 
-  const handleLogout = () => {
-    clearAuth(); // مسح بيانات الجلسة عند تسجيل الخروج
-  };
+  useEffect(() => {
+    // 2. لو هو لسه مش Hydrated، بنشترك في الـ Event اللي هيعرفنا إنه خلص
+    if (!isHydrated) {
+      const unsub = useAuthStore.persist.onFinishHydration(() => {
+        setIsHydrated(true); // دي هتحصل "بعدين" مش بشكل متزامن، فمش هتزعل رياكت
+      });
+      return () => unsub();
+    }
+  }, [isHydrated]);
+
+  // منع الـ Redirect الغلط وقت التحميل
+  if (!isHydrated) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-[#FAFAFA]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#B5752A]"></div>
+      </div>
+    );
+  }
 
   return (
     <Suspense fallback={
@@ -35,7 +52,7 @@ export const AppRoutes = () => {
     }>
       <Routes>
         {/* ✅ 2. المسار الافتراضي هو صفحة اللوجن */}
-        <Route path="/" element={<Login />} />
+        <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
 
         {/* ✅ 3. المسارات المحمية داخل الـ Layout لظهار السايدبار */}
         <Route element={<ProtectedRoute />}>
@@ -59,7 +76,7 @@ export const AppRoutes = () => {
         </Route>
 
         {/* ✅ 4. أي مسار غير معروف يرجع للوجن أو الداشبورد */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+       <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
   );

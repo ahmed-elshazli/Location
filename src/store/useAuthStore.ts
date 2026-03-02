@@ -1,12 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-// تعريف شكل بيانات المستخدم بناءً على الموك داتا الخاصة بك
 interface User {
   id: string;
   name: string;
   email: string;
-  role: 'super_admin' | 'admin' | 'sales';
+  role: 'super_admin' | 'admin' | 'salse'| 'user';
 }
 
 interface AuthState {
@@ -14,8 +13,8 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   setAuth: (token: string, user: User) => void;
-  // ✅ قمنا بتغيير الاسم هنا ليطابق ما تستخدمه في الـ Layout
   clearAuth: () => void; 
+  logout: () => void; // ✅ إضافة تعريف الدالة هنا
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -24,21 +23,12 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       user: null,
       isAuthenticated: false,
-
-      setAuth: (token, user) => set({ 
-        token, 
-        user, 
-        isAuthenticated: true 
-      }),
-
-      // ✅ قمنا بتغيير الاسم من logout إلى clearAuth
-      clearAuth: () => {
-        set({ token: null, user: null, isAuthenticated: false });
-        // الـ Persist middleware هيتولى مسح الـ localStorage تلقائياً
-      },
+      setAuth: (token, user) => set({ token, user, isAuthenticated: true }),
+      clearAuth: () => set({ token: null, user: null, isAuthenticated: false }),
+      logout: () => set({ token: null, user: null, isAuthenticated: false }),
     }),
     {
-      name: 'auth-storage', // الاسم في الـ LocalStorage
+      name: 'auth-storage', // ✅ ده الاسم اللي Zustand بيدور عليه
     }
   )
 );
