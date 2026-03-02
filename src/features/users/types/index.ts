@@ -1,6 +1,6 @@
 /**
  * الأدوار المتاحة في السيستم بناءً على صلاحيات الباك إيند
- * ملحوظة: استخدمنا 'salse' كما طلبت في الـ Validation
+ * ملحوظة: استخدمنا 'sales' كما طلبت في الـ Validation
  */
 export type UserRole = 'admin' | 'sales' | 'user' | 'super_admin';
 

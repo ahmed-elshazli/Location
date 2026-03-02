@@ -270,8 +270,12 @@ const triggerToast = (msg: string, type: 'success' | 'error') => {
       triggerToast("Password is required for new users", "error");
       return;
     }
+    const payload = {
+  ...finalPayload,
+  password: password as string // تأكيد أن الباسورد موجود في حالة الإضافة
+};
 
-    createUser.mutate(finalPayload, {
+    createUser.mutate(payload, {
       onSuccess: () => {
         setIsModalOpen(false);
         triggerToast(t('users.userAddedSuccess') || 'تم إضافة المستخدم بنجاح', 'success');
@@ -335,7 +339,7 @@ const handleEditClick = (userData: any) => {
   setName(userData.fullName || ''); 
   setEmail(userData.email || '');
   setPhone(userData.phone || '');
-  setSelectedRole(userData.role === 'salse' ? 'sales' : userData.role); // معالجة الـ Typo
+  setSelectedRole(userData.role === 'sales' ? 'sales' : userData.role); // معالجة الـ Typo
   setPassword(''); // غالباً بنسيب الباسورد فاضي في التعديل إلا لو هنغيره
   
   setIsModalOpen(true); // فتح المودال
@@ -351,10 +355,19 @@ const handleCloseModal = () => {
 
 const handleDeleteUser = (id: string, name: string) => {
   if (window.confirm(`هل أنت متأكد من حذف المستخدم "${name}"؟`)) {
-    // نبعت طلب الحذف للسيرفر
     deleteUserMutation.mutate(id, {
       onSuccess: () => {
-        // ✅ السطر السحري: بيمسح الكاش القديم ويجيب القائمة الجديدة من السيرفر فوراً
+        // 1. تحديث الكاش يدوياً (حذف المستخدم من القائمة الحالية في الـ Memory)
+        queryClient.setQueryData(['users'], (oldData: any) => {
+          if (!oldData) return [];
+          // استخراج المصفوفة سواء كانت مباشرة أو داخل كائن data
+          const list = Array.isArray(oldData) ? oldData : (oldData.data || []);
+          const updatedList = list.filter((user: any) => user.id !== id);
+          
+          return Array.isArray(oldData) ? updatedList : { ...oldData, data: updatedList };
+        });
+
+        // 2. أمر السيرفر بإرسال البيانات الجديدة للتأكيد
         queryClient.invalidateQueries({ queryKey: ['users'] });
         
         triggerToast('تم حذف المستخدم بنجاح', 'success');
@@ -456,7 +469,7 @@ onClick={() => setIsModalOpen(true)}            disabled={currentUser?.role !== 
       <td className="px-6 py-4">
         <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border ${getRoleBadgeColor(userData.role)}`}>
           {getRoleIcon(userData.role)}
-          {userData.role === 'salse' ? 'Sales' : getRoleLabel(userData.role)} 
+          {userData.role === 'sales' ? 'Sales' : getRoleLabel(userData.role)} 
         </span>
       </td>
       <td className="px-6 py-4">
