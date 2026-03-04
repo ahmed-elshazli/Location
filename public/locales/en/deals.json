@@ -10,7 +10,9 @@
     "pipelineSubtitle": "Track and manage all deals through the sales pipeline",
     "newDeal": "New Deal",
     "salesAgent": "Sales Agent",
-    "noDealsinStage": "No deals in this stage"
+    "noDealsinStage": "No deals in this stage",
+    "property": "Property",
+    "selectProperty": "Select Property"
   },
   "dealStage": {
     "New Deal": "New Deal",

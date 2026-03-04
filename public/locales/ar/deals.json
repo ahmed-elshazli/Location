@@ -10,13 +10,15 @@
     "pipelineSubtitle": "تتبع وإدارة جميع الصفقات من خلال مراحل المبيعات",
     "newDeal": "صفقة جديدة",
     "salesAgent": "مسؤول المبيعات",
-    "noDealsinStage": "لا توجد صفقات في هذه المرحلة"
+    "noDealsinStage": "لا توجد صفقات في هذه المرحلة",
+    "property": "ملكية",
+    "selectProperty": "حدد الملكية"
   },
   "dealStage": {
     "New Deal": "صفقة جديدة",
     "Negotiation": "تفاوض",
     "Reservation": "حجز",
-    "Closed Won": "تم الإغلاق (نجاح)",
-    "Closed Lost": "تم الإغلاق (خسارة)"
+    "Closed Won": "تم الإغلاق ",
+    "Closed Lost": "تم الإغلاق"
   }
 }

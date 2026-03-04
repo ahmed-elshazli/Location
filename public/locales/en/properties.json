@@ -54,6 +54,9 @@
     "selectPhase": "Select Phase",
     "autoExtracted": "Auto-extracted from unit code",
     "apartmentNumber": "Apartment Number",
-    "unitCodeHint": "For apartments: 2-digit code auto-extracts floor & apt"
+    "unitCodeHint": "For apartments: 2-digit code auto-extracts floor & apt",
+    "selectProject": "Select Project",
+    "sellUnit": "Sell Unit",
+  "successSell": " Unit sold successfully "
   }
 }

@@ -2,9 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next'; // ✅ البديل الصحيح
 import { useConfigStore } from '../../../store/useConfigStore'; // ✅ لجلب الاتجاه
+import { useToastStore } from '../../../store/useToastStore';
+import { useCreateUnit } from '../hooks/useCreateUnit';
+import { useUpdateUnit } from '../hooks/useUpdateUnit';
+import { useProjects } from '../../projects/hooks/useProjects';
 
 interface Property {
-  id: string;
+  _id: string;
+  id?: string;
+  title: string;
+  project?: {
+    _id: string;
+    name: string;
+  } | string;
   unitCode: string;
   floor?: number;
   apartment?: number;
@@ -35,6 +45,12 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
   
   const isRTL = dir === 'rtl'; // ✅ المتغير المستخدم في الـ UI
   const language = i18n.language; // ✅ المتغير المستخدم في الـ UI
+  const getProjectId = (project: any) => {
+  if (typeof project === 'object' && project !== null) {
+    return project._id || project.id;
+  }
+  return project; // لو هو string أصلاً
+};
 
   const [formData, setFormData] = useState({
     unitCode: property?.unitCode || '',
@@ -52,32 +68,63 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
     bedrooms: property?.bedrooms?.toString() || '',
     bathrooms: property?.bathrooms?.toString() || '',
     size: property?.size?.toString() || '',
+    project: getProjectId(property?.project) || '',
   });
 
-  // ✅ الحفاظ على منطق استخراج رقم الدور والشقة الذكي
-  useEffect(() => {
-    const unitCode = formData.unitCode;
-    if (/^\d{2}$/.test(unitCode) && formData.type === 'Apartment') {
-      const floor = unitCode.charAt(0);
-      const apt = unitCode.charAt(1);
-      setFormData(prev => ({ ...prev, floor: floor, apartment: apt }));
-    } else if (/^\d{3}$/.test(unitCode) && formData.type === 'Apartment') {
-      const floor = unitCode.substring(0, 2);
-      const apt = unitCode.charAt(2);
-      setFormData(prev => ({ ...prev, floor: floor, apartment: apt }));
-    }
-  }, [formData.unitCode, formData.type]);
+  const createUnit = useCreateUnit();
+const updateUnit = useUpdateUnit();
+const { triggerToast } = useToastStore();
+const { data: projectsData, isLoading: isProjectsLoading } = useProjects();
+const projectList = Array.isArray(projectsData) 
+  ? projectsData 
+  : (projectsData?.data || []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData as any);
+
+    // ✅ تحويل البيانات لـ lowercase وفلترة الحقول المرفوضة
+    const submissionData = new FormData();
+    submissionData.append('unitCode', formData.unitCode);
+    submissionData.append('type', formData.type.toLowerCase());
+    submissionData.append('purpose', formData.purpose.toLowerCase());
+    submissionData.append('status', formData.status.toLowerCase());
+    submissionData.append('project', formData.project); // MongoDB ID
+    submissionData.append('price', formData.price.toString());
+    submissionData.append('area', formData.size.toString());
+
+    const sizeValue = Math.max(0, parseFloat(formData.size) || 0);
+  submissionData.append('size', sizeValue.toString());
+
+    if (formData.type !== 'Commercial') {
+    // نضمن إن القيمة رقم $\ge 0$
+    const beds = Math.max(0, parseInt(formData.bedrooms) || 0);
+    const baths = Math.max(0, parseInt(formData.bathrooms) || 0);
+    
+    submissionData.append('bedrooms', beds.toString());
+    submissionData.append('bathrooms', baths.toString());
+  }
+
+    if (property) {
+      updateUnit.mutate({ id: property._id || property.id, data: submissionData }, {
+        onSuccess: () => { triggerToast("تم التحديث ✅", "success"); onClose(); }
+      });
+    } else {
+      createUnit.mutate(submissionData, {
+        onSuccess: () => { triggerToast("تمت الإضافة 🏗️", "success"); onClose(); },
+        onError: (err: any) => {
+          const msg = err.response?.data?.message;
+          triggerToast(Array.isArray(msg) ? msg[0] : msg, "error");
+        }
+      });
+    }
   };
 
   const areas = ['Madinaty', 'Rehab', 'Celia', 'Thousand', 'Sharm Bay'];
   const villaZones = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B11', 'B12'];
   const phases = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B09', 'B010', 'B011', 'B012', 'B013', 'B014', 'B015', 'V02', 'V03', 'V04', 'V05', 'V06', 'V07'];
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto" dir={isRTL ? 'rtl' : 'ltr'}>
         {/* Header */}
         <div className={`sticky top-0 bg-white border-b border-[#E5E5E5] px-6 py-4 flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -96,6 +143,25 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Unit Code */}
+            <div className="md:col-span-2">
+              <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t('properties.project')} *
+              </label>
+              <select
+                value={formData.project}
+                onChange={(e) => setFormData({ ...formData, project: e.target.value })}
+                className="w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]"
+                required
+                disabled={isProjectsLoading}
+              >
+                <option value="">{isProjectsLoading ? 'جاري التحميل...' : t('properties.selectProject')}</option>
+                {projectList.map((proj: any) => (
+                  <option key={proj._id} value={proj._id}>
+                    {language === 'ar' ? (proj.nameAr || proj.name) : proj.name}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div>
               <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                 {t('properties.unitCode')} *
@@ -103,7 +169,26 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
               <input
                 type="text"
                 value={formData.unitCode}
-                onChange={(e) => setFormData({ ...formData, unitCode: e.target.value })}
+                onChange={(e) => {
+    const val = e.target.value;
+    let autoData = {};
+
+    // ✅ المنطق الذكي بتاعك نقله هنا ليكون "مباشر"
+    if (formData.type === 'Apartment') {
+      if (/^\d{2}$/.test(val)) {
+        autoData = { floor: val.charAt(0), apartment: val.charAt(1) };
+      } else if (/^\d{3}$/.test(val)) {
+        autoData = { floor: val.substring(0, 2), apartment: val.charAt(2) };
+      }
+    }
+
+    // ✅ تحديث كل الحقول في خبطة واحدة (Render واحد بس)
+    setFormData(prev => ({ 
+      ...prev, 
+      unitCode: val, 
+      ...autoData 
+    }));
+  }}
                 className="w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]"
                 placeholder={isRTL ? 'مثال: 34, B1-045, COM-012' : 'e.g., 34, B1-045, COM-012'}
                 required
@@ -328,6 +413,7 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
               </label>
               <input
                 type="number"
+                min="0"
                 value={formData.size}
                 onChange={(e) => setFormData({ ...formData, size: e.target.value })}
                 className="w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]"
@@ -374,18 +460,15 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
 
           {/* Actions */}
           <div className={`flex items-center gap-3 mt-8 pt-6 border-t border-[#E5E5E5] ${isRTL ? 'flex-row-reverse justify-end' : 'justify-end'}`}>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-2 border border-[#E5E5E5] rounded-lg text-[#555555] hover:bg-[#F7F7F7] transition-colors"
-            >
+            <button type="button" onClick={onClose} className="px-6 py-2 border border-[#E5E5E5] rounded-lg text-[#555555]">
               {t('properties.cancel')}
             </button>
             <button
               type="submit"
-              className="px-6 py-2 gradient-primary text-white rounded-lg hover:opacity-90 transition-all"
+              disabled={createUnit.isPending || updateUnit.isPending}
+              className="px-6 py-2 gradient-primary text-white rounded-lg hover:opacity-90 disabled:opacity-50"
             >
-              {property ? t('properties.saveChanges') : t('properties.addProperty')}
+              {createUnit.isPending || updateUnit.isPending ? '...' : (property ? t('properties.saveChanges') : t('properties.addProperty'))}
             </button>
           </div>
         </form>

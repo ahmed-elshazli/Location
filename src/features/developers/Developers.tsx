@@ -23,6 +23,7 @@ import { useDevelopersSummary } from "./hooks/useDevelopersSummary";
 import { useIndividualDevSummary } from "./hooks/useIndividualDevSummary";
 import { useDeleteDeveloper } from "./hooks/useDeleteDeveloper";
 import { useUpdateDeveloper } from "./hooks/useUpdateDeveloper";
+import { useToastStore } from "../../store/useToastStore";
 
 const developerSchema = z.object({
   name: z.string().min(3, "الاسم يجب أن يكون 3 حروف على الأقل"),
@@ -62,6 +63,7 @@ const updateDeveloper = useUpdateDeveloper();
   });
   const [currentArea, setCurrentArea] = useState("");
   const { data: summary, isLoading: isSummaryLoading } = useDevelopersSummary();
+  const { triggerToast } = useToastStore();
 
   const devList = Array.isArray(backendDevs)
     ? backendDevs
@@ -87,11 +89,7 @@ const updateDeveloper = useUpdateDeveloper();
   });
 
   // 2. دالة إظهار الإشعار (triggerToast)
-  const triggerToast = (msg: string, type: "success" | "error") => {
-    setToast({ show: true, msg, type });
-    // الإشعار بيختفي أوتوماتيك بعد 4 ثواني
-    setTimeout(() => setToast((prev) => ({ ...prev, show: false })), 4000);
-  };
+  
 
   const addArea = () => {
     if (currentArea.trim() && !formData.area.includes(currentArea.trim())) {
@@ -581,39 +579,7 @@ const handleDeleteDeveloper = (id: string, name: string) => {
         </div>
       )}
 
-      {toast.show && (
-        <div
-          className={`fixed bottom-10 ${isRTL ? "left-10" : "right-10"} z-[100] animate-in fade-in slide-in-from-bottom-5 duration-300`}
-        >
-          <div
-            className={`bg-white border-r-4 ${toast.type === "success" ? "border-[#B5752A]" : "border-red-600"} shadow-2xl rounded-xl p-4 flex items-center gap-4 min-w-[320px]`}
-          >
-            <div
-              className={`${toast.type === "success" ? "bg-green-100" : "bg-red-100"} p-2 rounded-full`}
-            >
-              {toast.type === "success" ? (
-                <UserCheck className="w-6 h-6 text-green-600" />
-              ) : (
-                <Shield className="w-6 h-6 text-red-600" />
-              )}
-            </div>
-            <div className={isRTL ? "text-right" : "text-left"}>
-              <h4 className="text-[#16100A] font-bold text-sm">
-                {toast.type === "success"
-                  ? t("common:common.success")
-                  : t("common:common.error")}
-              </h4>
-              <p className="text-[#555555] text-xs">{toast.msg}</p>
-            </div>
-            <button
-              onClick={() => setToast({ ...toast, show: false })}
-              className="ms-auto p-1 hover:bg-gray-100 rounded-full"
-            >
-              <Plus className="w-4 h-4 rotate-45 text-gray-400" />
-            </button>
-          </div>
-        </div>
-      )}
+      
     </div>
   );
 }

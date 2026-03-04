@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useConfigStore } from './store/useConfigStore'; // استيراد مخزن الإعدادات
 import { router } from './routes';
 import './global.css';
+import { Toast } from './components/ui/Toast';
 
 // 1. إعداد Query Client لإدارة الكاش بجودة احترافية
 const queryClient = new QueryClient({
@@ -29,6 +30,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       
+      <Toast />
       {/* 4. Suspense للتعامل مع تحميل الميزات بنظام Lazy Loading */}
       <Suspense 
         fallback={
