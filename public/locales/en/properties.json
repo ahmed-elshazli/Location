@@ -57,6 +57,23 @@
     "unitCodeHint": "For apartments: 2-digit code auto-extracts floor & apt",
     "selectProject": "Select Project",
     "sellUnit": "Sell Unit",
-  "successSell": " Unit sold successfully "
+  "successSell": " Unit sold successfully ",
+  "size": "Size",
+  "delete": "Delete",
+  "images": "Images",
+  "addImages": "Add Images",
+  "duplex": "Duplex",
+  "townhouse": "Townhouse",
+  "studio": "Studio",
+  "penthouse": "Penthouse",
+  "selectArea": "Select Area",
+  "uploadImages": "Upload Images",
+  "deliveryDate": "Delivery Date",
+  "overview": "Overview",
+  "specifications": "Specifications",
+  "contactAgent": "Contact Agent",
+  "scheduleViewing": "Schedule Viewing",
+  "backToList": "Back to List",
+  "fullPrice": "Full Price"
   }
 }

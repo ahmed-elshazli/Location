@@ -1,26 +1,36 @@
 import { api } from '../../../utils/axios';
 
 // إنشاء وحدة جديدة مربوطة بمشروع
+// تحديث الدالة لتبعت البيانات كـ multipart/form-data
 export const createUnitApi = async (formData: FormData) => {
-  // سيب Axios يحدد الـ Boundary أوتوماتيك
-  const response = await api.post('/api/v1/units', formData);
+  const response = await api.post('/api/v1/units', formData, {
+    headers: {
+      // ✅ إخبار السيرفر إن فيه ملفات مبعوثة
+      'Content-Type': 'multipart/form-data',
+    },
+  });
   return response.data;
 };
-
 // جلب جميع الوحدات من قاعدة البيانات
-export const getAllUnitsApi = async () => {
-  const response = await api.get('/api/v1/units/all');
-  // السيرفر غالباً بيرجع مصفوفة (Array) من الوحدات داخل كائن
-  return response.data; 
+// جلب جميع الوحدات من قاعدة البيانات
+export const getAllUnitsApi = async (page: number = 1) => {
+  const response = await api.get('/api/v1/units/all', {
+    params: { page, limit: 10 },
+  });
+  return response.data;
 };
 
 // تحديث بيانات وحدة موجودة
+// تحديث دالة التعديل لتدعم رفع الملفات (Images)
 export const updateUnitApi = async ({ id, data }: { id: string; data: FormData }) => {
-  // ✅ إرسال PATCH بالـ ID والـ FormData
-  const response = await api.patch(`/api/v1/units/${id}`, data);
+  const response = await api.patch(`/api/v1/units/${id}`, data, {
+    headers: {
+      // ✅ إخبار السيرفر أن الطلب يحتوي على ملفات ونصوص مختلطة
+      'Content-Type': 'multipart/form-data',
+    },
+  });
   return response.data;
 };
-
 // حذف وحدة معينة باستخدام المعرف الفريد (ID)
 export const deleteUnitApi = async (id: string) => {
   const response = await api.delete(`/api/v1/units/${id}`);
@@ -30,5 +40,10 @@ export const deleteUnitApi = async (id: string) => {
 // تحويل حالة الوحدة إلى "مباعة"
 export const sellUnitApi = async (id: string) => {
   const response = await api.patch(`/api/v1/units/${id}/sell`);
+  return response.data;
+};
+
+export const getAllUnitsWithoutPaginationApi = async () => {
+  const response = await api.get('/api/v1/units/all');
   return response.data;
 };

@@ -18,6 +18,8 @@
     "mediumAvailability": "Medium Availability",
     "lowAvailability": "Low Availability",
     "availability": "Availability",
-    "group": "Group"
+    "group": "Group",
+    "commercialZone": "Commercial Zone",
+    "residential": "Residential"
   }
 }

@@ -11,6 +11,17 @@
     "totalRevenue": "إجمالي الإيرادات",
     "clientId": "كود العميل",
     "clientSince": "عميل منذ",
-    "propertiesOwned": "العقارات المملوكة"
+    "propertiesOwned": "العقارات المملوكة",
+    "editClient": "تحرير العميل",
+    "backToList": "العودة لقائمة العملاء",
+    "totalSpent": "المصاريف الكلية",
+    "totalProperties": "العقارات الكلية",
+    "createNewDeal": "انشاء صفقة جديدة",
+    "scheduleCall": "جدولة الاتصال",
+    "sendEmail": "ارسال البريد الالكتروني",
+    "phone": "الهاتف",
+    "email": "البريد الالكتروني",
+    "contactInfo": "معلومات الاتصال",
+    "quickActions": "اقصاصات سريعة"
   }
 }

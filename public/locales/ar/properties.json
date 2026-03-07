@@ -57,6 +57,23 @@
     "unitCodeHint": "للشقق: كود مكون من رقمين يحدد الطابق والشقة تلقائياً",
     "selectProject": "اختر المشروع",
     "sellUnit": "بيع الوحدة",
-  "successSell": " تم تسجيل عملية البيع بنجاح "
+  "successSell": " تم تسجيل عملية البيع بنجاح ",
+  "size": "الحجم",
+  "delete": "حذف",
+  "images": "صور",
+  "addImages": "اضافة صور",
+  "duplex": "دبلكس",
+  "townhouse": "منزل",
+  "studio": "ستوديو",
+  "penthouse": "بينتهاوس",
+  "selectArea": "اختر المنطقة",
+  "uploadImages": "تحميل الصور",
+  "deliveryDate": "تاريخ التسليم",
+  "overview": "نظرة عامة",
+  "specifications": "المواصفات",
+  "contactAgent": "اتصل بالوكيل",
+  "scheduleViewing": "جدولة النظرة",
+  "backToList": "العودة للقائمة",
+  "fullPrice": "السعر الكامل"
   }
 }

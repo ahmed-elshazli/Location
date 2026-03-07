@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { getAllUnitsApi } from '../api/unitsApi';
 
-export const useUnits = () => {
+export const useUnits = (page: number = 1) => {
   return useQuery({
-    queryKey: ['units'], // مفتاح الكاش لسهولة الوصول للبيانات
-    queryFn: getAllUnitsApi,
-    staleTime: 5 * 60 * 1000, // البيانات تظل حديثة في الكاش لمدة 5 دقائق
+    queryKey: ['units', page],
+    queryFn: () => getAllUnitsApi(page),
+    staleTime: 5 * 60 * 1000,
+    placeholderData: (prev) => prev,
   });
 };

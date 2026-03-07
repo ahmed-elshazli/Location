@@ -6,6 +6,7 @@ interface ConfigState {
   lang: 'en' | 'ar';
   dir: 'ltr' | 'rtl';
   setLanguage: (lang: 'en' | 'ar') => void;
+  
 }
 
 export const useConfigStore = create<ConfigState>()(

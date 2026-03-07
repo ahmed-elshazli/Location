@@ -3,11 +3,13 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 
 export const ProtectedRoute = () => {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, _hasHydrated } = useAuthStore();
 
-  // لو مفيش توكن ارجع للوجين
+  // لو لسه بيحمل البيانات من الـ storage، ما تعملش Redirect
+  if (!_hasHydrated) return null; 
+
   if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/" replace />; // ✅ العودة للـ Root وليس /login
   }
 
   return <Outlet />;

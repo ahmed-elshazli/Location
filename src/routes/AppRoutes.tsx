@@ -10,7 +10,7 @@ const Dashboard = lazy(() => import('../features/dashboard/Dashboard'));
 const Leads = lazy(() => import('../features/leads/Leads'));
 // يمكنك ربط المسارات بنفس المكون مؤقتاً كما طلبت
 const Properties = lazy(() => import('../features/properties/Properties')); 
-const Calendar = lazy(() => import('../features/calendar/Calendar')); 
+const CalendarView = lazy(() => import('../features/calendar/CalendarView')); 
 const UsersManagement = lazy(() => import('../features/users/UsersManagement')); 
 const Clients = lazy(() => import('../features/clients/Clients')); 
 const Developers = lazy(() => import('../features/developers/Developers')); 
@@ -19,6 +19,9 @@ const Areas = lazy(() => import('../features/areas/Areas'));
 const Reports = lazy(() => import('../features/reports/Reports')); 
 const SystemSettings = lazy(() => import('../features/settings/SystemSettings')); 
 const Deals = lazy(() => import('../features/deals/Deals')); 
+const PropertyDetails = lazy(() => import('../features/properties/PropertyDetails')); 
+const ClientDetails = lazy(() => import('../features/clients/ClientDetails')); 
+const Profile = lazy(() => import('../features/users/Profile')); 
 
 export const AppRoutes = () => {
   const { token } = useAuthStore();
@@ -52,9 +55,10 @@ export const AppRoutes = () => {
     }>
       <Routes>
         {/* ✅ 2. المسار الافتراضي هو صفحة اللوجن */}
-        <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
-
-        {/* ✅ 3. المسارات المحمية داخل الـ Layout لظهار السايدبار */}
+        <Route 
+    path="/" 
+    element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} 
+  />       {/* ✅ 3. المسارات المحمية داخل الـ Layout لظهار السايدبار */}
         <Route element={<ProtectedRoute />}>
           <Route element={<Layout  />}>
             {/* المسارات المشتركة والمستقلة بناءً على السايدبار */}
@@ -69,9 +73,12 @@ export const AppRoutes = () => {
             <Route path="developers" element={<Developers />} />
             <Route path="projects" element={<Projects/>} />
             <Route path="areas" element={<Areas />} />
-            <Route path="calendar" element={<Calendar />} />
+            <Route path="calendar" element={<CalendarView />} />
             <Route path="reports" element={<Reports />} />
             <Route path="settings" element={<SystemSettings />} />
+            <Route path="properties/:id" element={<PropertyDetails />} />
+            <Route path="clients/:id" element={<ClientDetails />} />
+            <Route path="profile" element={<Profile />} />
           </Route>
         </Route>
 

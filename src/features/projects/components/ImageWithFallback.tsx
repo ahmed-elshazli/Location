@@ -11,8 +11,9 @@ export function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElemen
   }
 
   const { src, alt, style, className, ...rest } = props
+    const shouldShowFallback = didError || !src;
 
-  return didError ? (
+  return shouldShowFallback ? (
     <div
       className={`inline-block bg-gray-100 text-center align-middle ${className ?? ''}`}
       style={style}

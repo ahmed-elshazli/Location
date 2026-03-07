@@ -18,6 +18,8 @@
     "mediumAvailability": "توفر متوسط",
     "lowAvailability": "توفر منخفض",
     "availability": "حالة التوفر",
-    "group": "المجموعة"
+    "group": "المجموعة",
+    "commercialZone": "منطقة تجارية",
+    "residential": "مسكن"
   }
 }

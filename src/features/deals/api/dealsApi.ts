@@ -1,10 +1,11 @@
 import { api } from "../../../utils/axios";
 
 // جلب قائمة الصفقات (العمليات الناجحة)
-export const getDealsApi = async () => {
-  const response = await api.get('/api/v1/deals');
-  // تأكد من شكل الـ Response (غالباً بيبقى { data: [...] })
-  return response.data;
+export const getAllDealsApi = async (page: number = 1) => {
+  const response = await api.get('/api/v1/deals', {
+    params: { page, limit: 10 },
+  });
+  return response.data; // { results, pagination, data }
 };
 
 // إضافة صفقة جديدة

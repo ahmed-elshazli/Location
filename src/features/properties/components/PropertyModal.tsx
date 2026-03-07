@@ -1,20 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
-import { useTranslation } from 'react-i18next'; // ✅ البديل الصحيح
-import { useConfigStore } from '../../../store/useConfigStore'; // ✅ لجلب الاتجاه
+import React, { useState } from 'react';
+import { Upload, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { useConfigStore } from '../../../store/useConfigStore';
 import { useToastStore } from '../../../store/useToastStore';
 import { useCreateUnit } from '../hooks/useCreateUnit';
 import { useUpdateUnit } from '../hooks/useUpdateUnit';
 import { useProjects } from '../../projects/hooks/useProjects';
+import { useAreas } from '../../areas/hooks/useAreas';
 
 interface Property {
   _id: string;
   id?: string;
-  title: string;
-  project?: {
-    _id: string;
-    name: string;
-  } | string;
+  title?: string;
+  name?: string;
+  project?: { _id: string; name: string } | string;
   unitCode: string;
   floor?: number;
   apartment?: number;
@@ -24,12 +23,13 @@ interface Property {
   area: string;
   villaZone?: string;
   phase?: string;
-  developer: string;
+  developer?: string;
   price: number;
   status: 'Available' | 'Reserved' | 'Sold';
   bedrooms?: number;
   bathrooms?: number;
   size: number;
+  images?: string[];
 }
 
 interface PropertyModalProps {
@@ -39,18 +39,15 @@ interface PropertyModalProps {
 }
 
 export function PropertyModal({ property, onClose, onSave }: PropertyModalProps) {
-  // ✅ ربط المتغيرات بالسيستم الجديد
-  const { t, i18n } = useTranslation('properties'); 
-  const { dir } = useConfigStore(); 
-  
-  const isRTL = dir === 'rtl'; // ✅ المتغير المستخدم في الـ UI
-  const language = i18n.language; // ✅ المتغير المستخدم في الـ UI
+  const { t, i18n } = useTranslation('properties');
+  const { dir } = useConfigStore();
+  const isRTL = dir === 'rtl';
+  const language = i18n.language;
+
   const getProjectId = (project: any) => {
-  if (typeof project === 'object' && project !== null) {
-    return project._id || project.id;
-  }
-  return project; // لو هو string أصلاً
-};
+    if (typeof project === 'object' && project !== null) return project._id || project.id;
+    return project;
+  };
 
   const [formData, setFormData] = useState({
     unitCode: property?.unitCode || '',
@@ -58,177 +55,163 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
     apartment: property?.apartment?.toString() || '',
     purpose: property?.purpose || 'Sale',
     constructionStatus: property?.constructionStatus || 'Ready',
-    type: property?.type || 'Apartment',
-    area: property?.area || 'Madinaty',
+    type: (property?.type?.toLowerCase() as any) || 'apartment',
+    area: property?.area || '',
     villaZone: property?.villaZone || '',
     phase: property?.phase || '',
     developer: property?.developer || 'Talaat Moustafa',
     price: property?.price?.toString() || '',
-    status: property?.status || 'Available',
+    status: (property?.status?.toLowerCase() as any) || 'available',
     bedrooms: property?.bedrooms?.toString() || '',
     bathrooms: property?.bathrooms?.toString() || '',
     size: property?.size?.toString() || '',
     project: getProjectId(property?.project) || '',
   });
 
-  const createUnit = useCreateUnit();
-const updateUnit = useUpdateUnit();
-const { triggerToast } = useToastStore();
-const { data: projectsData, isLoading: isProjectsLoading } = useProjects();
-const projectList = Array.isArray(projectsData) 
-  ? projectsData 
-  : (projectsData?.data || []);
+  const [existingImages, setExistingImages] = useState<string[]>(property?.images || []);
+  const [newFiles, setNewFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
 
-  
+  const createUnit = useCreateUnit();
+  const updateUnit = useUpdateUnit();
+  const { triggerToast } = useToastStore();
+
+  const { data: projectsData, isLoading: isProjectsLoading } = useProjects();
+  const projectList = Array.isArray(projectsData?.data) ? projectsData.data : (Array.isArray(projectsData) ? projectsData : []);
+
+  const { data: areasData } = useAreas?.() || { data: null };
+  const areaList: { _id: string; name: string; nameAr?: string }[] = areasData?.data || areasData || [
+    { _id: 'madinaty', name: 'Madinaty', nameAr: 'مدينتي' },
+    { _id: 'rehab', name: 'Rehab', nameAr: 'الرحاب' },
+    { _id: 'celia', name: 'Celia', nameAr: 'سيليا' },
+    { _id: 'thousand', name: 'Thousand', nameAr: 'ألف مسكن' },
+    { _id: 'sharmbay', name: 'Sharm Bay', nameAr: 'خليج شرم' },
+  ];
+
+  const villaZones = ['B1','B2','B3','B4','B5','B6','B7','B8','B9','B10','B11','B12'];
+  const phases = ['B01','B02','B03','B04','B05','B06','B07','B08','B09','B010','B011','B012','B013','B014','B015','V02','V03','V04','V05','V06','V07'];
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      setNewFiles(prev => [...prev, ...filesArray]);
+      const newPreviews = filesArray.map(file => URL.createObjectURL(file));
+      setPreviews(prev => [...prev, ...newPreviews]);
+    }
+  };
+
+  const removeExistingImage = (url: string) => setExistingImages(prev => prev.filter(img => img !== url));
+  const removeNewFile = (index: number) => {
+    setNewFiles(prev => prev.filter((_, i) => i !== index));
+    setPreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // ✅ تحويل البيانات لـ lowercase وفلترة الحقول المرفوضة
     const submissionData = new FormData();
     submissionData.append('unitCode', formData.unitCode);
+    submissionData.append('project', formData.project);       // ✅ MongoDB ObjectId
     submissionData.append('type', formData.type.toLowerCase());
     submissionData.append('purpose', formData.purpose.toLowerCase());
     submissionData.append('status', formData.status.toLowerCase());
-    submissionData.append('project', formData.project); // MongoDB ID
-    submissionData.append('price', formData.price.toString());
-    submissionData.append('area', formData.size.toString());
+    submissionData.append('area', formData.area);             // ✅ MongoDB ObjectId
+    submissionData.append('price', String(formData.price));
+    submissionData.append('size', String(formData.size));
+    submissionData.append('bedrooms', String(Math.max(0, Number(formData.bedrooms) || 0)));
+    submissionData.append('bathrooms', String(Math.max(0, Number(formData.bathrooms) || 0)));
 
-    const sizeValue = Math.max(0, parseFloat(formData.size) || 0);
-  submissionData.append('size', sizeValue.toString());
+    if (formData.phase)     submissionData.append('phase', formData.phase);
+    if (formData.floor)     submissionData.append('floor', formData.floor);
+    if (formData.apartment) submissionData.append('apartment', formData.apartment);
+    if (formData.villaZone) submissionData.append('villaZone', formData.villaZone);
 
-    if (formData.type !== 'Commercial') {
-    // نضمن إن القيمة رقم $\ge 0$
-    const beds = Math.max(0, parseInt(formData.bedrooms) || 0);
-    const baths = Math.max(0, parseInt(formData.bathrooms) || 0);
-    
-    submissionData.append('bedrooms', beds.toString());
-    submissionData.append('bathrooms', baths.toString());
-  }
+    if (newFiles.length > 0) {
+      newFiles.forEach(file => submissionData.append('images', file));
+    }
 
     if (property) {
       updateUnit.mutate({ id: property._id || property.id, data: submissionData }, {
-        onSuccess: () => { triggerToast("تم التحديث ✅", "success"); onClose(); }
+        onSuccess: () => { triggerToast("تم التحديث ✅", "success"); onClose(); },
+        onError: (err: any) => triggerToast(err.response?.data?.message || "فشل التحديث", "error"),
       });
     } else {
       createUnit.mutate(submissionData, {
-        onSuccess: () => { triggerToast("تمت الإضافة 🏗️", "success"); onClose(); },
-        onError: (err: any) => {
-          const msg = err.response?.data?.message;
-          triggerToast(Array.isArray(msg) ? msg[0] : msg, "error");
-        }
+        onSuccess: () => { triggerToast("تمت الإضافة ✅", "success"); onClose(); },
+        onError: (err: any) => triggerToast(err.response?.data?.message || "فشل الإضافة", "error"),
       });
     }
   };
 
-  const areas = ['Madinaty', 'Rehab', 'Celia', 'Thousand', 'Sharm Bay'];
-  const villaZones = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B11', 'B12'];
-  const phases = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B09', 'B010', 'B011', 'B012', 'B013', 'B014', 'B015', 'V02', 'V03', 'V04', 'V05', 'V06', 'V07'];
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto" dir={isRTL ? 'rtl' : 'ltr'}>
+      <div
+        className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-300"
+        dir={isRTL ? 'rtl' : 'ltr'}
+      >
         {/* Header */}
-        <div className={`sticky top-0 bg-white border-b border-[#E5E5E5] px-6 py-4 flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <h2 className="font-bold text-[#16100A]">
+        <div className="px-6 py-4 border-b border-[#E5E5E5] flex items-center justify-between bg-white">
+          <h2 className="text-lg font-bold text-[#16100A]">
             {property ? t('properties.editProperty') : t('properties.addProperty')}
           </h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-[#F7F7F7] rounded-lg transition-colors"
-          >
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-full transition-colors">
             <X className="w-5 h-5 text-[#555555]" />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <form onSubmit={handleSubmit} className="px-6 py-5 max-h-[80vh] overflow-y-auto">
+          <div className="grid grid-cols-2 gap-x-5 gap-y-4">
+
             {/* Unit Code */}
-            <div className="md:col-span-2">
-              <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {t('properties.project')} *
-              </label>
-              <select
-                value={formData.project}
-                onChange={(e) => setFormData({ ...formData, project: e.target.value })}
-                className="w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]"
-                required
-                disabled={isProjectsLoading}
-              >
-                <option value="">{isProjectsLoading ? 'جاري التحميل...' : t('properties.selectProject')}</option>
-                {projectList.map((proj: any) => (
-                  <option key={proj._id} value={proj._id}>
-                    {language === 'ar' ? (proj.nameAr || proj.name) : proj.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {t('properties.unitCode')} *
-              </label>
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-[#16100A]">{t('properties.unitCode')} *</label>
               <input
                 type="text"
                 value={formData.unitCode}
                 onChange={(e) => {
-    const val = e.target.value;
-    let autoData = {};
-
-    // ✅ المنطق الذكي بتاعك نقله هنا ليكون "مباشر"
-    if (formData.type === 'Apartment') {
-      if (/^\d{2}$/.test(val)) {
-        autoData = { floor: val.charAt(0), apartment: val.charAt(1) };
-      } else if (/^\d{3}$/.test(val)) {
-        autoData = { floor: val.substring(0, 2), apartment: val.charAt(2) };
-      }
-    }
-
-    // ✅ تحديث كل الحقول في خبطة واحدة (Render واحد بس)
-    setFormData(prev => ({ 
-      ...prev, 
-      unitCode: val, 
-      ...autoData 
-    }));
-  }}
-                className="w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]"
-                placeholder={isRTL ? 'مثال: 34, B1-045, COM-012' : 'e.g., 34, B1-045, COM-012'}
+                  const val = e.target.value;
+                  let autoData = {};
+                  if (formData.type === 'apartment') {
+                    if (/^\d{2}$/.test(val)) autoData = { floor: val.charAt(0), apartment: val.charAt(1) };
+                    else if (/^\d{3}$/.test(val)) autoData = { floor: val.substring(0, 2), apartment: val.charAt(2) };
+                  }
+                  setFormData(prev => ({ ...prev, unitCode: val, ...autoData }));
+                }}
+                className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm"
+                placeholder="e.g., 34, B1-045, COM-012"
                 required
                 dir="ltr"
               />
-              <p className={`text-xs text-[#555555] mt-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {t('properties.unitCodeHint')}
-              </p>
+              <p className="text-xs text-[#AAAAAA]">{t('properties.unitCodeHint')}</p>
             </div>
 
             {/* Type */}
-            <div>
-              <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {t('properties.type')} *
-              </label>
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-[#16100A]">{t('properties.type')} *</label>
               <select
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
-                className="w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]"
+                className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm bg-white"
                 required
-                dir={isRTL ? 'rtl' : 'ltr'}
               >
-                <option value="Apartment">{t('properties.apartment')}</option>
-                <option value="Villa">{t('properties.villa')}</option>
-                <option value="Commercial">{t('properties.commercial')}</option>
-                <option value="Leisure">{t('properties.leisure')}</option>
+                <option value="apartment">{t('properties.apartment')}</option>
+                <option value="villa">{t('properties.villa')}</option>
+                <option value="duplex">{t('properties.duplex')}</option>
+                <option value="townhouse">{t('properties.townhouse')}</option>
+                <option value="studio">{t('properties.studio')}</option>
+                <option value="penthouse">{t('properties.penthouse')}</option>
               </select>
             </div>
 
             {/* Purpose */}
-            <div>
-              <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {t('properties.purpose')} *
-              </label>
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-[#16100A]">{t('properties.purpose')} *</label>
               <select
                 value={formData.purpose}
                 onChange={(e) => setFormData({ ...formData, purpose: e.target.value as any })}
-                className="w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]"
+                className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm bg-white"
                 required
-                dir={isRTL ? 'rtl' : 'ltr'}
               >
                 <option value="Sale">{t('properties.sale')}</option>
                 <option value="Resale">{t('properties.resale')}</option>
@@ -237,238 +220,235 @@ const projectList = Array.isArray(projectsData)
               </select>
             </div>
 
-            {/* Construction Status (for Commercial) */}
-            {formData.purpose === 'Commercial' && (
-              <div>
-                <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {t('properties.constructionStatus')} *
-                </label>
-                <select
-                  value={formData.constructionStatus}
-                  onChange={(e) => setFormData({ ...formData, constructionStatus: e.target.value as any })}
-                  className="w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]"
-                  dir={isRTL ? 'rtl' : 'ltr'}
-                >
-                  <option value="Ready">{t('properties.ready')}</option>
-                  <option value="Under Construction">{t('properties.underConstruction')}</option>
-                </select>
-              </div>
-            )}
+            {/* ✅ Project - مطلوب من الباك */}
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-[#16100A]">{t('properties.project', 'Project')} *</label>
+              <select
+                value={formData.project}
+                onChange={(e) => setFormData({ ...formData, project: e.target.value })}
+                className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm bg-white"
+                required
+              >
+                <option value="">{isProjectsLoading ? '...' : t('properties.selectProject', 'Select Project')}</option>
+                {projectList.map((p: any) => (
+                  <option key={p._id} value={p._id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
 
             {/* Area */}
-            <div>
-              <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {t('properties.area')} *
-              </label>
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-[#16100A]">{t('properties.area')} *</label>
               <select
                 value={formData.area}
                 onChange={(e) => setFormData({ ...formData, area: e.target.value })}
-                className="w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]"
+                className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm bg-white"
                 required
-                dir={isRTL ? 'rtl' : 'ltr'}
               >
-                {areas.map(area => (
-                  <option key={area} value={area}>
-                    {language === 'ar' ? (
-                      area === 'Madinaty' ? 'مدينتي' :
-                      area === 'Rehab' ? 'الرحاب' :
-                      area === 'Celia' ? 'سيليا' :
-                      area === 'Thousand' ? 'ألف مسكن' :
-                      area === 'Sharm Bay' ? 'خليج شرم' : area
-                    ) : area}
+                <option value="">{t('properties.selectArea') || 'Select Area'}</option>
+                {areaList.map((area) => (
+                  <option key={area._id} value={area._id}>
+                    {language === 'ar' ? (area.nameAr || area.name) : area.name}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Villa Zone (for Villas only) */}
-            {formData.type === 'Villa' && (
-              <div>
-                <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {t('properties.villaZone')}
-                </label>
-                <select
-                  value={formData.villaZone}
-                  onChange={(e) => setFormData({ ...formData, villaZone: e.target.value })}
-                  className="w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]"
-                  dir={isRTL ? 'rtl' : 'ltr'}
-                >
-                  <option value="">{t('properties.selectZone')}</option>
-                  {villaZones.map(zone => (
-                    <option key={zone} value={zone}>{zone}</option>
-                  ))}
-                </select>
-              </div>
-            )}
+            {/* Phase */}
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-[#16100A]">{t('properties.phase')}</label>
+              <select
+                value={formData.phase}
+                onChange={(e) => setFormData({ ...formData, phase: e.target.value })}
+                className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm bg-white"
+              >
+                <option value="">{t('properties.selectPhase')}</option>
+                {phases.map(phase => (
+                  <option key={phase} value={phase}>{phase}</option>
+                ))}
+              </select>
+            </div>
 
-            {/* Phase (for Apartments) */}
-            {formData.type === 'Apartment' && (
-              <div>
-                <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {t('properties.phase')}
-                </label>
-                <select
-                  value={formData.phase}
-                  onChange={(e) => setFormData({ ...formData, phase: e.target.value })}
-                  className="w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]"
-                  dir={isRTL ? 'rtl' : 'ltr'}
-                >
-                  <option value="">{t('properties.selectPhase')}</option>
-                  {phases.map(phase => (
-                    <option key={phase} value={phase}>{phase}</option>
-                  ))}
-                </select>
-              </div>
-            )}
+            {/* Floor (auto-extracted) */}
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-[#16100A]">{t('properties.floor')}</label>
+              <input
+                type="text"
+                value={formData.floor}
+                readOnly
+                className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg bg-[#F7F7F7] text-sm text-[#AAAAAA]"
+                placeholder={t('properties.autoExtracted')}
+                dir="ltr"
+              />
+            </div>
 
-            {/* Floor (for Apartments, auto-filled) */}
-            {formData.type === 'Apartment' && (
-              <div>
-                <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {t('properties.floor')}
-                </label>
-                <input
-                  type="text"
-                  value={formData.floor}
-                  onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
-                  className="w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] bg-[#F7F7F7]"
-                  placeholder={t('properties.autoExtracted')}
-                  readOnly
-                  dir="ltr"
-                />
-              </div>
-            )}
-
-            {/* Apartment Number (for Apartments, auto-filled) */}
-            {formData.type === 'Apartment' && (
-              <div>
-                <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {t('properties.apartmentNumber')}
-                </label>
-                <input
-                  type="text"
-                  value={formData.apartment}
-                  onChange={(e) => setFormData({ ...formData, apartment: e.target.value })}
-                  className="w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] bg-[#F7F7F7]"
-                  placeholder={t('properties.autoExtracted')}
-                  readOnly
-                  dir="ltr"
-                />
-              </div>
-            )}
+            {/* Apartment Number (auto-extracted) */}
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-[#16100A]">{t('properties.apartmentNumber')}</label>
+              <input
+                type="text"
+                value={formData.apartment}
+                readOnly
+                className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg bg-[#F7F7F7] text-sm text-[#AAAAAA]"
+                placeholder={t('properties.autoExtracted')}
+                dir="ltr"
+              />
+            </div>
 
             {/* Developer */}
-            <div>
-              <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {t('properties.developer')} *
-              </label>
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-[#16100A]">{t('properties.developer')} *</label>
               <input
                 type="text"
                 value={formData.developer}
                 onChange={(e) => setFormData({ ...formData, developer: e.target.value })}
-                className="w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]"
+                className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm"
                 required
-                dir={isRTL ? 'rtl' : 'ltr'}
               />
             </div>
 
             {/* Price */}
-            <div>
-              <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {t('properties.price')} ({t('properties.egp')}) *
-              </label>
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-[#16100A]">{t('properties.price')} ({t('properties.egp')}) *</label>
               <input
                 type="number"
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                className="w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]"
-                placeholder={isRTL ? 'مثال: 2500000' : 'e.g., 2500000'}
+                className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm"
+                placeholder="e.g., 2500000"
                 required
                 dir="ltr"
               />
             </div>
 
             {/* Status */}
-            <div>
-              <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {t('properties.status')} *
-              </label>
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-[#16100A]">{t('properties.status')} *</label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                className="w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]"
+                className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm bg-white"
                 required
-                dir={isRTL ? 'rtl' : 'ltr'}
               >
-                <option value="Available">{t('properties.available')}</option>
-                <option value="Reserved">{t('properties.reserved')}</option>
-                <option value="Sold">{t('properties.sold')}</option>
+                <option value="available">{t('properties.available')}</option>
+                <option value="reserved">{t('properties.reserved')}</option>
+                <option value="sold">{t('properties.sold')}</option>
               </select>
             </div>
 
             {/* Size */}
-            <div>
-              <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {t('properties.size')} ({t('properties.sqm')}) *
-              </label>
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-[#16100A]">{t('properties.size')} ({t('properties.sqm')}) *</label>
               <input
                 type="number"
                 min="0"
                 value={formData.size}
                 onChange={(e) => setFormData({ ...formData, size: e.target.value })}
-                className="w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]"
-                placeholder={isRTL ? 'مثال: 180' : 'e.g., 180'}
+                className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm"
+                placeholder="e.g., 180"
                 required
                 dir="ltr"
               />
             </div>
 
-            {/* Bedrooms (not for Commercial) */}
-            {formData.type !== 'Commercial' && (
-              <div>
-                <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {t('properties.bedrooms')}
-                </label>
+            {/* Bedrooms */}
+            {formData.type !== 'commercial' && (
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-[#16100A]">{t('properties.bedrooms')}</label>
                 <input
                   type="number"
                   value={formData.bedrooms}
                   onChange={(e) => setFormData({ ...formData, bedrooms: e.target.value })}
-                  className="w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]"
-                  placeholder={isRTL ? 'مثال: 3' : 'e.g., 3'}
+                  className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm"
+                  placeholder="e.g., 3"
                   dir="ltr"
                 />
               </div>
             )}
 
-            {/* Bathrooms (not for Commercial) */}
-            {formData.type !== 'Commercial' && (
-              <div>
-                <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {t('properties.bathrooms')}
-                </label>
+            {/* Bathrooms */}
+            {formData.type !== 'commercial' && (
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-[#16100A]">{t('properties.bathrooms')}</label>
                 <input
                   type="number"
                   value={formData.bathrooms}
                   onChange={(e) => setFormData({ ...formData, bathrooms: e.target.value })}
-                  className="w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]"
-                  placeholder={isRTL ? 'مثال: 2' : 'e.g., 2'}
+                  className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm"
+                  placeholder="e.g., 2"
                   dir="ltr"
                 />
               </div>
             )}
+
+            {/* Villa Zone */}
+            {formData.type === 'villa' && (
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-[#16100A]">{t('properties.villaZone')}</label>
+                <select
+                  value={formData.villaZone}
+                  onChange={(e) => setFormData({ ...formData, villaZone: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm bg-white"
+                >
+                  <option value="">{t('properties.selectZone')}</option>
+                  {villaZones.map(zone => <option key={zone} value={zone}>{zone}</option>)}
+                </select>
+              </div>
+            )}
+
+            {/* Property Images */}
+            <div className="col-span-2 space-y-2">
+              <label className="text-sm font-medium text-[#16100A]">{t('properties.images')}</label>
+
+              {(existingImages.length > 0 || previews.length > 0) && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {existingImages.map((url, idx) => (
+                    <div key={idx} className="relative group h-16 w-16 rounded-lg overflow-hidden border">
+                      <img src={url} alt="property" className="w-full h-full object-cover" />
+                      <button type="button" onClick={() => removeExistingImage(url)}
+                        className="absolute top-0.5 right-0.5 p-0.5 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
+                  ))}
+                  {previews.map((url, idx) => (
+                    <div key={idx} className="relative group h-16 w-16 rounded-lg overflow-hidden border border-blue-200">
+                      <img src={url} alt="new" className="w-full h-full object-cover" />
+                      <button type="button" onClick={() => removeNewFile(idx)}
+                        className="absolute top-0.5 right-0.5 p-0.5 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <label className="inline-flex flex-col items-center justify-center gap-1 px-5 py-3 border border-[#E5E5E5] rounded-lg cursor-pointer hover:bg-[#F7F7F7] transition-colors w-fit">
+                <Upload className="w-5 h-5 text-[#555555]" />
+                <span className="text-sm text-[#555555]">{t('properties.uploadImages') || 'Upload Images'}</span>
+<input type="file" multiple onChange={handleFileChange} className="hidden" accept="image/jpeg,image/jpg,image/webp" />
+              </label>
+            </div>
+
           </div>
 
-          {/* Actions */}
-          <div className={`flex items-center gap-3 mt-8 pt-6 border-t border-[#E5E5E5] ${isRTL ? 'flex-row-reverse justify-end' : 'justify-end'}`}>
-            <button type="button" onClick={onClose} className="px-6 py-2 border border-[#E5E5E5] rounded-lg text-[#555555]">
+          {/* Footer */}
+          <div className="flex items-center justify-end gap-3 mt-6 pt-5 border-t border-[#E5E5E5]">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-2 border border-[#E5E5E5] rounded-lg text-sm text-[#555555] hover:bg-gray-50 transition-colors"
+            >
               {t('properties.cancel')}
             </button>
             <button
               type="submit"
               disabled={createUnit.isPending || updateUnit.isPending}
-              className="px-6 py-2 gradient-primary text-white rounded-lg hover:opacity-90 disabled:opacity-50"
+              className="px-6 py-2 gradient-primary text-white rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-all"
             >
-              {createUnit.isPending || updateUnit.isPending ? '...' : (property ? t('properties.saveChanges') : t('properties.addProperty'))}
+              {createUnit.isPending || updateUnit.isPending
+                ? '...'
+                : property ? t('properties.saveChanges') : t('properties.addProperty')}
             </button>
           </div>
         </form>

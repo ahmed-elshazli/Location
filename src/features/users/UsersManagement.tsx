@@ -194,11 +194,21 @@ const usersList = Array.isArray(backendUsers)
 
 // 3. ثالثاً: الفلترة دلوقت هتشتغل من غير ما التطبيق ينهار
 const filteredUsers = usersList.filter((u: any) => {
+  // 1. منطق البحث (بالاسم أو الإيميل)
+  const searchTermLower = searchTerm.toLowerCase();
   const matchesSearch = 
-    (u.fullName?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (u.email?.toLowerCase().includes(searchTerm.toLowerCase()));
+    (u.fullName?.toLowerCase().includes(searchTermLower)) ||
+    (u.email?.toLowerCase().includes(searchTermLower));
     
-  return matchesSearch && (filterRole === 'all' || u.role === filterRole);
+  // 2. منطق الدور (Role)
+  const matchesRole = filterRole === 'all' || u.role === filterRole;
+
+  // 3. ✅ منطق الحالة (Status) - التصليح هنا
+  // بنقارن القيمة المختارة (filterStatus) مع حالة المستخدم (u.isActive أو u.status)
+  const matchesStatus = filterStatus === 'all' || (
+    filterStatus === 'active' ? u.isActive === true : u.isActive === false
+  );
+  return matchesSearch && matchesRole && matchesStatus;
 });
 
 // دالة إظهار الإشعار
@@ -476,14 +486,16 @@ onClick={() => setIsModalOpen(true)}            disabled={currentUser?.role !== 
         <p className="text-sm text-[#555555]" dir="ltr">{userData.phone}</p>
       </td>
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded text-xs font-medium border ${
-                      userData.status === 'active' 
-                        ? 'bg-green-50 text-green-700 border-green-200'
-                        : 'bg-gray-50 text-gray-700 border-gray-200'
-                    }`}>
-                      {userData.status === 'active' ? t('users.active') : t('users.inactive')}
-                    </span>
-                  </td>
+  <span className={`px-2 py-1 rounded text-xs font-medium border ${
+    // السيرفر بيبعت isActive: true أو isActive: false
+    userData.isActive 
+      ? 'bg-green-50 text-green-700 border-green-200' // لون أخضر لو true
+      : 'bg-gray-50 text-gray-700 border-gray-200'  // لون رمادي لو false
+  }`}>
+    {/* التحقق من القيمة لعرض النص المترجم */}
+    {userData.isActive ? t('users.active') : t('users.inactive')}
+  </span>
+</td>
                   <td className="px-6 py-4">
                     <span className="text-sm text-[#555555]" dir="ltr">
                       {new Date(userData.joinedDate).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US')}

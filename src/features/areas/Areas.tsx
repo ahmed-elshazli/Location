@@ -1,111 +1,409 @@
 import React, { useState } from 'react';
-import { Plus, Search, MapPin, Building2, Home, Edit2 } from 'lucide-react';
-import { useTranslation } from 'react-i18next'; // ✅ البديل الصحيح
-import { useConfigStore } from '../../store/useConfigStore'; // ✅ لجلب الاتجاه
-import { useAuthStore } from '../../store/useAuthStore'; // ✅ لجلب بيانات المستخدم
+import { Plus, Search, MapPin, Building2, Home, Edit2, Trash2, X, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { useConfigStore } from '../../store/useConfigStore';
+import { useAuthStore } from '../../store/useAuthStore';
+import { useToastStore } from '../../store/useToastStore';
+import { useAreas } from './hooks/useAreas';
+import { useProjects } from '../projects/hooks/useProjects';
+import { useCreateArea } from './hooks/useCreateArea';
+import { useUpdateArea } from './hooks/useUpdateArea';
+import { useDeleteArea } from './hooks/useDeleteArea';
 
-// ... (واجهة Area ومصفوفة mockAreas تبقى كما هي تماماً)
+// ─── Types ────────────────────────────────────────────────────────────────────
+type AreaType = 'villaZone' | 'apartmentZone' | 'commercialZone' | 'RESIDENTIAL';
 
 interface Area {
-  id: string;
+  _id: string;
+  id?: string;
   name: string;
-  nameAr: string;
-  city: string;
-  cityAr: string;
+  nameAr?: string;
+  location: string;      // ✅ الباك بيبعت location مش city
+  cityAr?: string;
   zone?: string;
   group?: string;
   groupAr?: string;
-  type: 'Villa Zone' | 'Apartment Zone' | 'Service Area' | 'Mixed';
-  units: number;
-  availableUnits: number;
-  description: string;
-  descriptionAr: string;
+  type: AreaType;
+  stats: {               // ✅ الباك بيبعت stats object
+    totalUnits: number;
+    availableUnits: number;
+    availabilityPercentage: number;
+  };
+  description?: string;
+  descriptionAr?: string;
+  project?: string;  // ✅ MongoDB ObjectId
 }
 
-const mockAreas: Area[] = [
-  // Madinaty Villa Zones
-  { id: '1', name: 'B1', nameAr: 'ب1', city: 'Madinaty', cityAr: 'مدينتي', zone: 'B1', group: 'Villa Zones', groupAr: 'مناطق الفلل', type: 'Villa Zone', units: 125, availableUnits: 34, description: 'Premium villa zone with large plots', descriptionAr: 'منطقة فلل فاخرة بقطع أراضي كبيرة' },
-  { id: '2', name: 'B2', nameAr: 'ب2', city: 'Madinaty', cityAr: 'مدينتي', zone: 'B2', group: 'Villa Zones', groupAr: 'مناطق الفلل', type: 'Villa Zone', units: 118, availableUnits: 28, description: 'Family-oriented villa community', descriptionAr: 'مجتمع فلل موجه للعائلات' },
-  { id: '3', name: 'B3', nameAr: 'ب3', city: 'Madinaty', cityAr: 'مدينتي', zone: 'B3', group: 'Villa Zones', groupAr: 'مناطق الفلل', type: 'Villa Zone', units: 132, availableUnits: 41, description: 'Luxury villas with modern design', descriptionAr: 'فلل فاخرة بتصميم عصري' },
-  { id: '4', name: 'B6', nameAr: 'ب6', city: 'Madinaty', cityAr: 'مدينتي', zone: 'B6', group: 'Villa Zones', groupAr: 'مناطق الفلل', type: 'Villa Zone', units: 145, availableUnits: 52, description: 'Premium villa zone near amenities', descriptionAr: 'منطقة فلل فاخرة بالقرب من المرافق' },
-  { id: '5', name: 'B7', nameAr: 'ب7', city: 'Madinaty', cityAr: 'مدينتي', zone: 'B7', group: 'Villa Zones', groupAr: 'مناطق الفلل', type: 'Villa Zone', units: 138, availableUnits: 45, description: 'Exclusive villa community', descriptionAr: 'مجتمع فلل حصري' },
-  { id: '6', name: 'B8', nameAr: 'ب8', city: 'Madinaty', cityAr: 'مدينتي', zone: 'B8', group: 'Villa Zones', groupAr: 'مناطق الفلل', type: 'Villa Zone', units: 122, availableUnits: 38, description: 'Garden villas with green spaces', descriptionAr: 'فلل حديقة مع مساحات خضراء' },
-  { id: '7', name: 'B10', nameAr: 'ب10', city: 'Madinaty', cityAr: 'مدينتي', zone: 'B10', group: 'Villa Zones', groupAr: 'مناطق الفلل', type: 'Villa Zone', units: 115, availableUnits: 32, description: 'Modern villa designs', descriptionAr: 'تصميمات فلل عصرية' },
-  { id: '8', name: 'B11', nameAr: 'ب11', city: 'Madinaty', cityAr: 'مدينتي', zone: 'B11', group: 'Villa Zones', groupAr: 'مناطق الفلل', type: 'Villa Zone', units: 128, availableUnits: 36, description: 'Premium location villas', descriptionAr: 'فلل في موقع متميز' },
-  { id: '9', name: 'B12', nameAr: 'ب12', city: 'Madinaty', cityAr: 'مدينتي', zone: 'B12', group: 'Villa Zones', groupAr: 'مناطق الفلل', type: 'Villa Zone', units: 135, availableUnits: 48, description: 'Spacious villa community', descriptionAr: 'مجتمع فلل واسع' },
-  
-  // Madinaty Apartment Zones
-  { id: '10', name: 'Madinaty Apartments', nameAr: 'شقق مدينتي', city: 'Madinaty', cityAr: 'مدينتي', group: 'Apartment Zones', groupAr: 'مناطق الشقق', type: 'Apartment Zone', units: 450, availableUnits: 145, description: 'Modern apartment buildings with amenities', descriptionAr: 'مباني شقق عصرية بمرافق متكاملة' },
-  
-  // Other Areas
-  { id: '11', name: 'Rehab', nameAr: 'الرحاب', city: 'New Cairo', cityAr: 'القاهرة الجديدة', type: 'Mixed', units: 380, availableUnits: 142, description: 'Established residential community', descriptionAr: 'مجتمع سكني راسخ' },
-  { id: '12', name: 'Celia', nameAr: 'سيليا', city: 'Fifth Settlement', cityAr: 'التجمع الخامس', type: 'Apartment Zone', units: 280, availableUnits: 87, description: 'High-rise luxury apartments', descriptionAr: 'شقق فاخرة عالية الارتفاع' },
-  { id: '13', name: 'Thousand', nameAr: 'ألف', city: 'North Coast', cityAr: 'الساحل الشمالي', type: 'Villa Zone', units: 550, availableUnits: 245, description: 'Beachfront villa community', descriptionAr: 'مجتمع فلل على الشاطئ' },
-  { id: '14', name: 'Sharm Bay', nameAr: 'شرم باي', city: 'Sharm El Sheikh', cityAr: 'شرم الشيخ', type: 'Mixed', units: 180, availableUnits: 134, description: 'Resort properties and residences', descriptionAr: 'عقارات منتجع ووحدات سكنية' },
-];
+// ─── AreaModal ────────────────────────────────────────────────────────────────
+interface AreaModalProps {
+  area: Area | null;
+  onClose: () => void;
+  onSave: (data: Partial<Area>) => void;
+  isPending: boolean;
+}
 
-export default function Areas() { // ✅ جعلناه Default Export لحل مشكلة الـ Lazy Loading
+function AreaModal({ area, onClose, onSave, isPending }: AreaModalProps) {
+  const { t } = useTranslation(['areas', 'common']);
+  const { dir } = useConfigStore();
+  const isRTL = dir === 'rtl';
+
+  const { data: projectsData } = useProjects();
+  const projectList = projectsData?.data || projectsData || [];
+
+  const [formData, setFormData] = useState<Partial<Area>>({
+    _id:         area?._id         || '',   // ✅ مهم للـ PATCH
+    project:     area?.project      || '',
+    name:        area?.name        || '',
+    nameAr:      area?.nameAr      || '',
+    location:    area?.location    || '',
+    zone:        area?.zone        || '',
+    group:       area?.group       || '',
+    groupAr:     area?.groupAr     || '',
+    type:        area?.type        || 'villaZone',
+    stats: {
+      totalUnits:             area?.stats?.totalUnits            || 0,
+      availableUnits:         area?.stats?.availableUnits        || 0,
+      availabilityPercentage: area?.stats?.availabilityPercentage || 0,
+    },
+    description:   area?.description   || '',
+    descriptionAr: area?.descriptionAr || '',
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData); // formData._id موجود فيها للـ PATCH
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div
+        className="bg-white rounded-xl w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in duration-300"
+        dir={isRTL ? 'rtl' : 'ltr'}
+      >
+        {/* Header */}
+        <div className="px-6 pt-6 pb-4 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-[#16100A]">
+            {area ? t('areas.editArea') : t('areas.addArea')}
+          </h2>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full transition-colors">
+            <X className="w-5 h-5 text-[#555555]" />
+          </button>
+        </div>
+
+        {/* Auto-translation hint */}
+        <div className="mx-6 mb-4 px-4 py-3 bg-blue-50 rounded-lg border border-blue-100 flex items-center gap-2">
+          <span className="text-base">💡</span>
+          <p className="text-sm text-blue-700">{t('areas.autoTranslationHint', 'You can write in any language - auto-translation will handle the rest')}</p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit}>
+          <div className="px-6 pb-6 flex flex-col gap-4 max-h-[60vh] overflow-y-auto">
+
+            {/* Area Name + City */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-[#16100A]">{t('areas.name', 'Area Name')} *</label>
+                <div className="relative">
+                  <MapPin className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-4 h-4 text-[#999]`} />
+                  <input
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className={`w-full ${isRTL ? 'pr-9 pl-3' : 'pl-9 pr-3'} py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm`}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-[#16100A]">{t('areas.city', 'City')} *</label>
+                <div className="relative">
+                  <Building2 className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-4 h-4 text-[#999]`} />
+                  <input
+                    required
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    className={`w-full ${isRTL ? 'pr-9 pl-3' : 'pl-9 pr-3'} py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm`}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Zone + Group */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-[#16100A]">{t('areas.zone', 'Zone')}</label>
+                <input
+                  value={formData.zone}
+                  onChange={(e) => setFormData({ ...formData, zone: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-[#16100A]">{t('areas.group', 'Group')}</label>
+                <input
+                  value={formData.group}
+                  onChange={(e) => setFormData({ ...formData, group: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Project */}
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-[#16100A]">{t('areas.project', 'Project')} *</label>
+              <select
+                required
+                value={formData.project}
+                onChange={(e) => setFormData({ ...formData, project: e.target.value })}
+                className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm bg-white"
+              >
+                <option value="">{t('areas.selectProject', 'Select Project')}</option>
+                {projectList.map((p: any) => (
+                  <option key={p._id} value={p._id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Type */}
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-[#16100A]">{t('areas.type', 'Type')} *</label>
+              <select
+                required
+                value={formData.type}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value as Area['type'] })}
+                className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm bg-white"
+              >
+                <option value="villaZone">{t('areas:villaZone', 'Villa Zone')}</option>
+                <option value="apartmentZone">{t('areas:apartmentZone', 'Apartment Zone')}</option>
+                <option value="commercialZone">{t('areas:commercialZone', 'Commercial Zone')}</option>
+                <option value="RESIDENTIAL">{t('areas:residential', 'Residential')}</option>
+              </select>
+            </div>
+
+            {/* Total Units + Available Units */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-[#16100A]">{t('areas.totalUnits', 'Total Units')} *</label>
+                <input
+                  type="number"
+                  min="0"
+                  required
+                  value={formData.stats?.totalUnits}
+                  onChange={(e) => setFormData({ ...formData, stats: { ...formData.stats!, totalUnits: parseInt(e.target.value) || 0, availableUnits: formData.stats?.availableUnits || 0, availabilityPercentage: formData.stats?.availabilityPercentage || 0 } })}
+                  className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-[#16100A]">{t('areas.availableUnits', 'Available Units')}</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.stats?.availableUnits}
+                  onChange={(e) => setFormData({ ...formData, stats: { ...formData.stats!, availableUnits: parseInt(e.target.value) || 0, totalUnits: formData.stats?.totalUnits || 0, availabilityPercentage: formData.stats?.availabilityPercentage || 0 } })}
+                  className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-[#16100A]">{t('common:common.description', 'Description')}</label>
+              <div className="relative">
+                <FileText className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-3 w-4 h-4 text-[#999]`} />
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder={t('areas.descriptionPlaceholder', 'Area description...')}
+                  className={`w-full ${isRTL ? 'pr-9 pl-3' : 'pl-9 pr-3'} py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm h-24 resize-none`}
+                />
+              </div>
+            </div>
+
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-[#E5E5E5] grid grid-cols-2 gap-3">
+            <button
+              type="submit"
+              disabled={isPending}
+              className="py-3 gradient-primary text-white rounded-lg font-semibold disabled:opacity-50 text-sm"
+            >
+              {isPending ? '...' : area ? t('common:common.update', 'Update') : t('common:common.save', 'Save')}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="py-3 border border-[#E5E5E5] rounded-lg text-[#555555] hover:bg-gray-50 transition-colors text-sm font-semibold"
+            >
+              {t('common:common.cancel', 'Cancel')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Areas Page ───────────────────────────────────────────────────────────────
+export default function Areas() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
+  const [showModal, setShowModal] = useState(false);
+  const [selectedArea, setSelectedArea] = useState<Area | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const LIMIT = 9;
 
-  // ✅ ربط المتغيرات بالسيستم الجديد لضمان استقرار الصفحة
-  const { t, i18n } = useTranslation(['areas', 'common', 'properties', 'developers']); 
-  const { dir } = useConfigStore(); 
+  const { t, i18n } = useTranslation(['areas', 'common', 'properties', 'developers']);
+  const { dir } = useConfigStore();
   const { user } = useAuthStore();
-  
-  const isRTL = dir === 'rtl'; 
+  const { triggerToast } = useToastStore();
+
+  const isRTL = dir === 'rtl';
   const language = i18n.language;
 
-  // --- الحفاظ على منطق الفلترة كما هو حرفياً ---
-  const filteredAreas = mockAreas.filter(area => {
-    const matchesSearch = 
-      area.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      area.nameAr.includes(searchTerm) ||
-      area.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      area.cityAr.includes(searchTerm);
-    
+  // ✅ GET /api/v1/areas
+  const { data: areasData, isLoading } = useAreas(currentPage, LIMIT);
+  // ✅ POST /api/v1/areas
+  const createArea = useCreateArea();
+  // ✅ PATCH /api/v1/areas/{id}
+  const updateArea = useUpdateArea();
+  // ✅ DELETE /api/v1/areas/{id}
+  const deleteArea = useDeleteArea();
+
+  const areaList: Area[] = areasData?.data || [];
+  const pagination = areasData?.pagination;
+  const totalPages = pagination?.numberOfPages ?? 1;
+
+  // ✅ reset page on search/filter change
+  React.useEffect(() => { setCurrentPage(1); }, [searchTerm, filterType]);
+
+  const filteredAreas = areaList.filter(area => {
+    const matchesSearch =
+      area.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      area.nameAr?.includes(searchTerm) ||
+      area.location?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'all' || area.type === filterType;
     return matchesSearch && matchesType;
   });
 
-  // الخريطة (Madinaty Villa Zones Map)
-  const madinatyVillaZones = mockAreas.filter(area => 
-    area.city === 'Madinaty' && area.type === 'Villa Zone'
-  );
+  // ✅ كل الـ areas من الباك تظهر في الماب
+  const madinatyVillaZones = areaList;
 
-  // --- توابع الألوان والأيقونات (تبقى كما هي) ---
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'Villa Zone': return 'bg-[#FEF3E2] text-[#B5752A] border-[#B5752A]';
-      case 'Apartment Zone': return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'Service Area': return 'bg-purple-50 text-purple-700 border-purple-200';
-      case 'Mixed': return 'bg-green-50 text-green-700 border-green-200';
-      default: return 'bg-gray-50 text-gray-700 border-gray-200';
+  // ✅ فتح المودال لإضافة منطقة جديدة — POST
+  const handleAddArea = () => {
+    setSelectedArea(null);
+    setShowModal(true);
+  };
+
+  // ✅ فتح المودال لتعديل منطقة موجودة — PATCH
+  const handleEditArea = (area: Area) => {
+    // ✅ نحفظ الـ area كاملة مع الـ _id عشان نبعته في الـ PATCH
+    setSelectedArea({ ...area });
+    setShowModal(true);
+  };
+
+  const closeModal = () => { setShowModal(false); setSelectedArea(null); };
+
+  // ✅ POST أو PATCH حسب selectedArea
+  const handleSaveArea = (data: Partial<Area>) => {
+    const formData = new FormData();
+    // ✅ فقط الـ fields اللي الباك بيقبلها
+    if (data.project)     formData.append('project',     data.project);
+    if (data.name)        formData.append('name',        data.name);
+    if (data.location)    formData.append('location',    data.location);
+    if (data.type)        formData.append('type',        data.type);
+    if (data.group)       formData.append('group',       data.group);
+    if (data.description) formData.append('description', data.description);
+
+    if (selectedArea) {
+      // ✅ PATCH /api/v1/areas/{id} — نستخدم _id من selectedArea أو من data اللي جت من الـ modal
+      const areaId = selectedArea._id || selectedArea.id || (data as any)._id;
+      updateArea.mutate(
+        { id: areaId, data: formData },
+        {
+          onSuccess: () => {
+            triggerToast(language === 'ar' ? 'تم تحديث المنطقة ✅' : 'Area updated ✅', 'success');
+            closeModal();
+          },
+          onError: (err: any) => {
+            triggerToast(err.response?.data?.message || (language === 'ar' ? 'فشل التحديث' : 'Update failed'), 'error');
+          },
+        }
+      );
+    } else {
+      // ✅ POST /api/v1/areas
+      createArea.mutate(formData, {
+        onSuccess: () => {
+          triggerToast(language === 'ar' ? 'تمت إضافة المنطقة ✅' : 'Area added ✅', 'success');
+          closeModal();
+        },
+        onError: (err: any) => {
+          triggerToast(err.response?.data?.message || (language === 'ar' ? 'فشل الإضافة' : 'Create failed'), 'error');
+        },
+      });
     }
   };
 
-  // ✅ أضف هذه الدالة هنا
+  // ✅ DELETE /api/v1/areas/{id}
+  const handleDeleteArea = (id: string) => {
+    setConfirmDeleteId(id);
+  };
+
+  const confirmDelete = () => {
+    if (!confirmDeleteId) return;
+    deleteArea.mutate(confirmDeleteId, {
+      onSuccess: () => {
+        triggerToast(language === 'ar' ? 'تم حذف المنطقة 🗑️' : 'Area deleted 🗑️', 'success');
+        setConfirmDeleteId(null);
+      },
+      onError: (err: any) => {
+        triggerToast(err.response?.data?.message || (language === 'ar' ? 'فشل الحذف' : 'Delete failed'), 'error');
+        setConfirmDeleteId(null);
+      },
+    });
+  };
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'villaZone':      return 'bg-[#FEF3E2] text-[#B5752A] border-[#B5752A]';
+      case 'apartmentZone':  return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'commercialZone': return 'bg-purple-50 text-purple-700 border-purple-200';
+      case 'RESIDENTIAL':    return 'bg-green-50 text-green-700 border-green-200';
+      default:               return 'bg-gray-50 text-gray-700 border-gray-200';
+    }
+  };
+
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'Villa Zone':
-        return <Home className="w-4 h-4" />;
-      case 'Apartment Zone':
-      case 'Mixed':
-        return <Building2 className="w-4 h-4" />;
-      default:
-        return <MapPin className="w-4 h-4" />;
+      case 'villaZone':      return <Home className="w-4 h-4" />;
+      case 'apartmentZone':
+      case 'RESIDENTIAL':
+      case 'commercialZone': return <Building2 className="w-4 h-4" />;
+      default:               return <MapPin className="w-4 h-4" />;
     }
   };
 
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case 'Villa Zone': return t('areas:villaZone');
-      case 'Apartment Zone': return t('areas:apartmentZone');
-      case 'Service Area': return t('areas:serviceArea');
-      case 'Mixed': return t('areas:mixed');
-      default: return type;
+      case 'villaZone':      return t('areas:villaZone');
+      case 'apartmentZone':  return t('areas:apartmentZone');
+      case 'commercialZone': return t('areas:commercialZone');
+      case 'RESIDENTIAL':    return t('areas:residential');
+      default:               return type;
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="h-64 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#B5752A]" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -116,7 +414,10 @@ export default function Areas() { // ✅ جعلناه Default Export لحل مش
             <h1 className="text-2xl font-bold text-[#16100A] mb-2">{t('areas.management')}</h1>
             <p className="text-[#555555]">{t('areas.managementSubtitle')}</p>
           </div>
-          <button className="flex items-center gap-2 gradient-primary text-white px-4 py-2 rounded-lg hover:opacity-90 transition-all">
+          <button
+            onClick={handleAddArea}
+            className="flex items-center gap-2 gradient-primary text-white px-4 py-2 rounded-lg hover:opacity-90 transition-all"
+          >
             <Plus className="w-5 h-5" />
             {t('areas.addArea')}
           </button>
@@ -134,7 +435,6 @@ export default function Areas() { // ✅ جعلناه Default Export لحل مش
               className={`w-full ${isRTL ? 'pr-10 pl-4 text-right' : 'pl-10 pr-4 text-left'} py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
             />
           </div>
-          
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
@@ -142,84 +442,96 @@ export default function Areas() { // ✅ جعلناه Default Export لحل مش
             dir={isRTL ? 'rtl' : 'ltr'}
           >
             <option value="all">{t('areas.allTypes')}</option>
-            <option value="Villa Zone">{t('areas.villaZone')}</option>
-            <option value="Apartment Zone">{t('areas.apartmentZone')}</option>
-            <option value="Service Area">{t('areas.serviceArea')}</option>
-            <option value="Mixed">{t('areas.mixed')}</option>
+            <option value="villaZone">{t('areas.villaZone')}</option>
+            <option value="apartmentZone">{t('areas.apartmentZone')}</option>
+            <option value="commercialZone">{t('areas.commercialZone')}</option>
+            <option value="RESIDENTIAL">{t('areas.residential')}</option>
           </select>
         </div>
       </div>
 
       {/* Madinaty Map Section */}
-      <div className="bg-white rounded-lg border border-[#E5E5E5] p-6 mb-6">
-        <div className={`mb-6 ${isRTL ? 'text-right' : 'text-left'}`}>
-          <h2 className="font-bold text-[#16100A] mb-2">{t('areas.madinatyMap')}</h2>
-          <p className="text-sm text-[#555555]">{t('areas.madinatyMapSubtitle')}</p>
-        </div>
+      {madinatyVillaZones.length > 0 && (
+        <div className="bg-white rounded-lg border border-[#E5E5E5] p-6 mb-6">
+          <div className={`mb-6 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <h2 className="font-bold text-[#16100A] mb-2">{t('areas.madinatyMap')}</h2>
+            <p className="text-sm text-[#555555]">{t('areas.madinatyMapSubtitle')}</p>
+          </div>
 
-        {/* Map Grid */}
-        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {['B1', 'B2', 'B3', null, null, null, 'B6', 'B7', 'B8', null, 'B10', null, 'B11', 'B12'].map((zone, index) => {
-            if (!zone) {
-              return <div key={`empty-${index}`} className="aspect-square" />;
-            }
-            
-            const zoneData = madinatyVillaZones.find(z => z.zone === zone);
-            const availability = zoneData ? Math.round((zoneData.availableUnits / zoneData.units) * 100) : 0;
-            
-            return (
-              <div
-                key={zone}
-                className="aspect-square gradient-primary rounded-lg p-4 flex flex-col items-center justify-center text-white hover:shadow-lg transition-shadow cursor-pointer relative"
-              >
-                <Home className="w-6 h-6 mb-2 opacity-80" />
-                <span className="font-bold text-lg">{language === 'ar' ? (zoneData?.nameAr || zone) : zone}</span>
-                {zoneData && (
-                  <>
-                    <span className="text-xs mt-1 opacity-90">{zoneData.units} {t('areas.units')}</span>
-                    <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-white" style={{ opacity: availability / 100 }} />
-                  </>
-                )}
+          {/* Map Grid - ✅ ديناميكي من الباك */}
+          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {madinatyVillaZones.map((area) => {
+              const availability = area.stats?.availabilityPercentage ?? 0;
+              return (
+                <div
+                  key={area._id}
+                  className="aspect-square gradient-primary rounded-lg p-4 flex flex-col items-center justify-center text-white hover:shadow-lg transition-shadow cursor-pointer relative"
+                  onClick={() => handleEditArea(area)}
+                >
+                  <Home className="w-6 h-6 mb-2 opacity-80" />
+                  <span className="font-bold text-lg">{area.name}</span>
+                  <span className="text-xs mt-1 opacity-90">
+                    {area.stats?.totalUnits ?? 0} {t('areas.units')}
+                  </span>
+                  <div
+                    className="absolute top-2 right-2 w-2 h-2 rounded-full bg-white"
+                    style={{ opacity: availability / 100 }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-6 pt-6 border-t border-[#E5E5E5]">
+            <div className={`flex items-center gap-6 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className="w-3 h-3 rounded-full bg-white opacity-100" />
+                <span className="text-[#555555]">{t('areas.highAvailability')}</span>
               </div>
-            );
-          })}
-        </div>
-
-        {/* Legend */}
-        <div className="mt-6 pt-6 border-t border-[#E5E5E5]">
-          <div className={`flex items-center gap-6 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <div className="w-3 h-3 rounded-full bg-white opacity-100" />
-              <span className="text-[#555555]">{t('areas.highAvailability')}</span>
-            </div>
-            <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <div className="w-3 h-3 rounded-full bg-white opacity-50" />
-              <span className="text-[#555555]">{t('areas.mediumAvailability')}</span>
-            </div>
-            <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <div className="w-3 h-3 rounded-full bg-white opacity-20" />
-              <span className="text-[#555555]">{t('areas.lowAvailability')}</span>
+              <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className="w-3 h-3 rounded-full bg-white opacity-50" />
+                <span className="text-[#555555]">{t('areas.mediumAvailability')}</span>
+              </div>
+              <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className="w-3 h-3 rounded-full bg-white opacity-20" />
+                <span className="text-[#555555]">{t('areas.lowAvailability')}</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Areas Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredAreas.map((area) => (
-          <div key={area.id} className="bg-white rounded-lg border border-[#E5E5E5] p-6 hover:shadow-lg transition-shadow">
+          <div key={area._id || area.id} className="bg-white rounded-lg border border-[#E5E5E5] p-6 hover:shadow-lg transition-shadow">
             {/* Header */}
             <div className="flex items-start justify-between mb-4">
               <div className={isRTL ? 'text-right' : 'text-left'}>
                 <h3 className="font-bold text-[#16100A] mb-1">{language === 'ar' ? area.nameAr : area.name}</h3>
                 <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <MapPin className="w-4 h-4 flex-shrink-0" />
-                  {language === 'ar' ? area.cityAr : area.city}
+                  {area.location}
                 </div>
               </div>
-              <button className="p-2 hover:bg-[#F7F7F7] rounded-lg transition-colors">
-                <Edit2 className="w-4 h-4 text-[#555555]" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  className="p-2 hover:bg-[#F7F7F7] rounded-lg transition-colors"
+                  onClick={() => handleEditArea(area)}
+                  title={t('common:common.edit')}
+                >
+                  <Edit2 className="w-4 h-4 text-[#555555]" />
+                </button>
+                <button
+                  className="p-2 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                  onClick={() => handleDeleteArea(area._id || area.id!)}
+                  disabled={deleteArea.isPending}
+                  title={t('common:common.delete')}
+                >
+                  <Trash2 className="w-4 h-4 text-red-600 hover:text-red-700" />
+                </button>
+              </div>
             </div>
 
             {/* Type Badge */}
@@ -237,11 +549,11 @@ export default function Areas() { // ✅ جعلناه Default Export لحل مش
             <div className="grid grid-cols-2 gap-4 mb-4 pb-4 border-b border-[#E5E5E5]">
               <div className={isRTL ? 'text-right' : 'text-left'}>
                 <p className="text-xs text-[#555555] mb-1">{t('developers:developers.totalUnits')}</p>
-                <p className="font-bold text-[#16100A]">{area.units}</p>
+                <p className="font-bold text-[#16100A]">{area.stats?.totalUnits ?? 0}</p>
               </div>
               <div className={isRTL ? 'text-right' : 'text-left'}>
                 <p className="text-xs text-[#555555] mb-1">{t('properties:properties.available')}</p>
-                <p className="font-bold text-[#B5752A]">{area.availableUnits}</p>
+                <p className="font-bold text-[#B5752A]">{area.stats?.availableUnits ?? 0}</p>
               </div>
             </div>
 
@@ -249,12 +561,12 @@ export default function Areas() { // ✅ جعلناه Default Export لحل مش
             <div>
               <div className={`flex items-center justify-between text-xs text-[#555555] mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <span>{t('areas.availability')}</span>
-                <span>{Math.round((area.availableUnits / area.units) * 100)}%</span>
+                <span>{area.stats?.availabilityPercentage ?? 0}%</span>
               </div>
               <div className="w-full bg-[#F7F7F7] rounded-full h-2">
                 <div
                   className="h-2 rounded-full gradient-primary"
-                  style={{ width: `${(area.availableUnits / area.units) * 100}%` }}
+                  style={{ width: `${area.stats?.availabilityPercentage ?? 0}%` }}
                 />
               </div>
             </div>
@@ -270,6 +582,110 @@ export default function Areas() { // ✅ جعلناه Default Export لحل مش
           </div>
         ))}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className={`flex items-center justify-center gap-2 mt-8 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          {/* Prev */}
+          <button
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1 || isLoading}
+            className="w-9 h-9 flex items-center justify-center rounded-lg border border-[#E5E5E5] hover:bg-[#F7F7F7] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {isRTL ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
+
+          {/* Page numbers */}
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+            const isFirst = page === 1;
+            const isLast = page === totalPages;
+            const isNear = Math.abs(page - currentPage) <= 1;
+            if (!isFirst && !isLast && !isNear) {
+              if (page === 2 || page === totalPages - 1) {
+                return <span key={page} className="text-[#555555] text-sm px-1">...</span>;
+              }
+              return null;
+            }
+            return (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                disabled={isLoading}
+                className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed ${
+                  page === currentPage
+                    ? 'gradient-primary text-white shadow-sm'
+                    : 'border border-[#E5E5E5] text-[#555555] hover:bg-[#F7F7F7]'
+                }`}
+              >
+                {page}
+              </button>
+            );
+          })}
+
+          {/* Next */}
+          <button
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages || isLoading}
+            className="w-9 h-9 flex items-center justify-center rounded-lg border border-[#E5E5E5] hover:bg-[#F7F7F7] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {isRTL ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </button>
+
+          {/* Info */}
+          <span className="text-xs text-[#555555] mr-2 ml-2">
+            {language === 'ar'
+              ? `صفحة ${currentPage} من ${totalPages}`
+              : `Page ${currentPage} of ${totalPages}`}
+          </span>
+        </div>
+      )}
+
+      {/* Confirm Delete Modal */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div
+            className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in duration-300"
+            dir={isRTL ? 'rtl' : 'ltr'}
+          >
+            <div className="p-6 text-center">
+              <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-7 h-7 text-red-500" />
+              </div>
+              <h3 className="text-lg font-bold text-[#16100A] mb-2">
+                {language === 'ar' ? 'تأكيد الحذف' : 'Confirm Delete'}
+              </h3>
+              <p className="text-sm text-[#555555] mb-6">
+                {language === 'ar' ? 'هل تريد حذف هذه المنطقة؟ لا يمكن التراجع عن هذا الإجراء.' : 'Are you sure you want to delete this area? This action cannot be undone.'}
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={confirmDelete}
+                  disabled={deleteArea.isPending}
+                  className="py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold text-sm transition-colors disabled:opacity-50"
+                >
+                  {deleteArea.isPending ? '...' : (language === 'ar' ? 'حذف' : 'Delete')}
+                </button>
+                <button
+                  onClick={() => setConfirmDeleteId(null)}
+                  className="py-2.5 border border-[#E5E5E5] rounded-lg text-[#555555] hover:bg-gray-50 transition-colors text-sm font-semibold"
+                >
+                  {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Area Modal */}
+      {showModal && (
+        <AreaModal
+          area={selectedArea}
+          onClose={closeModal}
+          onSave={handleSaveArea}
+          isPending={createArea.isPending || updateArea.isPending}
+        />
+      )}
     </div>
   );
 }

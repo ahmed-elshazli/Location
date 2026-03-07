@@ -36,5 +36,8 @@
   "info": "Info",
   "none": "None",
   "noName": "No Name",
+  "confirmDelete": "confirm delete",
+  "confirm": "Confirm",
+  "update": "Update"
 }
 }

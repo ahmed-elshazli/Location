@@ -14,6 +14,10 @@
     "upcoming": "قادم",
     "startDate": "تاريخ البدء",
     "salesProgress": "تقدم المبيعات",
-    "viewDetails": "عرض التفاصيل"
+    "viewDetails": "عرض التفاصيل",
+    "inactive": "غير نشط",
+    "soldOut": "مباع",
+    "projectName": "اسم المشروع",
+    "totalUnits"  : "الوحدات الكلية"
   }
 }

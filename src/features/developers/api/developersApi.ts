@@ -1,10 +1,10 @@
 import { api } from '../../../utils/axios';
 
-export const fetchDevelopers = async () => {
-  // طلب GET لجلب المطورين
-  const response = await api.get('/api/v1/developers');
-  // بنرجع البيانات مباشرة (تأكد لو كانت جوه .data أو مصفوفة مباشرة)
-  return response.data; 
+export const fetchDevelopers = async (page: number = 1, limit: number = 6) => {
+  const response = await api.get('/api/v1/developers', {
+    params: { page, limit },
+  });
+  return response.data;
 };
 
 export interface CreateDeveloperPayload {

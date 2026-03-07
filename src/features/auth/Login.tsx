@@ -1,51 +1,65 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useConfigStore } from '../../store/useConfigStore';
 import Container from '../../imports/Container';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
-import { Shield, Plus } from 'lucide-react'; // أيقونات للتوست
-
-// ✅ استيراد الهوك الجديد
-import { useLogin } from '../auth/hooks/useLogin'; 
+import { AlertCircle } from 'lucide-react';
+import { useLogin } from '../auth/hooks/useLogin';
+import { useAuthStore } from '../../store/useAuthStore';
+import { useNavigate } from 'react-router';
 
 export function Login() {
-  const [email, setEmail] = useState('');
+  const [email, setEmail]   = useState('');
   const [password, setPassword] = useState('');
-  
-  // حالة التوست للخطأ
-  const [toast, setToast] = useState<{ show: boolean; msg: string }>({ show: false, msg: '' });
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const { t } = useTranslation('auth');
-  const { dir } = useConfigStore(); 
-  const isRTL = dir === 'rtl';
+  const { t }    = useTranslation('auth');
+  const { dir }  = useConfigStore();
+  const isRTL    = dir === 'rtl';
 
-  // ✅ استخدام هوك اللوجين الجديد
   const { mutate: login, isPending } = useLogin();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    const navigate = useNavigate();
 
-    // نبعت البيانات للباك إيند مباشرة
+    const { isAuthenticated } = useAuthStore();
+
+useEffect(() => {
+  if (isAuthenticated) {
+    navigate('/dashboard', { replace: true });
+  }
+}, [isAuthenticated, navigate]); // إضافة التبعات لضمان التحديث
+
+const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(''); // مسح الخطأ القديم
+
+    // ✅ التنفيذ المباشر
     login({ email, password }, {
+      onSuccess: () => {
+        // النجاح هيحدث الـ Store والـ AppRoutes هيحس بالتغيير ويوديك الداشبورد
+        // أو تقدر تعمل navigate يدوياً هنا للتأكيد
+        navigate('/dashboard', { replace: true });
+      },
       onError: (error: any) => {
-        // إظهار التوست في حالة فشل اللوجين
-        const errorMsg = error.response?.data?.message || "Invalid credentials";
-        setToast({ show: true, msg: Array.isArray(errorMsg) ? errorMsg[0] : errorMsg });
-        setTimeout(() => setToast({ show: false, msg: '' }), 4000);
-      }
+        // ✅ لو البيانات غلط، هيفضل هنا ويظهر الرسالة بس من غير ريلود
+        const msg = error.response?.data?.message || 'بيانات الدخول غير صحيحة';
+        setErrorMsg(Array.isArray(msg) ? msg[0] : msg);
+      },
     });
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA]" dir={dir}>
+
+      {/* Language Switcher */}
       <div className={`fixed top-6 ${isRTL ? 'left-6' : 'right-6'} z-10`}>
         <LanguageSwitcher />
       </div>
 
-
       <div className="w-full max-w-md px-4">
         <div className="bg-white rounded-lg shadow-sm border border-[#E5E5E5] p-8">
+
+          {/* Logo */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center mb-4">
               <Container />
@@ -56,6 +70,8 @@ export function Login() {
 
           <form onSubmit={handleSubmit}>
             <div className="space-y-4">
+
+              {/* Email */}
               <div className={isRTL ? 'text-right' : 'text-left'}>
                 <label htmlFor="email" className="block text-sm font-medium text-[#16100A] mb-2">
                   {t('login.email')}
@@ -64,13 +80,16 @@ export function Login() {
                   id="email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className={`w-full px-4 py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
+                  onChange={e => { setEmail(e.target.value); setErrorMsg(''); }}
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] focus:border-transparent transition-colors ${
+                    errorMsg ? 'border-red-300 bg-red-50' : 'border-[#E5E5E5]'
+                  } ${isRTL ? 'text-right' : 'text-left'}`}
                   placeholder={t('login.emailPlaceholder')}
                   required
                 />
               </div>
 
+              {/* Password */}
               <div className={isRTL ? 'text-right' : 'text-left'}>
                 <label htmlFor="password" className="block text-sm font-medium text-[#16100A] mb-2">
                   {t('login.password')}
@@ -79,75 +98,39 @@ export function Login() {
                   id="password"
                   type="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={`w-full px-4 py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
+                  onChange={e => { setPassword(e.target.value); setErrorMsg(''); }}
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] focus:border-transparent transition-colors ${
+                    errorMsg ? 'border-red-300 bg-red-50' : 'border-[#E5E5E5]'
+                  } ${isRTL ? 'text-right' : 'text-left'}`}
                   placeholder={t('login.passwordPlaceholder')}
                   required
                 />
               </div>
 
-              
+              {/* ✅ Error Message - تحت الباسوورد مباشرة */}
+              {errorMsg && (
+                <div className={`flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-lg ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                  <p className={`text-sm text-red-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {errorMsg}
+                  </p>
+                </div>
+              )}
 
+              {/* Submit */}
               <button
                 type="submit"
-                className="w-full gradient-primary text-white font-medium py-3 px-4 rounded-lg hover:opacity-90 transition-all"
+                disabled={isPending}
+                className="w-full gradient-primary text-white font-medium py-3 px-4 rounded-lg hover:opacity-90 transition-all disabled:opacity-50 mt-2"
               >
-                {t('login.signIn')}
+                {isPending
+                  ? (isRTL ? 'جارٍ تسجيل الدخول...' : 'Signing in...')
+                  : t('login.signIn')}
               </button>
             </div>
           </form>
-
-          {/* قسم البيانات التجريبية */}
-          <div className="mt-6 pt-6 border-t border-[#E5E5E5]">
-            <p className={`text-xs text-[#555555] mb-3 ${isRTL ? 'text-right' : 'text-left'}`}>{t('login.demoCredentials')}</p>
-            <div className="space-y-2 text-xs text-[#555555]">
-              <div className={`flex justify-between items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <span className="font-medium">{t('login.superAdmin')}</span>
-                <span className="text-left" dir="ltr">superadmin@locationproperties.com</span>
-              </div>
-              <div className={`flex justify-between items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <span className="font-medium">{t('login.admin')}</span>
-                <span className="text-left" dir="ltr">noha@locationproperties.com</span>
-              </div>
-              <div className={`flex justify-between items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <span className="font-medium">{t('login.admin')}</span>
-                <span className="text-left" dir="ltr">elbaze@locationproperties.com</span>
-              </div>
-              <div className={`flex justify-between items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <span className="font-medium">{t('login.sales')}</span>
-                <span className="text-left" dir="ltr">abdallah@locationproperties.com</span>
-              </div>
-              <div className={`flex justify-between items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <span className="font-medium">{t('login.sales')}</span>
-                <span className="text-left" dir="ltr">esmaeil@locationproperties.com</span>
-              </div>
-              <div className={`flex justify-between items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <span className="font-medium">{t('login.sales')}</span>
-                <span className="text-left" dir="ltr">raghad@locationproperties.com</span>
-              </div>
-              <div className="text-center mt-2 pt-2 border-t border-[#E5E5E5]">
-                <span className="font-medium">{t('login.passwordForAll')}</span> <span dir="ltr">demo123</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
-      {toast.show && (
-        <div className={`fixed bottom-10 ${isRTL ? 'left-10' : 'right-10'} z-[100] animate-in slide-in-from-bottom-5 duration-300`}>
-          <div className="bg-white border-r-4 border-red-600 shadow-2xl rounded-xl p-4 flex items-center gap-4 min-w-[300px]">
-            <div className="bg-red-100 p-2 rounded-full">
-              <Shield className="w-6 h-6 text-red-600" />
-            </div>
-            <div className={isRTL ? 'text-right' : 'text-left'}>
-              <h4 className="text-[#16100A] font-bold text-sm">{t('common:error')}</h4>
-              <p className="text-[#555555] text-xs">{toast.msg}</p>
-            </div>
-            <button onClick={() => setToast({ show: false, msg: '' })} className="ms-auto p-1 hover:bg-gray-100 rounded-full">
-              <Plus className="w-4 h-4 rotate-45 text-gray-400" />
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

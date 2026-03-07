@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { getProjectsApi } from '../api/projectsApi';
 
-export const useProjects = () => {
+export const useProjects = (page: number = 1, limit: number = 6) => {
   return useQuery({
-    queryKey: ['projects'], // الكود التعريفي للبيانات في الكاش
-    queryFn: getProjectsApi,
-    staleTime: 5 * 60 * 1000, // البيانات تظل "طازجة" لمدة 5 دقائق
+    queryKey: ['projects', page, limit],
+    queryFn: () => getProjectsApi(page, limit),
+    placeholderData: (prev) => prev, // يخلي البيانات القديمة ظاهرة أثناء الـ fetch
   });
 };

@@ -13,6 +13,8 @@
     "dealClosing": "Deal Closing",
     "followUp": "Follow Up",
     "noEvents": "No events scheduled",
-    "with": "with"
+    "with": "with",
+    "eventsSchedule": "events scheduled",
+    "manageSchedule": "Manage Schedule"
   }
 }

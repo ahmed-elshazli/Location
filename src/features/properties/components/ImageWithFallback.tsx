@@ -5,14 +5,14 @@ const ERROR_IMG_SRC =
 
 export function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElement>) {
   const [didError, setDidError] = useState(false)
-
   const handleError = () => {
     setDidError(true)
   }
-
+  
   const { src, alt, style, className, ...rest } = props
-
-  return didError ? (
+  
+  const shouldShowFallback = didError || !src;
+  return shouldShowFallback ? (
     <div
       className={`inline-block bg-gray-100 text-center align-middle ${className ?? ''}`}
       style={style}

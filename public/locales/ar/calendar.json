@@ -13,6 +13,8 @@
     "dealClosing": "إغلاق صفقة",
     "followUp": "متابعة",
     "noEvents": "لا توجد مواعيد مجدولة",
-    "with": "مع"
+    "with": "مع",
+    "eventsSchedule": "مواعيد مجدولة",
+    "manageSchedule": "ادارة المواعيد"
   }
 }

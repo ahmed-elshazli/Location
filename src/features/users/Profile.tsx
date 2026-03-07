@@ -1,0 +1,368 @@
+import React, { useState } from 'react';
+import { Save, Shield, Mail, Phone, Calendar, Lock, Bell, Globe } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { useConfigStore } from '../../store/useConfigStore';
+import { useAuthStore } from '../../store/useAuthStore';
+import { useToastStore } from '../../store/useToastStore';
+import { useMutation } from '@tanstack/react-query';
+import { api } from '../../utils/axios';
+
+export default function Profile() {
+  const { t, i18n }     = useTranslation(['profile', 'common']);
+  const { dir, setDir } = useConfigStore();
+  const { user }        = useAuthStore();
+  const { triggerToast }= useToastStore();
+
+  const isRTL    = dir === 'rtl';
+  const language = i18n.language;
+
+  const [personalInfo, setPersonalInfo] = useState({
+    fullName: user?.name  || '',
+    email:    user?.email || '',
+    phone:    '',
+  });
+
+  const [passwordData, setPasswordData] = useState({
+    currentPassword:    '',
+    newPassword:        '',
+    confirmNewPassword: '',
+  });
+
+  const [preferences, setPreferences] = useState({
+    emailNotifications: true,
+  });
+
+  // ── Mutation ──────────────────────────────────────────────────────────────
+  const updateMutation = useMutation({
+    mutationFn: (data: any) =>
+      api.put(`/api/v1/users/${user?.id}`, data).then(r => r.data),
+    onError: (err: any) => {
+      const msg = err.response?.data?.message;
+      triggerToast(Array.isArray(msg) ? msg[0] : msg || 'حدث خطأ', 'error');
+    },
+  });
+
+  // ── Save Profile ──────────────────────────────────────────────────────────
+  const handleSaveProfile = () => {
+    const payload: any = {
+      fullName: personalInfo.fullName,
+      email:    personalInfo.email,
+      role:     user?.role || 'user',
+    };
+    if (personalInfo.phone && personalInfo.phone.trim() !== '') {
+      payload.phone = personalInfo.phone.trim();
+    }
+    updateMutation.mutate(payload, {
+      onSuccess: () =>
+        triggerToast(language === 'ar' ? 'تم التحديث ✅' : 'Profile updated ✅', 'success'),
+    });
+  };
+
+  // ── Change Password ───────────────────────────────────────────────────────
+  const handleChangePassword = () => {
+    if (!passwordData.currentPassword || !passwordData.newPassword) {
+      triggerToast(language === 'ar' ? 'أدخل كلمة المرور' : 'Enter password fields', 'error');
+      return;
+    }
+    if (passwordData.newPassword !== passwordData.confirmNewPassword) {
+      triggerToast(language === 'ar' ? 'كلمتا المرور غير متطابقتين' : 'Passwords do not match', 'error');
+      return;
+    }
+    updateMutation.mutate(
+      { password: passwordData.newPassword, currentPassword: passwordData.currentPassword },
+      {
+        onSuccess: () => {
+          triggerToast(language === 'ar' ? 'تم تغيير كلمة المرور ✅' : 'Password changed ✅', 'success');
+          setPasswordData({ currentPassword: '', newPassword: '', confirmNewPassword: '' });
+        },
+      }
+    );
+  };
+
+  // ── Language Toggle ───────────────────────────────────────────────────────
+  const handleLanguageChange = (lang: string) => {
+    i18n.changeLanguage(lang);
+    setDir(lang === 'ar' ? 'rtl' : 'ltr');
+  };
+
+  // ── Role Badge ────────────────────────────────────────────────────────────
+  const getRoleBadge = () => {
+    const role = user?.role || '';
+    const roleColors: Record<string, string> = {
+      super_admin: 'bg-[#FEF3E2] text-[#B5752A] border-[#B5752A]',
+      admin:       'bg-purple-50 text-purple-700 border-purple-200',
+      sales:       'bg-blue-50 text-blue-700 border-blue-200',
+    };
+    const roleLabels: Record<string, string> = {
+      super_admin: language === 'ar' ? 'مدير عام' : 'Super Admin',
+      admin:       language === 'ar' ? 'مدير'     : 'Admin',
+      sales:       language === 'ar' ? 'مبيعات'   : 'Sales',
+    };
+    return (
+      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium border ${roleColors[role] || 'bg-gray-50 text-gray-700 border-gray-200'} ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <Shield className="w-4 h-4" />
+        {roleLabels[role] || role}
+      </span>
+    );
+  };
+
+  return (
+    <div className="p-6" dir={isRTL ? 'rtl' : 'ltr'}>
+
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className={`text-2xl font-bold text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+          {t('profile.title')}
+        </h1>
+        <p className={`text-[#555555] ${isRTL ? 'text-right' : 'text-left'}`}>
+          {t('profile.subtitle')}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* ── Left Column ─────────────────────────────────────────────────── */}
+        <div className="space-y-6">
+
+          {/* Avatar */}
+          <div className="bg-white rounded-lg border border-[#E5E5E5] p-6">
+            <h3 className={`font-semibold text-[#16100A] mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {language === 'ar' ? 'الصورة الشخصية' : 'Profile Picture'}
+            </h3>
+            <div className="flex flex-col items-center">
+              <div className="w-32 h-32 gradient-primary rounded-full flex items-center justify-center text-white text-5xl font-semibold mb-4">
+                {(personalInfo.fullName || '?').charAt(0).toUpperCase()}
+              </div>
+              <p className="text-xs text-[#AAAAAA] text-center">
+                {language === 'ar' ? 'تغيير الصورة غير متاح حالياً' : 'Image upload not available'}
+              </p>
+            </div>
+          </div>
+
+          {/* Account Details */}
+          <div className="bg-white rounded-lg border border-[#E5E5E5] p-6">
+            <h3 className={`font-semibold text-[#16100A] mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t('profile.accountDetails')}
+            </h3>
+            <div className="space-y-4">
+              <div className={isRTL ? 'text-right' : 'text-left'}>
+                <p className="text-sm text-[#555555] mb-1">{t('common:common.role')}</p>
+                {getRoleBadge()}
+              </div>
+              <div className={isRTL ? 'text-right' : 'text-left'}>
+                <p className="text-sm text-[#555555] mb-1">{t('profile.memberSince')}</p>
+                <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <Calendar className="w-4 h-4 text-[#555555]" />
+                  <p className="text-sm text-[#16100A]" dir="ltr">
+                    {new Date('2025-01-15').toLocaleDateString(
+                      language === 'ar' ? 'ar-EG' : 'en-US',
+                      { year: 'numeric', month: 'long', day: 'numeric' }
+                    )}
+                  </p>
+                </div>
+              </div>
+              <div className={isRTL ? 'text-right' : 'text-left'}>
+                <p className="text-sm text-[#555555] mb-1">{t('profile.lastLogin')}</p>
+                <p className="text-sm text-[#16100A]" dir="ltr">
+                  {new Date().toLocaleDateString(
+                    language === 'ar' ? 'ar-EG' : 'en-US',
+                    { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Right Column ──────────────────────────────────────────────────── */}
+        <div className="lg:col-span-2 space-y-6">
+
+          {/* Personal Information */}
+          <div className="bg-white rounded-lg border border-[#E5E5E5] p-6">
+            <h3 className={`font-semibold text-[#16100A] mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t('profile.personalInfo')}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              <div className="md:col-span-2">
+                <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {language === 'ar' ? 'الاسم الكامل' : 'Full Name'}
+                </label>
+                <input
+                  type="text"
+                  value={personalInfo.fullName}
+                  onChange={e => setPersonalInfo({ ...personalInfo, fullName: e.target.value })}
+                  className={`w-full px-4 py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] ${isRTL ? 'text-right' : 'text-left'}`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {language === 'ar' ? 'البريد الإلكتروني' : 'Email'}
+                </label>
+                <div className="relative">
+                  <Mail className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-[#555555]`} />
+                  <input
+                    type="email"
+                    value={personalInfo.email}
+                    onChange={e => setPersonalInfo({ ...personalInfo, email: e.target.value })}
+                    className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {language === 'ar' ? 'رقم الهاتف' : 'Phone'}
+                </label>
+                <div className="relative">
+                  <Phone className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-[#555555]`} />
+                  <input
+                    type="tel"
+                    value={personalInfo.phone}
+                    onChange={e => setPersonalInfo({ ...personalInfo, phone: e.target.value })}
+                    className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
+                    placeholder="+201001234567"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className={`mt-6 flex ${isRTL ? 'justify-start' : 'justify-end'}`}>
+              <button
+                onClick={handleSaveProfile}
+                disabled={updateMutation.isPending}
+                className={`flex items-center gap-2 gradient-primary text-white px-6 py-3 rounded-lg hover:opacity-90 transition-all shadow-lg disabled:opacity-50 ${isRTL ? 'flex-row-reverse' : ''}`}
+              >
+                <Save className="w-5 h-5" />
+                {updateMutation.isPending
+                  ? '...'
+                  : (language === 'ar' ? 'حفظ التغييرات' : 'Save Changes')}
+              </button>
+            </div>
+          </div>
+
+          {/* Account Security */}
+          <div className="bg-white rounded-lg border border-[#E5E5E5] p-6">
+            <h3 className={`font-semibold text-[#16100A] mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t('profile.accountSecurity')}
+            </h3>
+            <div className="space-y-4">
+
+              <div>
+                <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {language === 'ar' ? 'كلمة المرور الحالية' : 'Current Password'}
+                </label>
+                <div className="relative">
+                  <Lock className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-[#555555]`} />
+                  <input
+                    type="password"
+                    value={passwordData.currentPassword}
+                    onChange={e => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                    className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {language === 'ar' ? 'كلمة المرور الجديدة' : 'New Password'}
+                  </label>
+                  <div className="relative">
+                    <Lock className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-[#555555]`} />
+                    <input
+                      type="password"
+                      value={passwordData.newPassword}
+                      onChange={e => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                      className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
+                      placeholder="••••••••"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {language === 'ar' ? 'تأكيد كلمة المرور' : 'Confirm Password'}
+                  </label>
+                  <div className="relative">
+                    <Lock className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-[#555555]`} />
+                    <input
+                      type="password"
+                      value={passwordData.confirmNewPassword}
+                      onChange={e => setPasswordData({ ...passwordData, confirmNewPassword: e.target.value })}
+                      className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
+                      placeholder="••••••••"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className={`mt-2 flex ${isRTL ? 'justify-start' : 'justify-end'}`}>
+                <button
+                  onClick={handleChangePassword}
+                  disabled={updateMutation.isPending}
+                  className={`flex items-center gap-2 bg-[#16100A] text-white px-6 py-3 rounded-lg hover:bg-[#2A2015] transition-all disabled:opacity-50 ${isRTL ? 'flex-row-reverse' : ''}`}
+                >
+                  <Lock className="w-5 h-5" />
+                  {language === 'ar' ? 'تغيير كلمة المرور' : 'Update Password'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Preferences */}
+          <div className="bg-white rounded-lg border border-[#E5E5E5] p-6">
+            <h3 className={`font-semibold text-[#16100A] mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t('profile.preferences')}
+            </h3>
+            <div className="space-y-6">
+
+              <div>
+                <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {language === 'ar' ? 'اللغة' : 'Language'}
+                </label>
+                <div className="relative">
+                  <Globe className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-[#555555]`} />
+                  <select
+                    value={language}
+                    onChange={e => handleLanguageChange(e.target.value)}
+                    className={`w-full ${isRTL ? 'pr-10 pl-4 text-right' : 'pl-10 pr-4 text-left'} py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
+                  >
+                    <option value="en">English</option>
+                    <option value="ar">العربية</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
+                  <Bell className="w-5 h-5 text-[#555555] mt-1 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium text-[#16100A]">
+                      {language === 'ar' ? 'إشعارات البريد الإلكتروني' : 'Email Notifications'}
+                    </p>
+                    <p className="text-sm text-[#555555] mt-1">
+                      {language === 'ar' ? 'استقبال تحديثات ورسائل النظام' : 'Receive updates and system messages'}
+                    </p>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={preferences.emailNotifications}
+                    onChange={e => setPreferences({ ...preferences, emailNotifications: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#B5752A]/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#B5752A]" />
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

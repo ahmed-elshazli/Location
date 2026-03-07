@@ -11,6 +11,18 @@
     "totalRevenue": "Total Revenue",
     "clientId": "Client ID",
     "clientSince": "Client since",
-    "propertiesOwned": "Properties Owned"
+    "propertiesOwned": "Properties Owned",
+    "editClient": "Edit Client",
+    "summary": "Summary",
+    "backToList": "Back to List",
+    "totalSpent": "Total Spent",
+    "totalProperties": "Total Properties",
+    "createNewDeal": "Create New Deal",
+    "scheduleCall": "Schedule Call",
+    "sendEmail": "Send Email",
+    "phone": "Phone",
+    "email": "Email",
+    "contactInfo": "Contact Information",
+    "quickActions": "Quick Actions"
   }
 }

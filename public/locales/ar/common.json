@@ -35,6 +35,9 @@
   "warning": "تحذير",
   "info": "معلومات",
   "none": "لا شيء",
-  "noName": "لا يوجد اسم"
+  "noName": "لا يوجد اسم",
+  "confirmDelete": "تاكيد الحذف",
+  "confirm": "تاكيد",
+  "update": "تحديث"
 }
 }
