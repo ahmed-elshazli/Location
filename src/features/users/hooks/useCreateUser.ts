@@ -1,13 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { deleteUser } from '../api/usersApi';
+import { createUserApi } from '../api/usersApi';
 
-export const useDeleteUser = () => {
+export const useCreateUser = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: deleteUser,
+    mutationFn: createUserApi,
     onSuccess: () => {
-      // ✅ تحديث قائمة المستخدمين فوراً بعد الحذف
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
   });

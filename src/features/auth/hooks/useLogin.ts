@@ -1,29 +1,24 @@
 import { useMutation } from '@tanstack/react-query';
 import { loginApi } from '../api/loginApi';
 import { useAuthStore } from '../../../store/useAuthStore';
+import { useNavigate } from 'react-router-dom';
 
-// useLogin.ts
 export const useLogin = () => {
   const setAuth = useAuthStore((state) => state.setAuth);
+  const navigate = useNavigate();
 
   return useMutation({
     mutationFn: loginApi,
     onSuccess: (response) => {
-      // ✅ التعديل هنا: السيرفر بيبعت accessToken مش token
-      const token = response.accessToken; 
-      
-      if (!token) {
-        console.error("لم يتم العثور على accessToken في رد السيرفر");
-        return;
-      }
-
-      // ✅ التعديل هنا: البيانات جاية مباشرة في الـ response مش جوه كائن user
+      const token = response.accessToken;
+      if (!token) return;
       setAuth(token, {
         id:    response.id,
-        name:  response.fullName, // السيرفر بيبعت fullName مش name
+        name:  response.fullName,
         email: response.email,
         role:  response.role,
       });
+      navigate('/dashboard', { replace: true });
     },
   });
 };

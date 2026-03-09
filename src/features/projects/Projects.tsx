@@ -13,6 +13,7 @@ import { useProjectsStats } from './hooks/useProjectsStats';
 import { useUpdateProject } from './hooks/useUpdateProject';
 import { useDeleteProject } from './hooks/useDeleteProject';
 import { useProjectsSummary } from './hooks/useProjectSummary';
+import { useNavigate } from 'react-router';
 
 export default function Projects() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -140,6 +141,7 @@ export default function Projects() {
 
   // server-side pagination — paginatedProjects = filteredProjects مباشرةً
   const paginatedProjects = filteredProjects;
+  const navigate = useNavigate();
 
   const projectSummaries = useProjectsSummary(paginatedProjects);
 
@@ -368,7 +370,7 @@ export default function Projects() {
 
                   <div className="flex gap-2">
                     <button
-                      onClick={() => console.log("View Details for:", project._id)}
+                      onClick={() => navigate(`/projects/${project._id}`)}
                       className="flex-1 px-4 py-2 bg-[#F7F7F7] text-[#555555] rounded-lg hover:bg-[#E5E5E5] transition-colors text-sm font-medium"
                     >
                       {t('projects.viewDetails')}

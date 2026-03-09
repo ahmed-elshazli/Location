@@ -5,11 +5,15 @@ export const createProjectApi = async (formData: FormData) => {
   return response.data;
 };
 
-// ✅ بيبعت page و limit للسيرفر
 export const getProjectsApi = async (page: number = 1, limit: number = 6) => {
   const response = await api.get('/api/v1/projects', {
     params: { page, limit },
   });
+  return response.data;
+};
+
+export const getProjectByIdApi = async (id: string) => {
+  const response = await api.get(`/api/v1/projects/${id}`);
   return response.data;
 };
 

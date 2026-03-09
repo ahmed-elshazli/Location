@@ -7,7 +7,6 @@ import { useTranslation } from 'react-i18next';
 import { useConfigStore } from '../../store/useConfigStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { PropertyModal } from './components/PropertyModal';
-import  PropertyDetails  from './PropertyDetails';
 import { ImageWithFallback } from './components/ImageWithFallback';
 import { useUnits } from './hooks/useUnits';
 import z from 'zod';
@@ -15,6 +14,7 @@ import { useToastStore } from '../../store/useToastStore';
 import { useCreateUnit } from './hooks/useCreateUnit';
 import { useDeleteUnit } from './hooks/useDeleteUnit';
 import { useSellUnit } from './hooks/useSellUnit';
+import { useNavigate } from 'react-router-dom';
 
 interface Property {
   _id: string;
@@ -46,7 +46,6 @@ export default function Properties() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null); // ✅
 
   const { t, i18n } = useTranslation('properties');
   const { dir } = useConfigStore();
@@ -57,6 +56,7 @@ export default function Properties() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const deleteUnit = useDeleteUnit();
   const sellUnit = useSellUnit();
+  const navigate = useNavigate();
 
   const isRTL = dir === 'rtl';
   const language = i18n.language;
@@ -174,30 +174,6 @@ export default function Properties() {
       <div className="h-64 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#B5752A]"></div>
       </div>
-    );
-  }
-
-  // ✅ صفحة التفاصيل
-  if (selectedProperty) {
-    return (
-      <PropertyDetails
-        property={{
-          id: selectedProperty._id,
-          unitCode: selectedProperty.unitCode,
-          type: selectedProperty.type,
-          purpose: selectedProperty.purpose,
-          area: selectedProperty.area,
-          bedrooms: selectedProperty.bedrooms || 0,
-          bathrooms: selectedProperty.bathrooms || 0,
-          size: selectedProperty.size,
-          price: selectedProperty.price,
-          status: selectedProperty.status as any,
-          project: selectedProperty.project?.name || '',
-          developer: 'Talaat Moustafa',
-          images: selectedProperty.images,
-        }}
-        onBack={() => setSelectedProperty(null)}
-      />
     );
   }
 
@@ -361,7 +337,7 @@ export default function Properties() {
             return (
               <div
                 key={property._id || property.id}
-                onClick={() => setSelectedProperty(property)} // ✅
+                onClick={() => navigate(`/properties/${property._id}`)}
                 className="bg-white rounded-lg border border-[#E5E5E5] overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full cursor-pointer"
                 dir={isRTL ? 'rtl' : 'ltr'}
               >
@@ -424,7 +400,7 @@ export default function Properties() {
                   <div className="mt-auto space-y-2">
                     {property.status?.toLowerCase() === 'available' && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleSellClick(property._id || property.id, property.unitCode); }} // ✅
+                        onClick={(e) => { e.stopPropagation(); handleSellClick(property._id || property.id, property.unitCode); }}
                         className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors text-sm font-bold"
                       >
                         <TrendingUp className="w-4 h-4" />
@@ -435,14 +411,14 @@ export default function Properties() {
                     {!isReadOnly && (
                       <div className="flex gap-2">
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleEditProperty(property); }} // ✅
+                          onClick={(e) => { e.stopPropagation(); handleEditProperty(property); }}
                           className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[#F7F7F7] text-[#555555] rounded-lg hover:bg-[#E5E5E5] transition-colors text-xs font-medium"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                           {t('properties.edit')}
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleDeleteUnit(property._id || property.id, property.unitCode); }} // ✅
+                          onClick={(e) => { e.stopPropagation(); handleDeleteUnit(property._id || property.id, property.unitCode); }}
                           className="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -496,7 +472,7 @@ export default function Properties() {
                 {filteredProperties.map((property: any) => (
                   <tr
                     key={property._id || property.id}
-                    onClick={() => setSelectedProperty(property)} // ✅
+                    onClick={() => navigate(`/properties/${property._id}`)}
                     className="hover:bg-[#FAFAFA] transition-colors cursor-pointer"
                   >
                     <td className={`px-6 py-4 font-medium text-[#B5752A] hover:underline ${isRTL ? 'text-right' : 'text-left'}`}>
@@ -534,7 +510,7 @@ export default function Properties() {
                         <div className="flex items-center gap-2 justify-end">
                           {property.status?.toLowerCase() === 'available' && (
                             <button
-                              onClick={(e) => { e.stopPropagation(); handleSellClick(property._id || property.id, property.unitCode); }} // ✅
+                              onClick={(e) => { e.stopPropagation(); handleSellClick(property._id || property.id, property.unitCode); }}
                               className="flex items-center gap-1 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors text-xs font-bold"
                             >
                               <TrendingUp className="w-3.5 h-3.5" />
@@ -542,14 +518,14 @@ export default function Properties() {
                             </button>
                           )}
                           <button
-                            onClick={(e) => { e.stopPropagation(); handleEditProperty(property); }} // ✅
+                            onClick={(e) => { e.stopPropagation(); handleEditProperty(property); }}
                             className="flex items-center gap-1 px-3 py-1.5 bg-[#F7F7F7] text-[#555555] rounded-lg hover:bg-[#E5E5E5] transition-colors text-xs font-medium"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                             {t('properties.edit')}
                           </button>
                           <button
-                            onClick={(e) => { e.stopPropagation(); handleDeleteUnit(property._id || property.id, property.unitCode); }} // ✅
+                            onClick={(e) => { e.stopPropagation(); handleDeleteUnit(property._id || property.id, property.unitCode); }}
                             className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

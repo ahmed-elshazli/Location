@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, ChevronRight, Edit2, Trash2,
   Phone, Mail, MapPin, Calendar,
@@ -12,14 +12,11 @@ import { useClientById } from './hooks/useClientById';
 import { useClientAnalytics } from './hooks/useClientAnalytics';
 import { useDeleteClient } from './hooks/useDeleteClient';
 import { ClientModal } from './components/ClientModal';
-import { DealModal } from '../deals/components/DealModal';
 
-interface ClientDetailsProps {
-  clientId: string;
-  onBack: () => void;
-}
+export default function ClientDetails() {
+  const { id: clientId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
 
-export default function ClientDetails({ clientId, onBack }: ClientDetailsProps) {
   const { t, i18n }      = useTranslation(['clients', 'common', 'properties']);
   const { dir }          = useConfigStore();
   const { triggerToast } = useToastStore();
@@ -27,28 +24,26 @@ export default function ClientDetails({ clientId, onBack }: ClientDetailsProps) 
   const isRTL    = dir === 'rtl';
   const language = i18n.language;
 
-  const { data: clientData, isLoading, isError } = useClientById(clientId);
-  const { data: analyticsData } = useClientAnalytics(clientId);
+  const { data: clientData, isLoading, isError } = useClientById(clientId ?? null);
+  const { data: analyticsData } = useClientAnalytics(clientId ?? null);
 
-  // الباك ممكن يرجع { data: {...} } أو الـ object مباشرةً
   const client    = clientData?.data || clientData;
   const analytics = analyticsData?.data || analyticsData;
 
-  // ✅ Stats من analytics لو موجودة، fallback على client data
   const totalDeals      = analytics?.totalDeals      ?? client?.deals          ?? 0;
   const totalSpent      = analytics?.totalSpent      ?? client?.totalSpent     ?? 0;
   const totalProperties = analytics?.totalProperties ?? client?.properties?.length ?? 0;
 
   const deleteClient = useDeleteClient();
-  const navigate     = useNavigate();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editOpen,   setEditOpen]   = useState(false);
 
   const handleConfirmDelete = () => {
+    if (!clientId) return;
     deleteClient.mutate(clientId, {
       onSuccess: () => {
         triggerToast('تم حذف العميل بنجاح 🗑️', 'success');
-        onBack();
+        navigate(-1);
       },
       onError: (err: any) => {
         triggerToast(err.response?.data?.message || 'فشل الحذف', 'error');
@@ -56,7 +51,6 @@ export default function ClientDetails({ clientId, onBack }: ClientDetailsProps) 
     });
   };
 
-  // ── Loading ────────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
       <div className="h-64 flex items-center justify-center">
@@ -73,7 +67,6 @@ export default function ClientDetails({ clientId, onBack }: ClientDetailsProps) 
     );
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
   const InfoRow = ({ icon: Icon, label, value, ltr = false }: any) => (
     <div className={`flex items-center gap-3 p-3 bg-[#FAFAFA] rounded-lg ${isRTL ? 'flex-row-reverse' : ''}`}>
       <Icon className="w-5 h-5 text-[#B5752A] flex-shrink-0" />
@@ -97,13 +90,12 @@ export default function ClientDetails({ clientId, onBack }: ClientDetailsProps) 
   return (
     <div className="min-h-full bg-[#FAFAFA]" dir={isRTL ? 'rtl' : 'ltr'}>
 
-      {/* ── Sticky Header ─────────────────────────────────────────────────── */}
+      {/* Sticky Header */}
       <div className="bg-white border-b border-[#E5E5E5] sticky top-0 z-10">
         <div className="p-6">
-          {/* Top row */}
           <div className={`flex items-center justify-between mb-5 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <button
-              onClick={onBack}
+              onClick={() => navigate(-1)}
               className={`flex items-center gap-2 text-[#555555] hover:text-[#B5752A] transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
             >
               {isRTL ? <ChevronRight className="w-5 h-5" /> : <ArrowLeft className="w-5 h-5" />}
@@ -127,7 +119,6 @@ export default function ClientDetails({ clientId, onBack }: ClientDetailsProps) 
             </div>
           </div>
 
-          {/* Client identity */}
           <div className={`flex items-start gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <div className="w-20 h-20 gradient-primary rounded-full flex items-center justify-center text-white text-3xl font-bold flex-shrink-0">
               {client.fullName?.charAt(0)?.toUpperCase() || '?'}
@@ -135,7 +126,7 @@ export default function ClientDetails({ clientId, onBack }: ClientDetailsProps) 
             <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
               <h1 className="text-2xl font-bold text-[#16100A] mb-1">{client.fullName}</h1>
               <p className="text-sm text-[#555555] mb-3">
-                {language === 'ar' ? 'رقم العميل:' : 'Client ID:'} {clientId.slice(-6)}
+                {language === 'ar' ? 'رقم العميل:' : 'Client ID:'} {clientId?.slice(-6)}
               </p>
               <div className="flex flex-wrap gap-2">
                 <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
@@ -152,11 +143,10 @@ export default function ClientDetails({ clientId, onBack }: ClientDetailsProps) 
         </div>
       </div>
 
-      {/* ── Body ──────────────────────────────────────────────────────────── */}
+      {/* Body */}
       <div className="p-6 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          {/* ── Left / Main ─────────────────────────────────────────────── */}
           <div className="lg:col-span-2 space-y-6">
 
             {/* Contact Info */}
@@ -192,7 +182,7 @@ export default function ClientDetails({ clientId, onBack }: ClientDetailsProps) 
               </div>
             </div>
 
-            {/* Recent Deals — لو الباك رجعهم */}
+            {/* Recent Deals */}
             {client.recentDeals?.length > 0 && (
               <div className="bg-white rounded-lg border border-[#E5E5E5] p-6">
                 <h2 className={`text-lg font-bold text-[#16100A] mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
@@ -235,7 +225,7 @@ export default function ClientDetails({ clientId, onBack }: ClientDetailsProps) 
             )}
           </div>
 
-          {/* ── Right / Sidebar ──────────────────────────────────────────── */}
+          {/* Sidebar */}
           <div className="space-y-6">
 
             {/* Stats */}
@@ -244,25 +234,13 @@ export default function ClientDetails({ clientId, onBack }: ClientDetailsProps) 
                 {t('clients.summary')}
               </h3>
               <div className="space-y-3">
-                <StatCard
-                  icon={Handshake}
-                  label={t('clients.totalDeals')}
-                  value={totalDeals}
-                />
+                <StatCard icon={Handshake} label={t('clients.totalDeals')} value={totalDeals} />
                 <StatCard
                   icon={DollarSign}
                   label={t('clients.totalSpent')}
-                  value={
-                    totalSpent
-                      ? `${(totalSpent / 1_000_000).toFixed(1)} ${language === 'ar' ? 'م ج.م' : 'M EGP'}`
-                      : '—'
-                  }
+                  value={totalSpent ? `${(totalSpent / 1_000_000).toFixed(1)} ${language === 'ar' ? 'م ج.م' : 'M EGP'}` : '—'}
                 />
-                <StatCard
-                  icon={Home}
-                  label={t('clients.totalProperties')}
-                  value={totalProperties}
-                />
+                <StatCard icon={Home} label={t('clients.totalProperties')} value={totalProperties} />
               </div>
             </div>
 
@@ -295,7 +273,7 @@ export default function ClientDetails({ clientId, onBack }: ClientDetailsProps) 
         </div>
       </div>
 
-      {/* ── Delete Confirm Modal ───────────────────────────────────────────── */}
+      {/* Delete Confirm Modal */}
       {deleteOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl animate-in zoom-in-95 duration-200">
@@ -329,15 +307,12 @@ export default function ClientDetails({ clientId, onBack }: ClientDetailsProps) 
         </div>
       )}
 
-      {/* ── Edit Modal ────────────────────────────────────────────────────── */}
+      {/* Edit Modal */}
       {editOpen && (
         <ClientModal
           client={client}
           onClose={() => setEditOpen(false)}
-          onSave={(data: any) => {
-            // الـ parent هيتعامل مع الـ update
-            setEditOpen(false);
-          }}
+          onSave={() => setEditOpen(false)}
           isLoading={false}
         />
       )}

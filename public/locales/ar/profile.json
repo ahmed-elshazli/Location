@@ -1,0 +1,27 @@
+{
+  "profile": {
+    "title": "الملف الشخصي",
+    "fullName": "الاسم الكامل",
+    "email": "البريد الإلكتروني",
+    "phone": "رقم الهاتف",
+    "password": "كلمة المرور",
+    "currentPassword": "كلمة المرور الحالية",
+    "newPassword": "كلمة المرور الجديدة",
+    "confirmNewPassword": "تأكيد كلمة المرور الجديدة",
+    "save": "حفظ التغييرات",
+    "subtitle": "إدارة إعدادات حسابك ومعلوماتك الشخصية",
+    "personalInfo": "المعلومات الشخصية",
+    "preferences": "التفضيلات",
+    "emailNotifications": "إشعارات البريد الإلكتروني",
+    "avatar": "الصورة الشخصية",
+    "uploadAvatar": "تغيير الصورة",
+    "changePassword": "تغيير كلمة المرور",
+    "changeLanguage": "تغيير اللغة",
+    "changeTheme": "تغيير المظهر",
+    "accountSecurity": "أمان الحساب",
+    "memberSince": "عضو منذ",
+    "lastLogin": "آخر تسجيل دخول",
+    "role": "الصلاحية",
+    "accountDetails": "تفاصيل الحساب"
+  }
+}

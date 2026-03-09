@@ -47,3 +47,7 @@ export const getAllUnitsWithoutPaginationApi = async () => {
   const response = await api.get('/api/v1/units/all');
   return response.data;
 };
+export const getUnitByIdApi = async (id: string) => {
+  const response = await api.get(`/api/v1/units/${id}`);
+  return response.data;
+};

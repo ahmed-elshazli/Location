@@ -1,0 +1,27 @@
+{
+    "profile":{
+        "title": "Profile",
+        "fullName": "Full Name",
+        "email": "Email",
+        "phone": "Phone",
+        "password": "Password",
+        "currentPassword": "Current Password",
+        "newPassword": "New Password",
+        "confirmNewPassword": "Confirm New Password",
+        "save": "Save",
+        "subtitle": "Subtitle",
+        "personalInfo": "Personal Information",
+        "preferences": "Preferences",
+        "emailNotifications": "Email Notifications",
+        "avatar": "Avatar",
+        "uploadAvatar": "Upload Avatar",
+        "changePassword": "Change Password",
+        "changeLanguage": "Change Language",
+        "changeTheme": "Change Theme",
+        "accountSecurity":"Account Security",
+        "memberSince":"Member Since",
+        "lastLogin":"Last Login",
+        "role":"Role",
+        "accountDetails":"Account Details"
+    }
+}

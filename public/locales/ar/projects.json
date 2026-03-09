@@ -18,6 +18,13 @@
     "inactive": "غير نشط",
     "soldOut": "مباع",
     "projectName": "اسم المشروع",
-    "totalUnits"  : "الوحدات الكلية"
+    "totalUnits"  : "الوحدات الكلية",
+    "backToList": "العودة لقائمة المشاريع",
+    "projectInfo": "معلومات المشروع",
+    "quickStats":"احصائيات سريعة",
+    "completion": "الانتهاء",
+    "quickActions": "اقصاصات سريعة",
+    "viewAllUnits": "عرض جميع الوحدات",
+    "progress": "التقدم"
   }
 }

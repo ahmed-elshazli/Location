@@ -46,7 +46,7 @@ const { user, clearAuth , isAuthenticated, token } = useAuthStore();
         { id: 'projects', label: t('navigation:nav.projects'), icon: Briefcase, path: '/projects' },
         { id: 'areas', label: t('navigation:nav.areas'), icon: MapPin, path: '/areas' },
         { id: 'calendar', label: t('navigation:nav.calendar'), icon: CalendarIcon, path: '/calendar' },
-        { id: 'reports', label: t('navigation:nav.reports'), icon: BarChart3, path: '/reports' },
+        // { id: 'reports', label: t('navigation:nav.reports'), icon: BarChart3, path: '/reports' },
         { id: 'settings', label: t('navigation:nav.systemSettings'), icon: Settings, path: '/settings' },
       ];
     }
@@ -63,7 +63,7 @@ const { user, clearAuth , isAuthenticated, token } = useAuthStore();
         { id: 'projects', label: t('navigation:nav.projects'), icon: Briefcase, path: '/projects' },
         { id: 'areas', label: t('navigation:nav.areas'), icon: MapPin, path: '/areas' },
         { id: 'calendar', label: t('navigation:nav.calendar'), icon: CalendarIcon, path: '/calendar' },
-        { id: 'reports', label: t('navigation:nav.reports'), icon: BarChart3, path: '/reports' },
+        // { id: 'reports', label: t('navigation:nav.reports'), icon: BarChart3, path: '/reports' },
       ];
     }
 

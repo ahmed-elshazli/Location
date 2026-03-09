@@ -12,11 +12,11 @@ interface AuthState {
   token: string | null;
   user: User | null;
   isAuthenticated: boolean;
-  _hasHydrated: boolean; // ✅ حقل جديد لمعرفة هل انتهى التحميل أم لا
+  _hasHydrated: boolean;
   setAuth: (token: string, user: User) => void;
   clearAuth: () => void;
   logout: () => void;
-  setHasHydrated: (state: boolean) => void; // ✅ لتحديث حالة التحميل
+  setHasHydrated: (state: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -24,23 +24,19 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       token: null,
       user: null,
-      isAuthenticated: false,
-      _hasHydrated: false, // القيمة الافتراضية
-      
+      isAuthenticated: false, // ✅ دايماً false - الـ persist هيحدثه بعدين
+      _hasHydrated: false,
+
       setAuth: (token, user) => set({ token, user, isAuthenticated: true }),
-      
+
       clearAuth: () => set({ token: null, user: null, isAuthenticated: false }),
-      
-      logout: () => {
-        set({ token: null, user: null, isAuthenticated: false });
-        // يمكنك هنا إضافة حذف أي بيانات أخرى من الـ Store
-      },
+
+      logout: () => set({ token: null, user: null, isAuthenticated: false }),
 
       setHasHydrated: (state) => set({ _hasHydrated: state }),
     }),
     {
       name: 'auth-storage',
-      // ✅ هذه الدالة تُستدعى تلقائياً عند بدء تحميل البيانات من localStorage
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
       },

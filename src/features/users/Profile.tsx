@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Save, Shield, Mail, Phone, Calendar, Lock, Bell, Globe } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Camera, Save, Shield, Mail, Phone, Calendar, Lock, Bell, Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useConfigStore } from '../../store/useConfigStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -9,16 +9,19 @@ import { api } from '../../utils/axios';
 
 export default function Profile() {
   const { t, i18n }     = useTranslation(['profile', 'common']);
-  const { dir, setDir } = useConfigStore();
+  const { dir, setLanguage } = useConfigStore();
   const { user }        = useAuthStore();
   const { triggerToast }= useToastStore();
 
   const isRTL    = dir === 'rtl';
   const language = i18n.language;
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string>('');
+
   const [personalInfo, setPersonalInfo] = useState({
-    fullName: user?.name  || '',
-    email:    user?.email || '',
+    fullName: user?.name || '',
+    email:    user?.email    || '',
     phone:    '',
   });
 
@@ -32,7 +35,14 @@ export default function Profile() {
     emailNotifications: true,
   });
 
-  // ── Mutation ──────────────────────────────────────────────────────────────
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => setAvatarPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
   const updateMutation = useMutation({
     mutationFn: (data: any) =>
       api.put(`/api/v1/users/${user?.id}`, data).then(r => r.data),
@@ -42,23 +52,25 @@ export default function Profile() {
     },
   });
 
-  // ── Save Profile ──────────────────────────────────────────────────────────
+  const formatPhone = (input: string) => {
+    const cleaned = input.replace(/\D/g, "");
+    if (cleaned.startsWith("01") && cleaned.length === 11) return `+20${cleaned.substring(1)}`;
+    if (cleaned.startsWith("05") && cleaned.length === 10) return `+966${cleaned.substring(1)}`;
+    return input.startsWith("+") ? input : `+${input}`;
+  };
+
   const handleSaveProfile = () => {
     const payload: any = {
       fullName: personalInfo.fullName,
       email:    personalInfo.email,
-      role:     user?.role || 'user',
     };
-    if (personalInfo.phone && personalInfo.phone.trim() !== '') {
-      payload.phone = personalInfo.phone.trim();
-    }
+    if (personalInfo.phone?.trim()) payload.phone = formatPhone(personalInfo.phone.trim());
     updateMutation.mutate(payload, {
       onSuccess: () =>
         triggerToast(language === 'ar' ? 'تم التحديث ✅' : 'Profile updated ✅', 'success'),
     });
   };
 
-  // ── Change Password ───────────────────────────────────────────────────────
   const handleChangePassword = () => {
     if (!passwordData.currentPassword || !passwordData.newPassword) {
       triggerToast(language === 'ar' ? 'أدخل كلمة المرور' : 'Enter password fields', 'error');
@@ -79,13 +91,10 @@ export default function Profile() {
     );
   };
 
-  // ── Language Toggle ───────────────────────────────────────────────────────
   const handleLanguageChange = (lang: string) => {
-    i18n.changeLanguage(lang);
-    setDir(lang === 'ar' ? 'rtl' : 'ltr');
+    setLanguage(lang as 'en' | 'ar');
   };
 
-  // ── Role Badge ────────────────────────────────────────────────────────────
   const getRoleBadge = () => {
     const role = user?.role || '';
     const roleColors: Record<string, string> = {
@@ -109,164 +118,129 @@ export default function Profile() {
   return (
     <div className="p-6" dir={isRTL ? 'rtl' : 'ltr'}>
 
-      {/* Header */}
       <div className="mb-6">
-        <h1 className={`text-2xl font-bold text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-          {t('profile.title')}
-        </h1>
-        <p className={`text-[#555555] ${isRTL ? 'text-right' : 'text-left'}`}>
-          {t('profile.subtitle')}
-        </p>
+        <h1 className={`text-2xl font-bold text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>{t('profile.title')}</h1>
+        <p className={`text-[#555555] ${isRTL ? 'text-right' : 'text-left'}`}>{t('profile.subtitle')}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* ── Left Column ─────────────────────────────────────────────────── */}
+        {/* Left Column */}
         <div className="space-y-6">
 
-          {/* Avatar */}
+          {/* Profile Picture */}
           <div className="bg-white rounded-lg border border-[#E5E5E5] p-6">
             <h3 className={`font-semibold text-[#16100A] mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
               {language === 'ar' ? 'الصورة الشخصية' : 'Profile Picture'}
             </h3>
             <div className="flex flex-col items-center">
-              <div className="w-32 h-32 gradient-primary rounded-full flex items-center justify-center text-white text-5xl font-semibold mb-4">
-                {(personalInfo.fullName || '?').charAt(0).toUpperCase()}
+              <div className="relative mb-4">
+                {avatarPreview ? (
+                  <img src={avatarPreview} alt="Profile" className="w-32 h-32 rounded-full object-cover border-4 border-[#E5E5E5]" />
+                ) : (
+                  <div className="w-32 h-32 gradient-primary rounded-full flex items-center justify-center text-white text-5xl font-semibold">
+                    {(personalInfo.fullName || '?').charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <button onClick={() => fileInputRef.current?.click()}
+                  className="absolute bottom-0 right-0 bg-white border-2 border-[#E5E5E5] rounded-full p-3 hover:bg-[#F7F7F7] transition-colors shadow-lg">
+                  <Camera className="w-5 h-5 text-[#B5752A]" />
+                </button>
               </div>
-              <p className="text-xs text-[#AAAAAA] text-center">
-                {language === 'ar' ? 'تغيير الصورة غير متاح حالياً' : 'Image upload not available'}
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+              <button onClick={() => fileInputRef.current?.click()} className="text-sm text-[#B5752A] hover:text-[#8B5A1F] font-medium">
+                {language === 'ar' ? 'تغيير الصورة' : 'Change Photo'}
+              </button>
+              <p className="text-xs text-[#AAAAAA] text-center mt-1">
+                {language === 'ar' ? 'معاينة محلية فقط' : 'Local preview only'}
               </p>
             </div>
           </div>
 
           {/* Account Details */}
           <div className="bg-white rounded-lg border border-[#E5E5E5] p-6">
-            <h3 className={`font-semibold text-[#16100A] mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-              {t('profile.accountDetails')}
-            </h3>
+            <h3 className={`font-semibold text-[#16100A] mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t('profile.accountDetails')}</h3>
             <div className="space-y-4">
               <div className={isRTL ? 'text-right' : 'text-left'}>
                 <p className="text-sm text-[#555555] mb-1">{t('common:common.role')}</p>
                 {getRoleBadge()}
               </div>
               <div className={isRTL ? 'text-right' : 'text-left'}>
-                <p className="text-sm text-[#555555] mb-1">{t('profile.memberSince')}</p>
-                <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <Calendar className="w-4 h-4 text-[#555555]" />
-                  <p className="text-sm text-[#16100A]" dir="ltr">
-                    {new Date('2025-01-15').toLocaleDateString(
-                      language === 'ar' ? 'ar-EG' : 'en-US',
-                      { year: 'numeric', month: 'long', day: 'numeric' }
-                    )}
-                  </p>
-                </div>
-              </div>
-              <div className={isRTL ? 'text-right' : 'text-left'}>
                 <p className="text-sm text-[#555555] mb-1">{t('profile.lastLogin')}</p>
                 <p className="text-sm text-[#16100A]" dir="ltr">
-                  {new Date().toLocaleDateString(
-                    language === 'ar' ? 'ar-EG' : 'en-US',
-                    { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }
-                  )}
+                  {new Date().toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* ── Right Column ──────────────────────────────────────────────────── */}
+        {/* Right Column */}
         <div className="lg:col-span-2 space-y-6">
 
-          {/* Personal Information */}
+          {/* Personal Info */}
           <div className="bg-white rounded-lg border border-[#E5E5E5] p-6">
-            <h3 className={`font-semibold text-[#16100A] mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-              {t('profile.personalInfo')}
-            </h3>
+            <h3 className={`font-semibold text-[#16100A] mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t('profile.personalInfo')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
               <div className="md:col-span-2">
                 <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                   {language === 'ar' ? 'الاسم الكامل' : 'Full Name'}
                 </label>
-                <input
-                  type="text"
-                  value={personalInfo.fullName}
+                <input type="text" value={personalInfo.fullName}
                   onChange={e => setPersonalInfo({ ...personalInfo, fullName: e.target.value })}
                   className={`w-full px-4 py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] ${isRTL ? 'text-right' : 'text-left'}`}
                 />
               </div>
-
               <div>
                 <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                   {language === 'ar' ? 'البريد الإلكتروني' : 'Email'}
                 </label>
                 <div className="relative">
                   <Mail className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-[#555555]`} />
-                  <input
-                    type="email"
-                    value={personalInfo.email}
+                  <input type="email" value={personalInfo.email} dir="ltr"
                     onChange={e => setPersonalInfo({ ...personalInfo, email: e.target.value })}
                     className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
-                    dir="ltr"
                   />
                 </div>
               </div>
-
               <div>
                 <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                   {language === 'ar' ? 'رقم الهاتف' : 'Phone'}
                 </label>
                 <div className="relative">
                   <Phone className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-[#555555]`} />
-                  <input
-                    type="tel"
-                    value={personalInfo.phone}
+                  <input type="tel" value={personalInfo.phone} dir="ltr" placeholder="+201001234567"
                     onChange={e => setPersonalInfo({ ...personalInfo, phone: e.target.value })}
                     className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
-                    placeholder="+201001234567"
-                    dir="ltr"
                   />
                 </div>
               </div>
             </div>
-
             <div className={`mt-6 flex ${isRTL ? 'justify-start' : 'justify-end'}`}>
-              <button
-                onClick={handleSaveProfile}
-                disabled={updateMutation.isPending}
-                className={`flex items-center gap-2 gradient-primary text-white px-6 py-3 rounded-lg hover:opacity-90 transition-all shadow-lg disabled:opacity-50 ${isRTL ? 'flex-row-reverse' : ''}`}
-              >
+              <button onClick={handleSaveProfile} disabled={updateMutation.isPending}
+                className={`flex items-center gap-2 gradient-primary text-white px-6 py-3 rounded-lg hover:opacity-90 transition-all shadow-lg disabled:opacity-50 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <Save className="w-5 h-5" />
-                {updateMutation.isPending
-                  ? '...'
-                  : (language === 'ar' ? 'حفظ التغييرات' : 'Save Changes')}
+                {updateMutation.isPending ? '...' : (language === 'ar' ? 'حفظ التغييرات' : 'Save Changes')}
               </button>
             </div>
           </div>
 
-          {/* Account Security */}
+          {/* Security */}
           <div className="bg-white rounded-lg border border-[#E5E5E5] p-6">
-            <h3 className={`font-semibold text-[#16100A] mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-              {t('profile.accountSecurity')}
-            </h3>
+            <h3 className={`font-semibold text-[#16100A] mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t('profile.accountSecurity')}</h3>
             <div className="space-y-4">
-
               <div>
                 <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                   {language === 'ar' ? 'كلمة المرور الحالية' : 'Current Password'}
                 </label>
                 <div className="relative">
                   <Lock className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-[#555555]`} />
-                  <input
-                    type="password"
-                    value={passwordData.currentPassword}
+                  <input type="password" value={passwordData.currentPassword} placeholder="••••••••"
                     onChange={e => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
                     className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
-                    placeholder="••••••••"
                   />
                 </div>
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
@@ -274,12 +248,9 @@ export default function Profile() {
                   </label>
                   <div className="relative">
                     <Lock className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-[#555555]`} />
-                    <input
-                      type="password"
-                      value={passwordData.newPassword}
+                    <input type="password" value={passwordData.newPassword} placeholder="••••••••"
                       onChange={e => setPasswordData({ ...passwordData, newPassword: e.target.value })}
                       className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
-                      placeholder="••••••••"
                     />
                   </div>
                 </div>
@@ -289,23 +260,16 @@ export default function Profile() {
                   </label>
                   <div className="relative">
                     <Lock className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-[#555555]`} />
-                    <input
-                      type="password"
-                      value={passwordData.confirmNewPassword}
+                    <input type="password" value={passwordData.confirmNewPassword} placeholder="••••••••"
                       onChange={e => setPasswordData({ ...passwordData, confirmNewPassword: e.target.value })}
                       className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
-                      placeholder="••••••••"
                     />
                   </div>
                 </div>
               </div>
-
               <div className={`mt-2 flex ${isRTL ? 'justify-start' : 'justify-end'}`}>
-                <button
-                  onClick={handleChangePassword}
-                  disabled={updateMutation.isPending}
-                  className={`flex items-center gap-2 bg-[#16100A] text-white px-6 py-3 rounded-lg hover:bg-[#2A2015] transition-all disabled:opacity-50 ${isRTL ? 'flex-row-reverse' : ''}`}
-                >
+                <button onClick={handleChangePassword} disabled={updateMutation.isPending}
+                  className={`flex items-center gap-2 bg-[#16100A] text-white px-6 py-3 rounded-lg hover:bg-[#2A2015] transition-all disabled:opacity-50 ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <Lock className="w-5 h-5" />
                   {language === 'ar' ? 'تغيير كلمة المرور' : 'Update Password'}
                 </button>
@@ -315,52 +279,39 @@ export default function Profile() {
 
           {/* Preferences */}
           <div className="bg-white rounded-lg border border-[#E5E5E5] p-6">
-            <h3 className={`font-semibold text-[#16100A] mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-              {t('profile.preferences')}
-            </h3>
+            <h3 className={`font-semibold text-[#16100A] mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t('profile.preferences')}</h3>
             <div className="space-y-6">
-
               <div>
                 <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                   {language === 'ar' ? 'اللغة' : 'Language'}
                 </label>
                 <div className="relative">
                   <Globe className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-[#555555]`} />
-                  <select
-                    value={language}
-                    onChange={e => handleLanguageChange(e.target.value)}
-                    className={`w-full ${isRTL ? 'pr-10 pl-4 text-right' : 'pl-10 pr-4 text-left'} py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
-                  >
+                  <select value={language} onChange={e => handleLanguageChange(e.target.value)}
+                    className={`w-full ${isRTL ? 'pr-10 pl-4 text-right' : 'pl-10 pr-4 text-left'} py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}>
                     <option value="en">English</option>
                     <option value="ar">العربية</option>
                   </select>
                 </div>
               </div>
-
               <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
                   <Bell className="w-5 h-5 text-[#555555] mt-1 flex-shrink-0" />
                   <div>
-                    <p className="font-medium text-[#16100A]">
-                      {language === 'ar' ? 'إشعارات البريد الإلكتروني' : 'Email Notifications'}
-                    </p>
-                    <p className="text-sm text-[#555555] mt-1">
-                      {language === 'ar' ? 'استقبال تحديثات ورسائل النظام' : 'Receive updates and system messages'}
-                    </p>
+                    <p className="font-medium text-[#16100A]">{language === 'ar' ? 'إشعارات البريد الإلكتروني' : 'Email Notifications'}</p>
+                    <p className="text-sm text-[#555555] mt-1">{language === 'ar' ? 'استقبال تحديثات ورسائل النظام' : 'Receive updates and system messages'}</p>
                   </div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
-                  <input
-                    type="checkbox"
-                    checked={preferences.emailNotifications}
+                  <input type="checkbox" checked={preferences.emailNotifications}
                     onChange={e => setPreferences({ ...preferences, emailNotifications: e.target.checked })}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#B5752A]/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#B5752A]" />
+                    className="sr-only peer" />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#B5752A]/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[\'\'] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#B5752A]" />
                 </label>
               </div>
             </div>
           </div>
+
         </div>
       </div>
     </div>

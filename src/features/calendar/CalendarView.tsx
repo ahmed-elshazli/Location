@@ -10,11 +10,8 @@ import { useDeleteEvent } from './hooks/useDeleteEvent';
 import { useToastStore } from '../../store/useToastStore';
 import { useAuthStore } from '../../store/useAuthStore';
 
-interface CalendarViewProps {
-  user: User;
-}
 
-export default function CalendarView({ user }: CalendarViewProps) {
+export default function CalendarView() {
   const [currentDate, setCurrentDate]       = useState(new Date());
   const [showEventModal, setShowEventModal] = useState(false);
   const [selectedEvent, setSelectedEvent]   = useState<any>(null);

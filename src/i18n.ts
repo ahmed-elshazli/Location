@@ -6,15 +6,19 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 i18n
   .use(Backend)
   .use(LanguageDetector)
-  .use(initReactI18next) // ⚠️ السطر ده هو اللي بيربطها بـ React
+  .use(initReactI18next)
   .init({
     fallbackLng: 'ar',
-    ns: ['navigation', 'dashboard', 'roles', 'auth', 'common'], 
+    ns: ['navigation', 'dashboard', 'roles', 'auth', 'common'],
     defaultNS: 'navigation',
     interpolation: { escapeValue: false },
     backend: {
-      loadPath: '/locales/{{lng}}/{{ns}}.json', // مسار البحث عن الملفات
-    }
+      loadPath: '/locales/{{lng}}/{{ns}}.json',
+    },
+    // ✅ ده اللي هيمنع الـ re-render
+    react: {
+      useSuspense: false,
+    },
   });
 
 export default i18n;

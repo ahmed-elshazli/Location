@@ -9,14 +9,14 @@ import { useCreateClient } from './hooks/useCreateClient';
 import { useUpdateClient } from './hooks/useUpdateClient';
 import { useDeleteClient } from './hooks/useDeleteClient';
 import { ClientModal } from './components/ClientModal';
-import { ClientDetails } from './ClientDetails';
+import  ClientDetails  from './ClientDetails';
+import { useNavigate } from 'react-router-dom';
 
 export default function Clients() {
   const [searchTerm, setSearchTerm]           = useState('');
   const [currentPage, setCurrentPage]         = useState(1);
   const [modalOpen, setModalOpen]             = useState(false);
   const [editingClient, setEditingClient]     = useState<any>(null);
-  const [selectedClientId, setSelectedClientId] = useState<string | null>(null); // ✅
   const [deleteConfig, setDeleteConfig]       = useState<{ isOpen: boolean; id: string; name: string }>({
     isOpen: false, id: '', name: ''
   });
@@ -32,6 +32,7 @@ export default function Clients() {
   const { data: clientsData, isLoading } = useClients(currentPage);
   const clients    = Array.isArray(clientsData?.data) ? clientsData.data : [];
   const pagination = clientsData?.pagination;
+  const navigate = useNavigate();
 
   const createClient = useCreateClient();
   const updateClient = useUpdateClient();
@@ -98,14 +99,7 @@ export default function Clients() {
   }
 
   // ✅ لو في client محدد — عرض صفحة التفاصيل
-  if (selectedClientId) {
-    return (
-      <ClientDetails
-        clientId={selectedClientId}
-        onBack={() => setSelectedClientId(null)}
-      />
-    );
-  }
+ 
 
   return (
     <div className="p-6" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -290,7 +284,7 @@ export default function Clients() {
 
             {/* ── View Details Button ── */}
             <button
-              onClick={() => setSelectedClientId(client._id || client.id)}
+              onClick={() => navigate(`/clients/${client._id || client.id}`)}
               className="w-full py-2.5 gradient-primary text-white rounded-lg text-sm font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2"
             >
               <Eye className="w-4 h-4" />

@@ -1,4 +1,4 @@
-import { useState } from 'react'; 
+import { useState } from 'react';
 import { Plus, User as UserIcon, Building2, Calendar } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useConfigStore } from '../../store/useConfigStore';
@@ -22,25 +22,34 @@ const stages: StageConfig[] = [
   { id: 'Closed Lost',  backend: 'CLOSED_LOST',  color: 'bg-gray-500'   },
 ];
 
-const DEALS_PER_STAGE = 3; // عدد الـ deals الظاهرة في كل عمود
+const DEALS_PER_STAGE = 3;
+
+const paymentTypeLabel = (type: string, ar: boolean) => {
+  if (type === 'CASH')        return ar ? 'كاش'          : 'Cash';
+  if (type === 'INSTALLMENT') return ar ? 'تقسيط'        : 'Installment';
+  return ar ? 'كاش وتقسيط' : 'Cash & Installment';
+};
+
+const paymentTypeColor = (type: string) => {
+  if (type === 'CASH')        return 'bg-green-100 text-green-700';
+  if (type === 'INSTALLMENT') return 'bg-blue-100 text-blue-700';
+  return 'bg-purple-100 text-purple-700';
+};
 
 export default function Deals() {
   const [modalOpen, setModalOpen]     = useState(false);
   const [editingDeal, setEditingDeal] = useState<any>(null);
-  const [currentPage, setCurrentPage] = useState(1); // ✅ pagination
-  
-  // ✅ عداد لكل stage لو عايز تعرض أكتر
-  const [stagePages, setStagePages] = useState<Record<string, number>>(
+  const [currentPage, setCurrentPage] = useState(1);
+  const [stagePages, setStagePages]   = useState<Record<string, number>>(
     Object.fromEntries(stages.map(s => [s.backend, 1]))
   );
 
-  const { t, i18n }                   = useTranslation(['deals', 'common']); 
-  const { dir }                       = useConfigStore(); 
-  const { user }                      = useAuthStore();
+  const { t, i18n }                    = useTranslation(['deals', 'common']);
+  const { dir }                        = useConfigStore();
+  const { user }                       = useAuthStore();
   const { data: dealsData, isLoading } = useDeals(currentPage);
-  const { data: summaryData }         = useDealsSummary();
+  const { data: summaryData }          = useDealsSummary();
 
-  // ✅ استخراج الداتا والـ pagination
   const deals      = Array.isArray(dealsData?.data) ? dealsData.data : [];
   const pagination = dealsData?.pagination;
 
@@ -51,19 +60,14 @@ export default function Deals() {
   const handleAddDeal  = () => { setEditingDeal(null); setModalOpen(true); };
   const handleEditDeal = (deal: any) => { setEditingDeal(deal); setModalOpen(true); };
 
-  const getDealsByStage = (backend: string) =>
-    deals.filter((deal: any) => deal.status === backend);
-
-  // ✅ الـ deals الظاهرة في كل عمود بناءً على الـ stagePages
-  const getVisibleDeals = (backend: string) => {
+  const getDealsByStage  = (backend: string) => deals.filter((d: any) => d.status === backend);
+  const getVisibleDeals  = (backend: string) => {
     const all  = getDealsByStage(backend);
     const page = stagePages[backend] || 1;
     return all.slice(0, page * DEALS_PER_STAGE);
   };
-
-  const loadMoreInStage = (backend: string) => {
+  const loadMoreInStage  = (backend: string) =>
     setStagePages(prev => ({ ...prev, [backend]: (prev[backend] || 1) + 1 }));
-  };
 
   if (isLoading) {
     return (
@@ -77,20 +81,18 @@ export default function Deals() {
     <div className="p-6" dir={isRTL ? 'rtl' : 'ltr'}>
 
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <div className={isRTL ? 'text-right' : 'text-left'}>
-            <h1 className="text-2xl font-bold text-[#16100A] mb-2">{t('deals.pipeline')}</h1>
-            <p className="text-[#555555]">{t('deals.pipelineSubtitle')}</p>
-          </div>
-          <button
-            onClick={handleAddDeal}
-            className="flex items-center gap-2 gradient-primary text-white px-4 py-2 rounded-lg hover:opacity-90 transition-all"
-          >
-            <Plus className="w-5 h-5" />
-            {t('deals.newDeal')}
-          </button>
+      <div className="flex items-start justify-between mb-6">
+        <div className={isRTL ? 'text-right' : 'text-left'}>
+          <h1 className="text-2xl font-bold text-[#16100A] mb-1">{t('deals.pipeline')}</h1>
+          <p className="text-[#555555]">{t('deals.pipelineSubtitle')}</p>
         </div>
+        <button
+          onClick={handleAddDeal}
+          className={`flex items-center gap-2 gradient-primary text-white px-4 py-2 rounded-lg hover:opacity-90 transition-all ${isRTL ? 'flex-row-reverse' : ''}`}
+        >
+          <Plus className="w-5 h-5" />
+          {t('deals.newDeal')}
+        </button>
       </div>
 
       {/* Pipeline Stats */}
@@ -118,9 +120,9 @@ export default function Deals() {
       {/* Pipeline Board */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {stages.map((stage) => {
-          const allStageDeals     = getDealsByStage(stage.backend);
-          const visibleDeals      = getVisibleDeals(stage.backend);
-          const hasMore           = visibleDeals.length < allStageDeals.length;
+          const allStageDeals = getDealsByStage(stage.backend);
+          const visibleDeals  = getVisibleDeals(stage.backend);
+          const hasMore       = visibleDeals.length < allStageDeals.length;
 
           return (
             <div key={stage.id} className="flex flex-col">
@@ -143,73 +145,129 @@ export default function Deals() {
                     className="bg-white rounded-lg border border-[#E5E5E5] overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
                     onClick={() => canEdit && handleEditDeal(deal)}
                   >
-                    {/* ✅ الصورة بس لو موجودة */}
-                    {deal.unit?.images?.[0] && (
-                      <div className="h-32 overflow-hidden">
+                    {/* Image */}
+                    {deal.unit?.images?.[0] ? (
+                      <div className="h-40 overflow-hidden">
                         <ImageWithFallback
                           src={deal.unit.images[0]}
                           alt={deal.title}
                           className="w-full h-full object-cover"
                         />
                       </div>
-                    )}
-
-                    {/* ✅ لو مفيش صورة، بنعرض placeholder بسيط */}
-                    {!deal.unit?.images?.[0] && (
-                      <div className="h-24 bg-gradient-to-br from-[#F7F4EF] to-[#EDE8DF] flex items-center justify-center">
-                        <Building2 className="w-10 h-10 text-[#B5752A]/40" />
+                    ) : (
+                      <div className="h-40 bg-gradient-to-br from-[#F7F4EF] to-[#EDE8DF] flex items-center justify-center">
+                        <Building2 className="w-12 h-12 text-[#B5752A]/40" />
                       </div>
                     )}
 
-                    <div className="p-4">
-                      <h4 className={`font-bold text-[#16100A] mb-3 line-clamp-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    <div className="p-4 space-y-2">
+                      {/* Title */}
+                      <h4 className={`font-bold text-[#16100A] line-clamp-1 ${isRTL ? 'text-right' : 'text-left'}`}>
                         {deal.title}
                       </h4>
 
-                      <div className="space-y-2 mb-3">
-                        {/* Client */}
+                      {/* Client / Unit / Date */}
+                      <div className="space-y-1.5">
                         <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <UserIcon className="w-4 h-4 flex-shrink-0" />
-                          <span className="line-clamp-1">{deal.client || t('common:common.noName')}</span>
+                          <span className="line-clamp-1">
+                            {typeof deal.client === 'object'
+                              ? (deal.client?.fullName || deal.client?.name || '—')
+                              : (deal.client || '—')}
+                          </span>
                         </div>
-
-                        {/* Unit */}
                         <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <Building2 className="w-4 h-4 flex-shrink-0" />
                           <span className="line-clamp-1">
-                            {deal.unit?.unitCode || t('common:common.none')}
+                            {deal.unit?.unitCode
+                              ? `${deal.unit.unitCode}${deal.unit.project?.name ? ', ' + deal.unit.project.name : ''}`
+                              : '—'}
                           </span>
                         </div>
-
-                        {/* Date */}
                         <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <Calendar className="w-4 h-4 flex-shrink-0" />
                           <span dir="ltr">
-                            {new Date(deal.createdAt).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US')}
+                            {deal.createdAt
+                              ? new Date(deal.createdAt).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US')
+                              : '—'}
                           </span>
                         </div>
                       </div>
 
-                      {/* Price */}
-                      <div className="flex items-center justify-between pt-3 border-t border-[#E5E5E5]">
-                        <span className="text-sm text-[#555555]">{t('deals.value')}</span>
+                      {/* Deal Value */}
+                      <div className="flex items-center justify-between pt-2 border-t border-[#E5E5E5]">
+                        <span className="text-sm text-[#555555]">
+                          {language === 'ar' ? 'قيمة الصفقة' : 'Deal Value'}
+                        </span>
                         <span className="font-bold text-[#B5752A]" dir="ltr">
-                          {(deal.value || 0).toLocaleString()} {language === 'ar' ? 'جنيه' : 'EGP'}
+                          {(deal.value || 0).toLocaleString()} EGP
                         </span>
                       </div>
 
                       {/* Sales Agent */}
-                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#E5E5E5]">
-                        <span className="text-xs text-[#555555]">{t('deals.salesAgent')}</span>
-                        <span className="text-xs font-medium text-[#16100A] line-clamp-1">
-                          {deal.salesAgent?.fullName || deal.salesAgent?.name || t('common:common.noName')}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-[#555555]">
+                          {language === 'ar' ? 'المندوب' : 'Sales Agent'}
+                        </span>
+                        <span className="text-sm font-semibold text-[#16100A] line-clamp-1 text-end">
+                          {deal.salesAgent?.fullName || deal.salesAgent?.name || '—'}
                         </span>
                       </div>
+
+                      {/* Payment Type */}
+                      {deal.paymentType && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-[#555555]">
+                            {language === 'ar' ? 'طريقة الدفع' : 'Payment Type'}
+                          </span>
+                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${paymentTypeColor(deal.paymentType)}`}>
+                            {paymentTypeLabel(deal.paymentType, language === 'ar')}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Paid / Remaining */}
+                      {(deal.paidAmount != null || deal.remainingAmount != null) && (
+                        <div className="space-y-1 pt-2 border-t border-[#E5E5E5]">
+                          {deal.paidAmount != null && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-[#555555]">
+                                {language === 'ar' ? 'المدفوع' : 'Paid Amount'}
+                              </span>
+                              <span className="text-sm font-semibold text-green-600" dir="ltr">
+                                {Number(deal.paidAmount).toLocaleString()} EGP
+                              </span>
+                            </div>
+                          )}
+                          {deal.remainingAmount != null && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-[#555555]">
+                                {language === 'ar' ? 'المتبقي' : 'Remaining Amount'}
+                              </span>
+                              <span className="text-sm font-semibold text-red-500" dir="ltr">
+                                {Number(deal.remainingAmount).toLocaleString()} EGP
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Notes */}
+                      {deal.notes && (
+                        <div className="pt-2 border-t border-[#E5E5E5]">
+                          <p className="text-xs text-[#555555] mb-0.5">
+                            {language === 'ar' ? 'ملاحظات' : 'Notes'}
+                          </p>
+                          <p className={`text-xs text-[#16100A] line-clamp-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                            {deal.notes}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
 
-                {/* ✅ Load More داخل الـ stage */}
+                {/* Load More */}
                 {hasMore && (
                   <button
                     onClick={() => loadMoreInStage(stage.backend)}
@@ -230,9 +288,9 @@ export default function Deals() {
         })}
       </div>
 
-      {/* ✅ Global Pagination - لو في أكتر من صفحة */}
+      {/* Global Pagination */}
       {pagination && pagination.numberOfPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-8 flex-wrap">
+        <div className={`flex items-center justify-center gap-2 mt-8 flex-wrap ${isRTL ? 'flex-row-reverse' : ''}`}>
           <button
             onClick={() => setCurrentPage(p => p - 1)}
             disabled={currentPage === 1}
@@ -240,7 +298,6 @@ export default function Deals() {
           >
             {isRTL ? '›' : '‹'}
           </button>
-
           {Array.from({ length: pagination.numberOfPages }, (_, i) => i + 1).map((page) => (
             <button
               key={page}
@@ -254,7 +311,6 @@ export default function Deals() {
               {page}
             </button>
           ))}
-
           <button
             onClick={() => setCurrentPage(p => p + 1)}
             disabled={currentPage === pagination.numberOfPages}
@@ -262,9 +318,8 @@ export default function Deals() {
           >
             {isRTL ? '‹' : '›'}
           </button>
-
           <span className="text-xs text-[#555555] mx-2">
-            {isRTL
+            {language === 'ar'
               ? `صفحة ${pagination.currentPage} من ${pagination.numberOfPages}`
               : `Page ${pagination.currentPage} of ${pagination.numberOfPages}`}
           </span>

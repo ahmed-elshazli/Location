@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useAuthStore } from '../store/useAuthStore'; // تأكد من المسار
+import { useAuthStore } from '../store/useAuthStore';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -8,18 +8,14 @@ const api = axios.create({
   },
 });
 
-// ✅ Request Interceptor: لإضافة البيانات قبل كل طلب
 api.interceptors.request.use(
   (config) => {
     const { token, user } = useAuthStore.getState();
     const tenantId = (user as any)?.tenant_id;
 
-    // إضافة توكن الحماية
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-
-    // إضافة الـ Tenant ID لضمان عزل البيانات (Multi-tenancy)
     if (tenantId) {
       config.headers['X-Tenant-ID'] = String(tenantId);
     }
@@ -29,15 +25,19 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// ✅ Response Interceptor: لمعالجة الأخطاء العالمية (Global Error Handling)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // لو التوكن غير صالح أو انتهى، اعمل Logout أوتوماتيك
-    if (error.response?.status === 401) {
-      useAuthStore.getState().logout(); // تأكد من وجود دالة logout في الـ Store
-      window.location.href = '/login';
+    const isLoginRequest = error.config?.url?.includes('/auth/login');
+
+    // ✅ لو 401 وبس مش في صفحة اللوجين — اعمل logout بدون reload
+    if (error.response?.status === 401 && !isLoginRequest) {
+      useAuthStore.getState().logout();
+      // استخدم history بدل window.location عشان نتجنب الـ reload
+      window.history.pushState({}, '', '/login');
+      window.dispatchEvent(new PopStateEvent('popstate'));
     }
+
     return Promise.reject(error);
   }
 );

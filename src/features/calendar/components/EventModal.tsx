@@ -14,6 +14,8 @@ interface EventModalProps {
   isLoading?: boolean;
 }
 
+
+
 export function EventModal({ event, show, onClose, onSave, isLoading }: EventModalProps) {
   const { t, i18n }      = useTranslation(['calendar', 'common']);
   const { dir }          = useConfigStore();
@@ -59,20 +61,33 @@ export function EventModal({ event, show, onClose, onSave, isLoading }: EventMod
       return;
     }
 
+    // ✅ دمج date + time في ISO string كامل
+    let isoDate: string;
+    try {
+      const time = formData.time || '09:00';
+      isoDate = new Date(`${formData.date}T${time}:00`).toISOString();
+    } catch {
+      triggerToast(language === 'ar' ? 'صيغة التاريخ غير صالحة' : 'Invalid date format', 'error');
+      return;
+    }
+
     const payload: any = {
-      title:      formData.title,
-      type:       formData.type,
-      date:       formData.date,
-      time:       formData.time,
-      client:     formData.client,
-      assignedTo: formData.assignedTo,
-    };
+  title:      formData.title,
+  type:       formData.type,
+  date:       formData.date,    // ✅ "YYYY-MM-DD" بدون تحويل
+  time:       formData.time,    // ✅ "HH:MM"
+  client:     formData.client,
+  assignedTo: formData.assignedTo,
+};
 
     if (formData.location) payload.location = formData.location;
     if (formData.notes)    payload.notes    = formData.notes;
 
     onSave(payload);
   };
+
+  // Today's date for min date
+  const today = new Date().toISOString().split('T')[0];
 
   if (!show) return null;
 
@@ -157,6 +172,7 @@ export function EventModal({ event, show, onClose, onSave, isLoading }: EventMod
                   <input
                     type="date"
                     required
+                    min={today}
                     value={formData.date}
                     onChange={e => setFormData({ ...formData, date: e.target.value })}
                     className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
@@ -202,8 +218,6 @@ export function EventModal({ event, show, onClose, onSave, isLoading }: EventMod
 
             {/* Client & Assigned To */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-              {/* Client */}
               <div>
                 <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                   {language === 'ar' ? 'العميل' : 'Client'} *
@@ -225,7 +239,6 @@ export function EventModal({ event, show, onClose, onSave, isLoading }: EventMod
                 </div>
               </div>
 
-              {/* Assigned To */}
               <div>
                 <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                   {language === 'ar' ? 'المسؤول' : 'Assigned To'} *

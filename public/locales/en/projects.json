@@ -18,6 +18,13 @@
     "inactive": "Inactive",
     "soldOut": "Sold Out",
     "projectName": "Project Name",
-    "totalUnits"  : "Total Units"
+    "totalUnits"  : "Total Units",
+    "backToList": "Back to List",
+    "projectInfo": "Project Info",
+    "quickStats":"Quick Stats",
+    "completion": "Completion",
+    "quickActions": "Quick Actions",
+    "viewAllUnits": "View All Units",
+    "progress": "Progress"
   }
 }
