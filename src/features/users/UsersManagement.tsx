@@ -69,16 +69,15 @@ export default function UsersManagement() {
   const [editingUser, setEditingUser] = useState<any>(null);
   const [formData, setFormData]       = useState({ ...emptyForm });
 
-  const createUser         = useCreateUser();
+  const createUser             = useCreateUser();
   const deactivateUserMutation = useDeactivateUser();
   const deletePermanentlyMutation = useDeleteUserPermanently();
-  const updateUserMutation = useUpdateUser();
-  const queryClient     = useQueryClient();
+  const updateUserMutation     = useUpdateUser();
+  const queryClient            = useQueryClient();
 
+  // ── FIX: pass currentPage, extract data & pagination correctly ──
   const { data: backendUsers, isLoading } = useUsers(currentPage);
-  const usersList = Array.isArray(backendUsers)
-    ? backendUsers
-    : (backendUsers?.data || backendUsers?.users || []);
+  const usersList  = backendUsers?.data ?? [];
   const totalPages = backendUsers?.pagination?.numberOfPages ?? 1;
 
   const filteredUsers = usersList.filter((u: any) => {
@@ -167,7 +166,6 @@ export default function UsersManagement() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // ── Basic validation ──
     if (!formData.nameEnglish || formData.nameEnglish.length < 3) {
       triggerToast('الاسم يجب أن يكون 3 أحرف على الأقل', 'error'); return;
     }
@@ -186,25 +184,28 @@ export default function UsersManagement() {
       }
     }
 
-    // ── Build FormData ──
     const fd = new FormData();
-    fd.append('fullName', formData.nameEnglish);
-    fd.append('email',    formData.email);
-    fd.append('phone',    formatPhoneForBackend(formData.phone));
-    fd.append('role',     formData.role);
+    fd.append('fullName',  formData.nameEnglish);
+    fd.append('email',     formData.email);
+    fd.append('phone',     formatPhoneForBackend(formData.phone));
+    fd.append('role',      formData.role);
+    if (editingUser) fd.append('isActive', String(formData.status === 'active'));
 
     if (!editingUser) {
       fd.append('password', formData.password);
-      const fileFromInput = fileInputRef.current?.files?.[0];
-      if (fileFromInput) fd.append('images', fileFromInput);
     }
+
+    // صورة في الكرييت والإيديت
+    const fileFromInput = fileInputRef.current?.files?.[0];
+    if (fileFromInput) fd.append('images', fileFromInput);
 
     if (editingUser) {
       updateUserMutation.mutate({ id: editingUser._id || editingUser.id, data: fd }, {
         onSuccess: () => {
           triggerToast(language === 'ar' ? 'تم تحديث المستخدم ✅' : 'User updated ✅', 'success');
           handleClose();
-          queryClient.invalidateQueries({ queryKey: ['users'] });
+          // ── FIX: use correct query key ──
+          queryClient.invalidateQueries({ queryKey: ['users-all'] });
         },
         onError: (err: any) => {
           const msg = err.response?.data?.message;
@@ -216,7 +217,8 @@ export default function UsersManagement() {
         onSuccess: () => {
           triggerToast(language === 'ar' ? 'تم إضافة المستخدم 🎉' : 'User added 🎉', 'success');
           handleClose();
-          queryClient.invalidateQueries({ queryKey: ['users'] });
+          // ── FIX: use correct query key ──
+          queryClient.invalidateQueries({ queryKey: ['users-all'] });
         },
         onError: (err: any) => {
           const msg = err.response?.data?.message;
@@ -236,7 +238,8 @@ export default function UsersManagement() {
       : deletePermanentlyMutation.mutate;
     mutate(deleteConfig.id, {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['users'] });
+        // ── FIX: use correct query key ──
+        queryClient.invalidateQueries({ queryKey: ['users-all'] });
         const msg = deleteConfig.action === 'deactivate'
           ? (language === 'ar' ? 'تم تعطيل المستخدم ✅' : 'User deactivated ✅')
           : (language === 'ar' ? 'تم حذف المستخدم نهائياً 🗑️' : 'User deleted permanently 🗑️');
@@ -283,10 +286,8 @@ export default function UsersManagement() {
         {/* Body */}
         <form className="p-6" onSubmit={handleSubmit}>
 
-
-
           {/* Profile Picture - Add only */}
-          {!editingUser && <div className="mb-6">
+          <div className="mb-6">
             <label className={`block text-sm font-semibold text-[#16100A] mb-3 ${isRTL ? 'text-right' : 'text-left'}`}>
               {language === 'ar' ? 'صورة الملف الشخصي' : 'Profile Picture'}
             </label>
@@ -322,7 +323,7 @@ export default function UsersManagement() {
                 )}
               </div>
             </div>
-          </div>}
+          </div>
 
           {/* Fields Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

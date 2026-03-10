@@ -6,14 +6,14 @@ export const fetchUsers = async (page: number = 1) => {
 };
 
 export const createUserApi = async (data: FormData) => {
-  const response = await api.post('/api/v1/auth/register', data, {
+  const response = await api.post('/api/v1/users/create', data, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response.data;
 };
 
 export const updateUser = async ({ id, data }: { id: string; data: FormData }) => {
-  const response = await api.put(`/api/v1/users/${id}`, data, {
+  const response = await api.patch(`/api/v1/users/${id}`, data, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response.data;

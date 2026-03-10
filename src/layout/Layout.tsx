@@ -6,14 +6,15 @@ import { useAuthStore } from '../store/useAuthStore';
 import { 
   LayoutDashboard, Users, Building2, UserCheck, Handshake, 
   UsersRound, Building, Briefcase, MapPin, Calendar as CalendarIcon, 
-  Settings, LogOut, Menu, X, UserCircle, ChevronDown
+  Settings, LogOut, Menu, X, UserCircle, ChevronDown, Vault,
+  Wallet
 } from 'lucide-react';
 import Container from '../imports/Container';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { logoutApi } from '../features/auth/api/loginApi';
 
 const UserAvatar = ({ user, size = 'md' }: { user: any; size?: 'sm' | 'md' | 'lg' }) => {
-  const sizeClass = size === 'sm' ? 'w-9 h-9 text-sm' : size === 'lg' ? 'w-10 h-10 text-base' : 'w-10 h-10 text-base';
+  const sizeClass = size === 'sm' ? 'w-9 h-9 text-sm' : 'w-10 h-10 text-base';
   if (user?.avatar) {
     return <img src={user.avatar} alt={user.name} className={`${sizeClass} rounded-full object-cover flex-shrink-0`} />;
   }
@@ -25,7 +26,7 @@ const UserAvatar = ({ user, size = 'md' }: { user: any; size?: 'sm' | 'md' | 'lg
 };
 
 export function Layout() {
-  const { user, clearAuth, isAuthenticated, token } = useAuthStore();
+  const { user, clearAuth, isAuthenticated } = useAuthStore();
   const { t } = useTranslation(['navigation', 'roles']);
   const navigate = useNavigate();
   const { dir } = useConfigStore();
@@ -51,6 +52,7 @@ export function Layout() {
         { id: 'projects',   label: t('navigation:nav.projects'),       icon: Briefcase,    path: '/projects' },
         { id: 'areas',      label: t('navigation:nav.areas'),          icon: MapPin,       path: '/areas' },
         { id: 'calendar',   label: t('navigation:nav.calendar'),       icon: CalendarIcon, path: '/calendar' },
+        { id: 'treasury',   label: t('navigation:nav.treasury'),       icon: Wallet,       path: '/treasury' },
         { id: 'settings',   label: t('navigation:nav.systemSettings'), icon: Settings,     path: '/settings' },
       ];
     }
@@ -66,6 +68,7 @@ export function Layout() {
         { id: 'projects',   label: t('navigation:nav.projects'),   icon: Briefcase,    path: '/projects' },
         { id: 'areas',      label: t('navigation:nav.areas'),      icon: MapPin,       path: '/areas' },
         { id: 'calendar',   label: t('navigation:nav.calendar'),   icon: CalendarIcon, path: '/calendar' },
+        { id: 'treasury',   label: t('navigation:nav.treasury'),   icon: Wallet,       path: '/treasury' },
       ];
     }
     return [
@@ -100,7 +103,6 @@ export function Layout() {
 
   return (
     <div className="flex h-screen bg-[#FAFAFA]" dir={dir}>
-      {/* Sidebar */}
       <aside className={`${sidebarOpen ? 'w-64' : 'w-0'} bg-white ${isRTL ? 'border-l' : 'border-r'} border-[#E5E5E5] flex flex-col transition-all duration-300 overflow-hidden`}>
         <div className={`p-6 border-b border-[#E5E5E5] ${isRTL ? 'text-right' : 'text-left'}`}>
           <Container />
@@ -114,8 +116,7 @@ export function Layout() {
                   w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors
                   ${isRTL ? 'text-right' : 'text-left'}
                   ${isActive ? 'gradient-primary text-white' : 'text-[#555555] hover:bg-[#F7F7F7]'}
-                `}
-              >
+                `}>
                 <item.icon className="w-5 h-5 flex-shrink-0" />
                 <span className="font-medium">{item.label}</span>
               </NavLink>
@@ -142,7 +143,6 @@ export function Layout() {
         </div>
       </aside>
 
-      {/* Main */}
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 bg-white border-b border-[#E5E5E5] flex items-center justify-between px-6">
           <button onClick={() => setSidebarOpen(!sidebarOpen)}

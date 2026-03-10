@@ -26,6 +26,7 @@ const Reports         = lazy(() => import('../features/reports/Reports'));
 const SystemSettings  = lazy(() => import('../features/settings/SystemSettings'));
 const Deals           = lazy(() => import('../features/deals/Deals'));
 const Profile         = lazy(() => import('../features/users/Profile'));
+const Treasury        = lazy(() => import('../features/treasury/Treasury'));
 
 export const AppRoutes = () => (
   <Suspense fallback={<Spinner />}>
@@ -51,6 +52,7 @@ export const AppRoutes = () => (
           <Route path="reports"        element={<Reports />} />
           <Route path="settings"       element={<SystemSettings />} />
           <Route path="profile"        element={<Profile />} />
+          <Route path="treasury"       element={<Treasury />} />
         </Route>
       </Route>
 
