@@ -6,6 +6,7 @@ interface User {
   name: string;
   email: string;
   role: 'super_admin' | 'admin' | 'sales' | 'user';
+  avatar?: string; // ✅ صورة اليوزر
 }
 
 interface AuthState {
@@ -24,15 +25,12 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       token: null,
       user: null,
-      isAuthenticated: false, // ✅ دايماً false - الـ persist هيحدثه بعدين
+      isAuthenticated: false,
       _hasHydrated: false,
 
       setAuth: (token, user) => set({ token, user, isAuthenticated: true }),
-
       clearAuth: () => set({ token: null, user: null, isAuthenticated: false }),
-
       logout: () => set({ token: null, user: null, isAuthenticated: false }),
-
       setHasHydrated: (state) => set({ _hasHydrated: state }),
     }),
     {

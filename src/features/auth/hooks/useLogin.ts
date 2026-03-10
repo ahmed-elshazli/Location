@@ -13,10 +13,11 @@ export const useLogin = () => {
       const token = response.accessToken;
       if (!token) return;
       setAuth(token, {
-        id:    response.id,
-        name:  response.fullName,
-        email: response.email,
-        role:  response.role,
+        id:     response.id,
+        name:   response.fullName,
+        email:  response.email,
+        role:   response.role,
+        avatar: response.images?.[0] || '',  // ✅ أول صورة من الـ images array
       });
       navigate('/dashboard', { replace: true });
     },
