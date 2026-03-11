@@ -20,6 +20,14 @@
     "availability": "Availability",
     "group": "Group",
     "commercialZone": "Commercial Zone",
-    "residential": "Residential"
+    "residential": "Residential",
+    "editArea": "Edit Area",
+    "availableUnits": "Available Units",
+    "name": "Name",
+    "type": "Type",
+    "zone": "Zone",
+    "project": "Project",
+    "city": "City",
+    "totalUnits": "Total Units"
   }
 }

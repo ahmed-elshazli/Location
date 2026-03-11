@@ -25,6 +25,7 @@
     "completion": "Completion",
     "quickActions": "Quick Actions",
     "viewAllUnits": "View All Units",
-    "progress": "Progress"
+    "progress": "Progress",
+    "editProject": "Edit Project"
   }
 }

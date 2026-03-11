@@ -9,27 +9,22 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { PropertyModal } from './components/PropertyModal';
 import { ImageWithFallback } from './components/ImageWithFallback';
 import { useUnits } from './hooks/useUnits';
-import z from 'zod';
+import { useAreas } from '../areas/hooks/useAreas';
 import { useToastStore } from '../../store/useToastStore';
-import { useCreateUnit } from './hooks/useCreateUnit';
 import { useDeleteUnit } from './hooks/useDeleteUnit';
-import { useSellUnit } from './hooks/useSellUnit';
 import { useNavigate } from 'react-router-dom';
 
 interface Property {
   _id: string;
   name?: string;
-  project?: {
-    _id: string;
-    name: string;
-  };
+  project?: { _id: string; name: string };
   unitCode: string;
   type: string;
   purpose: string;
   status: string;
   price: number;
   size: number;
-  area: string;
+  area: any;
   bedrooms?: number;
   bathrooms?: number;
   images?: string[];
@@ -51,11 +46,7 @@ export default function Properties() {
   const { dir } = useConfigStore();
   const { user } = useAuthStore();
   const { triggerToast } = useToastStore();
-  const createUnit = useCreateUnit();
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const deleteUnit = useDeleteUnit();
-  const sellUnit = useSellUnit();
   const navigate = useNavigate();
 
   const isRTL = dir === 'rtl';
@@ -66,91 +57,56 @@ export default function Properties() {
   const pagination = unitsData?.pagination;
   const unitList = Array.isArray(unitsData?.data) ? unitsData.data : [];
 
+  // ✅ جلب الـ areas من الـ API
+  const { data: areasData } = useAreas();
+  const areaList: { _id: string; name: string; nameAr?: string }[] =
+    areasData?.data || areasData || [];
+
+  // ✅ helper يرجع الـ _id من الـ area سواء كانت object أو string
+  const getAreaId = (area: any): string => {
+    if (!area) return '';
+    if (typeof area === 'object') return area._id || area.id || '';
+    return area;
+  };
+
+  // ✅ helper يرجع اسم الـ area للعرض
+  const getAreaName = (area: any): string => {
+    if (!area) return '—';
+    if (typeof area === 'object') return language === 'ar' ? (area.nameAr || area.name) : area.name;
+    const found = areaList.find(a => a._id === area);
+    if (found) return language === 'ar' ? (found.nameAr || found.name) : found.name;
+    return area;
+  };
+
   const filteredProperties = unitList.filter((property: any) => {
     const searchTermLower = searchTerm.toLowerCase();
-    const selectedArea = filterArea.toLowerCase();
-    const propertyArea = property.area?.toString().toLowerCase() || '';
     const projectName = property.project?.name?.toLowerCase() || '';
+    const unitCodeStr = property.unitCode?.toString().toLowerCase() || '';
 
     const matchesSearch =
-      property.unitCode?.toString().toLowerCase().includes(searchTermLower) ||
-      projectName.includes(searchTermLower) ||
-      propertyArea.includes(searchTermLower);
+      unitCodeStr.includes(searchTermLower) ||
+      projectName.includes(searchTermLower);
 
-    const matchesArea = filterArea === 'all' || propertyArea === selectedArea;
+    // ✅ مقارنة بالـ _id مش بالاسم
+    const matchesArea = filterArea === 'all' || getAreaId(property.area) === filterArea;
     const matchesType = filterType === 'all' || property.type?.toLowerCase() === filterType.toLowerCase();
     const matchesStatus = filterStatus === 'all' || property.status?.toLowerCase() === filterStatus.toLowerCase();
+    const matchesPurpose = filterPurpose === 'all' || property.purpose?.toLowerCase() === filterPurpose.toLowerCase();
 
-    return matchesSearch && matchesArea && matchesType && matchesStatus;
+    return matchesSearch && matchesArea && matchesType && matchesStatus && matchesPurpose;
   });
-
-  const unitSchema = z.object({
-    unitNumber: z.string().min(1, "رقم الوحدة مطلوب"),
-    type: z.enum(['Apartment', 'Villa', 'Office', 'Studio']),
-    price: z.string().min(1, "السعر مطلوب"),
-    area: z.string().min(1, "المساحة مطلوبة"),
-    project: z.string().nonempty("يجب اختيار مشروع"),
-    status: z.enum(['Available', 'Sold', 'Reserved']).default('Available'),
-  });
-
-  const [formData, setFormData] = useState({
-    unitNumber: '',
-    type: '',
-    price: '',
-    area: '',
-    project: '',
-    status: 'Available',
-  });
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setSelectedImages([]);
-    setFormData({
-      unitNumber: '',
-      type: 'Apartment',
-      price: '',
-      area: '',
-      project: '',
-      status: 'Available'
-    });
-  };
-
-  const handleAddProperty = () => {
-    setEditingProperty(null);
-    setModalOpen(true);
-  };
-
-  const handleEditProperty = (property: Property) => {
-    setEditingProperty(property);
-    setModalOpen(true);
-  };
-
-  const handleSellClick = (id: string, unitCode: string) => {
-    if (window.confirm(`هل تريد تأكيد بيع الوحدة رقم "${unitCode}"؟`)) {
-      sellUnit.mutate(id, {
-        onSuccess: () => {
-          triggerToast(t('properties.successSell'), "success");
-        },
-        onError: (err: any) => {
-          triggerToast(err.response?.data?.message || t('common:common.error'), "error");
-        }
-      });
-    }
-  };
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'available': return 'bg-green-50 text-green-700 border-emerald-200';
-      case 'reserved': return 'bg-orange-50 text-orange-700 border-amber-200';
-      case 'sold': return 'bg-gray-50 text-gray-700 border-gray-200';
-      default: return 'bg-slate-50 text-slate-600 border-slate-200';
+      case 'reserved':  return 'bg-orange-50 text-orange-700 border-amber-200';
+      case 'sold':      return 'bg-gray-50 text-gray-700 border-gray-200';
+      default:          return 'bg-slate-50 text-slate-600 border-slate-200';
     }
   };
 
   const [deleteConfig, setDeleteConfig] = useState<{ isOpen: boolean; id: string; code: string }>({
-    isOpen: false,
-    id: '',
-    code: ''
+    isOpen: false, id: '', code: ''
   });
 
   const handleDeleteUnit = (id: string, unitCode: string) => {
@@ -183,18 +139,14 @@ export default function Properties() {
       <div className={`mb-6 ${isRTL ? 'text-right' : 'text-left'}`}>
         <div className={`flex items-center gap-3 mb-2 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
           <Building2 className="w-8 h-8 text-[#B5752A]" />
-          <h1 className="text-2xl font-bold text-[#16100A]">
-            {t('properties.title')}
-          </h1>
+          <h1 className="text-2xl font-bold text-[#16100A]">{t('properties.title')}</h1>
         </div>
-        <p className="text-[#555555] mb-4">
-          {t('properties.subtitle')}
-        </p>
+        <p className="text-[#555555] mb-4">{t('properties.subtitle')}</p>
 
         {!isReadOnly && (
           <div className={`flex mb-4 ${isRTL ? 'justify-end' : 'justify-start'}`}>
             <button
-              onClick={handleAddProperty}
+              onClick={() => { setEditingProperty(null); setModalOpen(true); }}
               className="flex items-center gap-2 gradient-primary text-white px-4 py-2 rounded-lg hover:opacity-90 transition-all"
             >
               <Plus className="w-5 h-5" />
@@ -213,9 +165,7 @@ export default function Properties() {
             placeholder={t('properties.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-            className={`w-full py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] ${
-              isRTL ? 'pr-10 pl-4 text-right' : 'pl-10 pr-4 text-left'
-            }`}
+            className={`w-full py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] ${isRTL ? 'pr-10 pl-4 text-right' : 'pl-10 pr-4 text-left'}`}
             dir={isRTL ? 'rtl' : 'ltr'}
           />
         </div>
@@ -230,20 +180,12 @@ export default function Properties() {
           </button>
 
           <div className="flex border border-[#E5E5E5] rounded-lg overflow-hidden">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`px-3 py-2 transition-colors ${
-                viewMode === 'grid' ? 'gradient-primary text-white' : 'bg-white text-[#555555] hover:bg-[#F7F7F7]'
-              }`}
-            >
+            <button onClick={() => setViewMode('grid')}
+              className={`px-3 py-2 transition-colors ${viewMode === 'grid' ? 'gradient-primary text-white' : 'bg-white text-[#555555] hover:bg-[#F7F7F7]'}`}>
               <LayoutGrid className="w-5 h-5" />
             </button>
-            <button
-              onClick={() => setViewMode('table')}
-              className={`px-3 py-2 transition-colors border-l border-[#E5E5E5] ${
-                viewMode === 'table' ? 'gradient-primary text-white' : 'bg-white text-[#555555] hover:bg-[#F7F7F7]'
-              }`}
-            >
+            <button onClick={() => setViewMode('table')}
+              className={`px-3 py-2 transition-colors border-l border-[#E5E5E5] ${viewMode === 'table' ? 'gradient-primary text-white' : 'bg-white text-[#555555] hover:bg-[#F7F7F7]'}`}>
               <List className="w-5 h-5" />
             </button>
           </div>
@@ -254,16 +196,12 @@ export default function Properties() {
       {showFilters && (
         <div className="mb-6 p-4 bg-white border border-[#E5E5E5] rounded-lg animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
             <div>
-              <label className={`block text-xs font-semibold text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {t('properties.type')}
-              </label>
-              <select
-                value={filterType}
-                onChange={(e) => { setFilterType(e.target.value); setCurrentPage(1); }}
+              <label className={`block text-xs font-semibold text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>{t('properties.type')}</label>
+              <select value={filterType} onChange={(e) => { setFilterType(e.target.value); setCurrentPage(1); }}
                 className={`w-full px-3 py-2 border border-[#E5E5E5] rounded-lg text-sm focus:ring-2 focus:ring-[#B5752A] outline-none ${isRTL ? 'text-right' : 'text-left'}`}
-                dir={isRTL ? 'rtl' : 'ltr'}
-              >
+                dir={isRTL ? 'rtl' : 'ltr'}>
                 <option value="all">{t('properties.allTypes')}</option>
                 <option value="apartment">{t('properties.apartment')}</option>
                 <option value="villa">{t('properties.villa')}</option>
@@ -273,15 +211,10 @@ export default function Properties() {
             </div>
 
             <div>
-              <label className={`block text-xs font-semibold text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {t('properties.purpose')}
-              </label>
-              <select
-                value={filterPurpose}
-                onChange={(e) => { setFilterPurpose(e.target.value); setCurrentPage(1); }}
+              <label className={`block text-xs font-semibold text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>{t('properties.purpose')}</label>
+              <select value={filterPurpose} onChange={(e) => { setFilterPurpose(e.target.value); setCurrentPage(1); }}
                 className={`w-full px-3 py-2 border border-[#E5E5E5] rounded-lg text-sm focus:ring-2 focus:ring-[#B5752A] outline-none ${isRTL ? 'text-right' : 'text-left'}`}
-                dir={isRTL ? 'rtl' : 'ltr'}
-              >
+                dir={isRTL ? 'rtl' : 'ltr'}>
                 <option value="all">{t('properties.allPurposes')}</option>
                 <option value="sale">{t('properties.sale')}</option>
                 <option value="resale">{t('properties.resale')}</option>
@@ -290,39 +223,33 @@ export default function Properties() {
               </select>
             </div>
 
+            {/* ✅ Area select من الـ API */}
             <div>
-              <label className={`block text-xs font-semibold text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {t('properties.area')}
-              </label>
-              <select
-                value={filterArea}
-                onChange={(e) => { setFilterArea(e.target.value); setCurrentPage(1); }}
+              <label className={`block text-xs font-semibold text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>{t('properties.area')}</label>
+              <select value={filterArea} onChange={(e) => { setFilterArea(e.target.value); setCurrentPage(1); }}
                 className={`w-full px-3 py-2 border border-[#E5E5E5] rounded-lg text-sm focus:ring-2 focus:ring-[#B5752A] outline-none ${isRTL ? 'text-right' : 'text-left'}`}
-                dir={isRTL ? 'rtl' : 'ltr'}
-              >
+                dir={isRTL ? 'rtl' : 'ltr'}>
                 <option value="all">{t('properties.allAreas')}</option>
-                <option value="Madinaty">{language === 'ar' ? 'مدينتي' : 'Madinaty'}</option>
-                <option value="Rehab">{language === 'ar' ? 'الرحاب' : 'Rehab'}</option>
-                <option value="Celia">{language === 'ar' ? 'سيليا' : 'Celia'}</option>
+                {areaList.map((area) => (
+                  <option key={area._id} value={area._id}>
+                    {language === 'ar' ? (area.nameAr || area.name) : area.name}
+                  </option>
+                ))}
               </select>
             </div>
 
             <div>
-              <label className={`block text-xs font-semibold text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {t('properties.status')}
-              </label>
-              <select
-                value={filterStatus}
-                onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
+              <label className={`block text-xs font-semibold text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>{t('properties.status')}</label>
+              <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
                 className={`w-full px-3 py-2 border border-[#E5E5E5] rounded-lg text-sm focus:ring-2 focus:ring-[#B5752A] outline-none ${isRTL ? 'text-right' : 'text-left'}`}
-                dir={isRTL ? 'rtl' : 'ltr'}
-              >
+                dir={isRTL ? 'rtl' : 'ltr'}>
                 <option value="all">{t('properties.allStatus')}</option>
                 <option value="available">{t('properties.available')}</option>
                 <option value="reserved">{t('properties.reserved')}</option>
                 <option value="sold">{t('properties.sold')}</option>
               </select>
             </div>
+
           </div>
         </div>
       )}
@@ -332,8 +259,7 @@ export default function Properties() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredProperties.map((property: any) => {
             const price = property.price || 0;
-            const size = property.size || property.area || 0;
-
+            const size = property.size || 0;
             return (
               <div
                 key={property._id || property.id}
@@ -342,19 +268,13 @@ export default function Properties() {
                 dir={isRTL ? 'rtl' : 'ltr'}
               >
                 <div className="h-48 overflow-hidden bg-gray-100 flex-shrink-0">
-                  <ImageWithFallback
-                    src={property.images?.[0]}
-                    alt={property.unitCode}
-                    className="w-full h-full object-cover"
-                  />
+                  <ImageWithFallback src={property.images?.[0]} alt={property.unitCode} className="w-full h-full object-cover" />
                 </div>
 
                 <div className="p-4 flex flex-col flex-1">
                   <div className="min-h-[55px] flex items-start justify-between mb-3">
                     <div className={isRTL ? 'text-right' : 'text-left'}>
-                      <h3 className="font-bold text-[#16100A] text-lg line-clamp-1">
-                        {property.unitCode}
-                      </h3>
+                      <h3 className="font-bold text-[#16100A] text-lg line-clamp-1">{property.unitCode}</h3>
                       <p className="text-xs text-[#555555] font-medium uppercase">
                         {property.type ? t(`properties.${property.type.toLowerCase()}`) : '---'}
                       </p>
@@ -367,15 +287,12 @@ export default function Properties() {
                   <div className="space-y-2 mb-4 min-h-[85px]">
                     <div className="flex items-center gap-2 text-sm text-[#555555]">
                       <Building2 className="w-4 h-4 text-[#B5752A] flex-shrink-0" />
-                      <span className="line-clamp-1 font-medium">
-                        {property.project?.name || t('common:common.none')}
-                      </span>
+                      <span className="line-clamp-1 font-medium">{property.project?.name || t('common:common.none')}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-[#555555]">
                       <MapPin className="w-4 h-4 flex-shrink-0" />
-                      <span className="line-clamp-1">
-                        {t('properties.size')}: {size} {t('properties.sqm')}
-                      </span>
+                      {/* ✅ عرض اسم الـ area */}
+                      <span className="line-clamp-1">{getAreaName(property.area)}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm font-bold text-[#16100A]">
                       <TrendingUp className="w-4 h-4 text-green-600 flex-shrink-0" />
@@ -397,21 +314,11 @@ export default function Properties() {
                     </span>
                   </div>
 
-                  <div className="mt-auto space-y-2">
-                    {property.status?.toLowerCase() === 'available' && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleSellClick(property._id || property.id, property.unitCode); }}
-                        className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors text-sm font-bold"
-                      >
-                        <TrendingUp className="w-4 h-4" />
-                        {t('properties.sellUnit')}
-                      </button>
-                    )}
-
+                  <div className="mt-auto">
                     {!isReadOnly && (
                       <div className="flex gap-2">
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleEditProperty(property); }}
+                          onClick={(e) => { e.stopPropagation(); setEditingProperty(property); setModalOpen(true); }}
                           className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[#F7F7F7] text-[#555555] rounded-lg hover:bg-[#E5E5E5] transition-colors text-xs font-medium"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
@@ -440,85 +347,51 @@ export default function Properties() {
             <table className="w-full">
               <thead className="bg-[#F7F7F7] border-b border-[#E5E5E5]">
                 <tr>
-                  <th className={`px-6 py-4 text-sm font-bold text-[#16100A] ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {t('properties.unitCode')}
-                  </th>
-                  <th className={`px-6 py-4 text-sm font-bold text-[#16100A] ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {t('properties.type')}
-                  </th>
-                  <th className={`px-6 py-4 text-sm font-bold text-[#16100A] ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {t('properties.area')}
-                  </th>
-                  <th className={`px-6 py-4 text-sm font-bold text-[#16100A] ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {t('properties.size')}
-                  </th>
-                  <th className={`px-6 py-4 text-sm font-bold text-[#16100A] ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {t('properties.details')}
-                  </th>
-                  <th className={`px-6 py-4 text-sm font-bold text-[#16100A] ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {t('properties.price')}
-                  </th>
-                  <th className={`px-6 py-4 text-sm font-bold text-[#16100A] ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {t('properties.status')}
-                  </th>
+                  <th className={`px-6 py-4 text-sm font-bold text-[#16100A] ${isRTL ? 'text-right' : 'text-left'}`}>{t('properties.unitCode')}</th>
+                  <th className={`px-6 py-4 text-sm font-bold text-[#16100A] ${isRTL ? 'text-right' : 'text-left'}`}>{t('properties.type')}</th>
+                  <th className={`px-6 py-4 text-sm font-bold text-[#16100A] ${isRTL ? 'text-right' : 'text-left'}`}>{t('properties.area')}</th>
+                  <th className={`px-6 py-4 text-sm font-bold text-[#16100A] ${isRTL ? 'text-right' : 'text-left'}`}>{t('properties.size')}</th>
+                  <th className={`px-6 py-4 text-sm font-bold text-[#16100A] ${isRTL ? 'text-right' : 'text-left'}`}>{t('properties.details')}</th>
+                  <th className={`px-6 py-4 text-sm font-bold text-[#16100A] ${isRTL ? 'text-right' : 'text-left'}`}>{t('properties.price')}</th>
+                  <th className={`px-6 py-4 text-sm font-bold text-[#16100A] ${isRTL ? 'text-right' : 'text-left'}`}>{t('properties.status')}</th>
                   {!isReadOnly && (
-                    <th className={`px-6 py-4 text-sm font-bold text-[#16100A] ${isRTL ? 'text-left' : 'text-right'}`}>
-                      {t('properties.actions')}
-                    </th>
+                    <th className={`px-6 py-4 text-sm font-bold text-[#16100A] ${isRTL ? 'text-left' : 'text-right'}`}>{t('properties.actions')}</th>
                   )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E5E5]">
                 {filteredProperties.map((property: any) => (
-                  <tr
-                    key={property._id || property.id}
+                  <tr key={property._id || property.id}
                     onClick={() => navigate(`/properties/${property._id}`)}
-                    className="hover:bg-[#FAFAFA] transition-colors cursor-pointer"
-                  >
-                    <td className={`px-6 py-4 font-medium text-[#B5752A] hover:underline ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {property.unitCode}
-                    </td>
+                    className="hover:bg-[#FAFAFA] transition-colors cursor-pointer">
+                    <td className={`px-6 py-4 font-medium text-[#B5752A] hover:underline ${isRTL ? 'text-right' : 'text-left'}`}>{property.unitCode}</td>
                     <td className={`px-6 py-4 text-sm text-[#555555] ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {t(`properties.${property.type.toLowerCase()}`)}
+                      {t(`properties.${property.type?.toLowerCase()}`)}
                     </td>
+                    {/* ✅ عرض اسم الـ area في الجدول */}
                     <td className={`px-6 py-4 text-sm text-[#555555] ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {language === 'ar' ? (
-                        property.area === 'Madinaty' ? 'مدينتي' :
-                        property.area === 'Rehab' ? 'الرحاب' :
-                        property.area === 'Celia' ? 'سيليا' : property.area
-                      ) : property.area}
+                      {getAreaName(property.area)}
                       {property.phase && ` • ${property.phase}`}
                     </td>
                     <td className={`px-6 py-4 text-sm text-[#555555] ${isRTL ? 'text-right' : 'text-left'}`} dir="ltr">
                       {property.size} {t('properties.sqm')}
                     </td>
                     <td className={`px-6 py-4 text-sm text-[#555555] ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {property.bedrooms
-                        ? `${property.bedrooms} ${t('properties.br')} / ${property.bathrooms} ${t('properties.ba')}`
-                        : '-'}
+                      {property.bedrooms ? `${property.bedrooms} ${t('properties.br')} / ${property.bathrooms} ${t('properties.ba')}` : '-'}
                     </td>
                     <td className={`px-6 py-4 font-bold text-[#16100A] ${isRTL ? 'text-right' : 'text-left'}`}>
                       <span dir="ltr">{property.price.toLocaleString()} {t('properties.egp')}</span>
                     </td>
                     <td className={`px-6 py-4 ${isRTL ? 'text-right' : 'text-left'}`}>
                       <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(property.status)}`}>
-                        {t(`properties.${property.status.toLowerCase()}`)}
+                        {t(`properties.${property.status?.toLowerCase()}`)}
                       </span>
                     </td>
                     {!isReadOnly && (
                       <td className={`px-6 py-4 ${isRTL ? 'text-left' : 'text-right'}`}>
                         <div className="flex items-center gap-2 justify-end">
-                          {property.status?.toLowerCase() === 'available' && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleSellClick(property._id || property.id, property.unitCode); }}
-                              className="flex items-center gap-1 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors text-xs font-bold"
-                            >
-                              <TrendingUp className="w-3.5 h-3.5" />
-                              {t('properties.sellUnit')}
-                            </button>
-                          )}
                           <button
-                            onClick={(e) => { e.stopPropagation(); handleEditProperty(property); }}
+                            onClick={(e) => { e.stopPropagation(); setEditingProperty(property); setModalOpen(true); }}
                             className="flex items-center gap-1 px-3 py-1.5 bg-[#F7F7F7] text-[#555555] rounded-lg hover:bg-[#E5E5E5] transition-colors text-xs font-medium"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
@@ -538,7 +411,6 @@ export default function Properties() {
               </tbody>
             </table>
           </div>
-
           <div className="p-4 bg-[#FBFBFB] border-t border-[#E5E5E5] flex justify-between items-center">
             <p className="text-sm text-[#555555]">
               {t('properties.totalUnits')}: <span className="font-bold text-[#16100A]">{unitsData?.results}</span>
@@ -550,40 +422,22 @@ export default function Properties() {
       {/* Pagination */}
       {pagination && pagination.numberOfPages > 1 && (
         <div className="flex items-center justify-center gap-2 mt-8 flex-wrap">
-          <button
-            onClick={() => setCurrentPage(p => p - 1)}
-            disabled={currentPage === 1}
-            className="px-4 py-2 rounded-lg border border-[#E5E5E5] text-sm font-medium text-[#555555] hover:bg-[#F7F7F7] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
+          <button onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}
+            className="px-4 py-2 rounded-lg border border-[#E5E5E5] text-sm font-medium text-[#555555] hover:bg-[#F7F7F7] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
             {isRTL ? '›' : '‹'}
           </button>
-
           {Array.from({ length: pagination.numberOfPages }, (_, i) => i + 1).map((page) => (
-            <button
-              key={page}
-              onClick={() => setCurrentPage(page)}
-              className={`w-10 h-10 rounded-lg text-sm font-bold transition-colors ${
-                currentPage === page
-                  ? 'gradient-primary text-white shadow-sm'
-                  : 'border border-[#E5E5E5] text-[#555555] hover:bg-[#F7F7F7]'
-              }`}
-            >
+            <button key={page} onClick={() => setCurrentPage(page)}
+              className={`w-10 h-10 rounded-lg text-sm font-bold transition-colors ${currentPage === page ? 'gradient-primary text-white shadow-sm' : 'border border-[#E5E5E5] text-[#555555] hover:bg-[#F7F7F7]'}`}>
               {page}
             </button>
           ))}
-
-          <button
-            onClick={() => setCurrentPage(p => p + 1)}
-            disabled={currentPage === pagination.numberOfPages}
-            className="px-4 py-2 rounded-lg border border-[#E5E5E5] text-sm font-medium text-[#555555] hover:bg-[#F7F7F7] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
+          <button onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === pagination.numberOfPages}
+            className="px-4 py-2 rounded-lg border border-[#E5E5E5] text-sm font-medium text-[#555555] hover:bg-[#F7F7F7] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
             {isRTL ? '‹' : '›'}
           </button>
-
           <span className="text-xs text-[#555555] mx-2">
-            {isRTL
-              ? `صفحة ${pagination.currentPage} من ${pagination.numberOfPages}`
-              : `Page ${pagination.currentPage} of ${pagination.numberOfPages}`}
+            {isRTL ? `صفحة ${pagination.currentPage} من ${pagination.numberOfPages}` : `Page ${pagination.currentPage} of ${pagination.numberOfPages}`}
           </span>
         </div>
       )}
@@ -596,26 +450,19 @@ export default function Properties() {
               <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
                 <Trash2 className="w-8 h-8 text-red-600" />
               </div>
-              <h3 className="text-xl font-bold text-[#16100A] mb-2">
-                {t('common:common.confirmDelete')}
-              </h3>
+              <h3 className="text-xl font-bold text-[#16100A] mb-2">{t('common:common.confirmDelete')}</h3>
               <p className="text-[#555555] mb-6">
                 {isRTL
                   ? `هل أنت متأكد من حذف الوحدة رقم "${deleteConfig.code}"؟ هذا الإجراء لا يمكن التراجع عنه.`
                   : `Are you sure you want to delete unit "${deleteConfig.code}"? This action cannot be undone.`}
               </p>
               <div className="flex gap-3 w-full">
-                <button
-                  onClick={() => setDeleteConfig({ ...deleteConfig, isOpen: false })}
-                  className="flex-1 px-4 py-2 border border-[#E5E5E5] rounded-lg text-[#555555] hover:bg-[#F7F7F7] font-medium transition-colors"
-                >
+                <button onClick={() => setDeleteConfig({ ...deleteConfig, isOpen: false })}
+                  className="flex-1 px-4 py-2 border border-[#E5E5E5] rounded-lg text-[#555555] hover:bg-[#F7F7F7] font-medium transition-colors">
                   {t('properties.cancel')}
                 </button>
-                <button
-                  onClick={confirmDelete}
-                  disabled={deleteUnit.isPending}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-bold transition-colors disabled:opacity-50"
-                >
+                <button onClick={confirmDelete} disabled={deleteUnit.isPending}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-bold transition-colors disabled:opacity-50">
                   {deleteUnit.isPending ? "..." : t('properties.delete')}
                 </button>
               </div>

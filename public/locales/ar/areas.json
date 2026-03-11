@@ -20,6 +20,14 @@
     "availability": "حالة التوفر",
     "group": "المجموعة",
     "commercialZone": "منطقة تجارية",
-    "residential": "مسكن"
+    "residential": "مسكن",
+    "editArea": "تحرير المنطقة",
+    "availableUnits": "وحدات متوفرة",
+    "name": "الاسم",
+    "type": "نوع",
+    "zone": "منطقة",
+    "project": "مشروع",
+    "city": "مدينة",
+    "totalUnits": "جميع الوحدات"
   }
 }

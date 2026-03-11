@@ -251,7 +251,12 @@ export default function ClientDetails() {
               </h3>
               <div className="space-y-2">
                 <button
-                  onClick={() => navigate('/deals')}
+                  onClick={() => navigate('/deals', {
+                  state: {
+                    openModal: true,
+                    prefillClient: { id: client._id || client.id, fullName: client.fullName }
+                  }
+                })}
                   className="w-full py-2.5 px-4 bg-[#F7F7F7] hover:bg-[#E5E5E5] rounded-lg transition-colors text-[#16100A] text-sm font-medium"
                 >
                   {t('clients.createNewDeal')}

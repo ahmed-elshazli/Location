@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
 import { useConfigStore } from '../../store/useConfigStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { DealModal } from './components/DealModal';
@@ -24,33 +25,15 @@ const stages: StageConfig[] = [
 
 const DEALS_PER_STAGE = 3;
 
-// lowercase من الـ backend: cash / installment / cash_installment
-const paymentTypeLabel = (type: string, ar: boolean) => {
-  const t = type?.toLowerCase();
-  if (t === 'cash')             return ar ? 'كاش'         : 'Cash';
-  if (t === 'installment')      return ar ? 'تقسيط'       : 'Installment';
-  if (t === 'cash_installment') return ar ? 'كاش وتقسيط' : 'Cash & Installment';
-  return type;
-};
-
-const paymentTypeColor = (type: string) => {
-  const t = type?.toLowerCase();
-  if (t === 'cash')             return 'bg-green-100 text-green-700';
-  if (t === 'installment')      return 'bg-blue-100 text-blue-700';
-  if (t === 'cash_installment') return 'bg-purple-100 text-purple-700';
-  return 'bg-gray-100 text-gray-700';
-};
-
-const isInstallmentBased = (type: string) => {
-  const t = type?.toLowerCase();
-  return t === 'installment' || t === 'cash_installment';
-};
-
 export default function Deals() {
-  const [modalOpen, setModalOpen]     = useState(false);
-  const [editingDeal, setEditingDeal] = useState<any>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [stagePages, setStagePages]   = useState<Record<string, number>>(
+  const location = useLocation();
+  const locationState = location.state as { openModal?: boolean; prefillClient?: { id: string; fullName: string } } | null;
+
+  const [modalOpen, setModalOpen]         = useState(false);
+  const [editingDeal, setEditingDeal]     = useState<any>(null);
+  const [prefillClient, setPrefillClient] = useState<{ id: string; fullName: string } | null>(null);
+  const [currentPage, setCurrentPage]     = useState(1);
+  const [stagePages, setStagePages]       = useState<Record<string, number>>(
     Object.fromEntries(stages.map(s => [s.backend, 1]))
   );
 
@@ -67,11 +50,22 @@ export default function Deals() {
   const language = i18n.language;
   const canEdit  = user?.role === 'super_admin' || user?.role === 'admin' || user?.role === 'sales';
 
-  const handleAddDeal  = () => { setEditingDeal(null); setModalOpen(true); };
-  const handleEditDeal = (deal: any) => { setEditingDeal(deal); setModalOpen(true); };
+  // ── Auto-open modal if navigated from ClientDetails ──────────────────────
+  useEffect(() => {
+    if (locationState?.openModal) {
+      setEditingDeal(null);
+      setPrefillClient(locationState.prefillClient || null);
+      setModalOpen(true);
+      // Clear state to avoid re-opening on refresh
+      window.history.replaceState({}, '');
+    }
+  }, []);
 
-  const getDealsByStage = (backend: string) => deals.filter((d: any) => d.status === backend);
-  const getVisibleDeals = (backend: string) => {
+  const handleAddDeal  = () => { setEditingDeal(null); setPrefillClient(null); setModalOpen(true); };
+  const handleEditDeal = (deal: any) => { setEditingDeal(deal); setPrefillClient(null); setModalOpen(true); };
+
+  const getDealsByStage  = (backend: string) => deals.filter((d: any) => d.status === backend);
+  const getVisibleDeals  = (backend: string) => {
     const all  = getDealsByStage(backend);
     const page = stagePages[backend] || 1;
     return all.slice(0, page * DEALS_PER_STAGE);
@@ -136,7 +130,6 @@ export default function Deals() {
 
           return (
             <div key={stage.id} className="flex flex-col">
-              {/* Stage Header */}
               <div className="bg-white rounded-lg border border-[#E5E5E5] p-4 mb-4">
                 <div className="flex items-center justify-between">
                   <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -147,7 +140,6 @@ export default function Deals() {
                 </div>
               </div>
 
-              {/* Deal Cards */}
               <div className="space-y-3">
                 {visibleDeals.map((deal: any) => (
                   <DealCard
@@ -158,7 +150,6 @@ export default function Deals() {
                   />
                 ))}
 
-                {/* Load More */}
                 {hasMore && (
                   <button
                     onClick={() => loadMoreInStage(stage.backend)}
@@ -179,34 +170,23 @@ export default function Deals() {
         })}
       </div>
 
-      {/* Global Pagination */}
+      {/* Pagination */}
       {pagination && pagination.numberOfPages > 1 && (
         <div className={`flex items-center justify-center gap-2 mt-8 flex-wrap ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <button
-            onClick={() => setCurrentPage(p => p - 1)}
-            disabled={currentPage === 1}
-            className="px-4 py-2 rounded-lg border border-[#E5E5E5] text-sm font-medium text-[#555555] hover:bg-[#F7F7F7] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
+          <button onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}
+            className="px-4 py-2 rounded-lg border border-[#E5E5E5] text-sm font-medium text-[#555555] hover:bg-[#F7F7F7] disabled:opacity-40 transition-colors">
             {isRTL ? '›' : '‹'}
           </button>
           {Array.from({ length: pagination.numberOfPages }, (_, i) => i + 1).map((page) => (
-            <button
-              key={page}
-              onClick={() => setCurrentPage(page)}
+            <button key={page} onClick={() => setCurrentPage(page)}
               className={`w-10 h-10 rounded-lg text-sm font-bold transition-colors ${
-                currentPage === page
-                  ? 'gradient-primary text-white shadow-sm'
-                  : 'border border-[#E5E5E5] text-[#555555] hover:bg-[#F7F7F7]'
-              }`}
-            >
+                currentPage === page ? 'gradient-primary text-white shadow-sm' : 'border border-[#E5E5E5] text-[#555555] hover:bg-[#F7F7F7]'
+              }`}>
               {page}
             </button>
           ))}
-          <button
-            onClick={() => setCurrentPage(p => p + 1)}
-            disabled={currentPage === pagination.numberOfPages}
-            className="px-4 py-2 rounded-lg border border-[#E5E5E5] text-sm font-medium text-[#555555] hover:bg-[#F7F7F7] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
+          <button onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === pagination.numberOfPages}
+            className="px-4 py-2 rounded-lg border border-[#E5E5E5] text-sm font-medium text-[#555555] hover:bg-[#F7F7F7] disabled:opacity-40 transition-colors">
             {isRTL ? '‹' : '›'}
           </button>
           <span className="text-xs text-[#555555] mx-2">
@@ -220,7 +200,8 @@ export default function Deals() {
       {modalOpen && (
         <DealModal
           deal={editingDeal}
-          onClose={() => setModalOpen(false)}
+          prefillClient={prefillClient}
+          onClose={() => { setModalOpen(false); setPrefillClient(null); }}
         />
       )}
     </div>

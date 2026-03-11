@@ -125,6 +125,16 @@ export function DealCard({ deal, onClick, canEdit }: DealCardProps) {
           </div>
         )}
 
+        {/* Required Amount — دايمًا ظاهر */}
+        {deal.requiredAmount != null && (
+          <div className={`flex items-center justify-between mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <span className="text-sm text-[#888]">{ar ? 'المبلغ المطلوب' : 'Required Amount'}</span>
+            <span className="text-sm font-bold text-[#B5752A]" dir="ltr">
+              {Number(deal.requiredAmount).toLocaleString()} EGP
+            </span>
+          </div>
+        )}
+
         {/* Paid / Remaining — فقط للتقسيط */}
         {isInstallmentBased(deal.paymentType) && (
           <>
