@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Plus, User as UserIcon, Building2, Calendar } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useConfigStore } from '../../store/useConfigStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { DealModal } from './components/DealModal';
-import { ImageWithFallback } from './components/ImageWithFallback';
+import { DealCard } from './components/DealCard';
 import { useDeals } from './hooks/useDeals';
 import { useDealsSummary } from './hooks/useDealsSummary';
 
@@ -24,16 +24,26 @@ const stages: StageConfig[] = [
 
 const DEALS_PER_STAGE = 3;
 
+// lowercase من الـ backend: cash / installment / cash_installment
 const paymentTypeLabel = (type: string, ar: boolean) => {
-  if (type === 'CASH')        return ar ? 'كاش'          : 'Cash';
-  if (type === 'INSTALLMENT') return ar ? 'تقسيط'        : 'Installment';
-  return ar ? 'كاش وتقسيط' : 'Cash & Installment';
+  const t = type?.toLowerCase();
+  if (t === 'cash')             return ar ? 'كاش'         : 'Cash';
+  if (t === 'installment')      return ar ? 'تقسيط'       : 'Installment';
+  if (t === 'cash_installment') return ar ? 'كاش وتقسيط' : 'Cash & Installment';
+  return type;
 };
 
 const paymentTypeColor = (type: string) => {
-  if (type === 'CASH')        return 'bg-green-100 text-green-700';
-  if (type === 'INSTALLMENT') return 'bg-blue-100 text-blue-700';
-  return 'bg-purple-100 text-purple-700';
+  const t = type?.toLowerCase();
+  if (t === 'cash')             return 'bg-green-100 text-green-700';
+  if (t === 'installment')      return 'bg-blue-100 text-blue-700';
+  if (t === 'cash_installment') return 'bg-purple-100 text-purple-700';
+  return 'bg-gray-100 text-gray-700';
+};
+
+const isInstallmentBased = (type: string) => {
+  const t = type?.toLowerCase();
+  return t === 'installment' || t === 'cash_installment';
 };
 
 export default function Deals() {
@@ -60,13 +70,13 @@ export default function Deals() {
   const handleAddDeal  = () => { setEditingDeal(null); setModalOpen(true); };
   const handleEditDeal = (deal: any) => { setEditingDeal(deal); setModalOpen(true); };
 
-  const getDealsByStage  = (backend: string) => deals.filter((d: any) => d.status === backend);
-  const getVisibleDeals  = (backend: string) => {
+  const getDealsByStage = (backend: string) => deals.filter((d: any) => d.status === backend);
+  const getVisibleDeals = (backend: string) => {
     const all  = getDealsByStage(backend);
     const page = stagePages[backend] || 1;
     return all.slice(0, page * DEALS_PER_STAGE);
   };
-  const loadMoreInStage  = (backend: string) =>
+  const loadMoreInStage = (backend: string) =>
     setStagePages(prev => ({ ...prev, [backend]: (prev[backend] || 1) + 1 }));
 
   if (isLoading) {
@@ -140,131 +150,12 @@ export default function Deals() {
               {/* Deal Cards */}
               <div className="space-y-3">
                 {visibleDeals.map((deal: any) => (
-                  <div
+                  <DealCard
                     key={deal._id || deal.id}
-                    className="bg-white rounded-lg border border-[#E5E5E5] overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-                    onClick={() => canEdit && handleEditDeal(deal)}
-                  >
-                    {/* Image */}
-                    {deal.unit?.images?.[0] ? (
-                      <div className="h-40 overflow-hidden">
-                        <ImageWithFallback
-                          src={deal.unit.images[0]}
-                          alt={deal.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-40 bg-gradient-to-br from-[#F7F4EF] to-[#EDE8DF] flex items-center justify-center">
-                        <Building2 className="w-12 h-12 text-[#B5752A]/40" />
-                      </div>
-                    )}
-
-                    <div className="p-4 space-y-2">
-                      {/* Title */}
-                      <h4 className={`font-bold text-[#16100A] line-clamp-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                        {deal.title}
-                      </h4>
-
-                      {/* Client / Unit / Date */}
-                      <div className="space-y-1.5">
-                        <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? 'flex-row-reverse' : ''}`}>
-                          <UserIcon className="w-4 h-4 flex-shrink-0" />
-                          <span className="line-clamp-1">
-                            {typeof deal.client === 'object'
-                              ? (deal.client?.fullName || deal.client?.name || '—')
-                              : (deal.client || '—')}
-                          </span>
-                        </div>
-                        <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? 'flex-row-reverse' : ''}`}>
-                          <Building2 className="w-4 h-4 flex-shrink-0" />
-                          <span className="line-clamp-1">
-                            {deal.unit?.unitCode
-                              ? `${deal.unit.unitCode}${deal.unit.project?.name ? ', ' + deal.unit.project.name : ''}`
-                              : '—'}
-                          </span>
-                        </div>
-                        <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? 'flex-row-reverse' : ''}`}>
-                          <Calendar className="w-4 h-4 flex-shrink-0" />
-                          <span dir="ltr">
-                            {deal.createdAt
-                              ? new Date(deal.createdAt).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US')
-                              : '—'}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Deal Value */}
-                      <div className="flex items-center justify-between pt-2 border-t border-[#E5E5E5]">
-                        <span className="text-sm text-[#555555]">
-                          {language === 'ar' ? 'قيمة الصفقة' : 'Deal Value'}
-                        </span>
-                        <span className="font-bold text-[#B5752A]" dir="ltr">
-                          {(deal.value || 0).toLocaleString()} EGP
-                        </span>
-                      </div>
-
-                      {/* Sales Agent */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-[#555555]">
-                          {language === 'ar' ? 'المندوب' : 'Sales Agent'}
-                        </span>
-                        <span className="text-sm font-semibold text-[#16100A] line-clamp-1 text-end">
-                          {deal.salesAgent?.fullName || deal.salesAgent?.name || '—'}
-                        </span>
-                      </div>
-
-                      {/* Payment Type */}
-                      {deal.paymentType && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-[#555555]">
-                            {language === 'ar' ? 'طريقة الدفع' : 'Payment Type'}
-                          </span>
-                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${paymentTypeColor(deal.paymentType)}`}>
-                            {paymentTypeLabel(deal.paymentType, language === 'ar')}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Paid / Remaining */}
-                      {(deal.paidAmount != null || deal.remainingAmount != null) && (
-                        <div className="space-y-1 pt-2 border-t border-[#E5E5E5]">
-                          {deal.paidAmount != null && (
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm text-[#555555]">
-                                {language === 'ar' ? 'المدفوع' : 'Paid Amount'}
-                              </span>
-                              <span className="text-sm font-semibold text-green-600" dir="ltr">
-                                {Number(deal.paidAmount).toLocaleString()} EGP
-                              </span>
-                            </div>
-                          )}
-                          {deal.remainingAmount != null && (
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm text-[#555555]">
-                                {language === 'ar' ? 'المتبقي' : 'Remaining Amount'}
-                              </span>
-                              <span className="text-sm font-semibold text-red-500" dir="ltr">
-                                {Number(deal.remainingAmount).toLocaleString()} EGP
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Notes */}
-                      {deal.notes && (
-                        <div className="pt-2 border-t border-[#E5E5E5]">
-                          <p className="text-xs text-[#555555] mb-0.5">
-                            {language === 'ar' ? 'ملاحظات' : 'Notes'}
-                          </p>
-                          <p className={`text-xs text-[#16100A] line-clamp-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                            {deal.notes}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                    deal={deal}
+                    canEdit={canEdit}
+                    onClick={() => handleEditDeal(deal)}
+                  />
                 ))}
 
                 {/* Load More */}
