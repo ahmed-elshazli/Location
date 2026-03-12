@@ -1,0 +1,28 @@
+name: Deploy Website to Hostinger
+
+on:
+  push:
+    branches:
+      - main # أو اسم البرانش الأساسي عندك
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build project
+        run: npm run build
+
+      - name: Sync files to Hostinger
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./dist/ # الفولدر اللي Vite بيطلع فيه الملفات
+          server-dir: /public_html/ # المسار على هوستنجر
