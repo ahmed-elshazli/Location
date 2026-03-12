@@ -5,6 +5,7 @@ import { useAllUnits } from '../../properties/hooks/useAllUnits';
 import { useClients } from '../../clients/hooks/useClients';
 import { useToastStore } from '../../../store/useToastStore';
 import { useQueryClient } from '@tanstack/react-query';
+import { useGetDeal } from '../hooks/getDealByIdApi';
 import { useCreateDeal } from '../hooks/useCreateDeal';
 import { useUpdateDeal } from '../hooks/useUpdateDeal';
 import { useUpdateDealStatus } from '../hooks/useUpdateDealStatus';
@@ -68,35 +69,26 @@ interface SearchableDropdownProps {
   loading?: boolean;
   disabled?: boolean;
   required?: boolean;
+  initialLabel?: string;
 }
 
-function SearchableDropdown({ value, onChange, options, placeholder, loading, disabled, required }: SearchableDropdownProps) {
+function SearchableDropdown({ value, onChange, options, placeholder, loading, disabled, required, initialLabel }: SearchableDropdownProps) {
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  // عرض اسم الـ selected value
-  const selectedLabel = options.find(o => o.id === value)?.label || '';
+  const selectedLabel = options.find(o => o.id === value)?.label || initialLabel || '';
 
-  // لما بيختار value نعرض الاسم في الـ input
-  const [inputVal, setInputVal] = useState(selectedLabel);
-
-  useEffect(() => {
-    setInputVal(selectedLabel);
-  }, [selectedLabel]);
-
-  // إغلاق الـ dropdown لما يضغط برره
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false);
         setSearch('');
-        setInputVal(selectedLabel); // revert لو مختارش
       }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [selectedLabel]);
+  }, []);
 
   const filtered = options.filter(o =>
     o.label.toLowerCase().includes(search.toLowerCase())
@@ -104,17 +96,18 @@ function SearchableDropdown({ value, onChange, options, placeholder, loading, di
 
   const handleSelect = (opt: { id: string; label: string }) => {
     onChange(opt.id, opt.label);
-    setInputVal(opt.label);
     setSearch('');
     setOpen(false);
   };
+
+  const displayValue = open ? search : selectedLabel;
 
   return (
     <div ref={ref} className="relative">
       <input
         type="text"
-        value={open ? search : inputVal}
-        onChange={e => { setSearch(e.target.value); setInputVal(e.target.value); }}
+        value={displayValue}
+        onChange={e => setSearch(e.target.value)}
         onFocus={() => { setOpen(true); setSearch(''); }}
         placeholder={loading ? 'جاري التحميل...' : placeholder}
         disabled={disabled || loading}
@@ -158,22 +151,41 @@ export function DealModal({ deal, onClose, onSave, prefillClient }: DealModalPro
   const allUnits    = Array.isArray(unitsData?.data)   ? unitsData.data    : (Array.isArray(unitsData)   ? unitsData   : []);
   const clientsList = Array.isArray(clientsData?.data) ? clientsData.data  : (Array.isArray(clientsData) ? clientsData : []);
 
-  const dealUnitId   = getId(deal?.unit);
-  const dealUnitCode = typeof deal?.unit === 'object' ? deal?.unit?.unitCode : null;
+  const dealId     = deal?._id || deal?.id || null;
+  const { data: dealDetailData, isLoading: isDealLoading } = useGetDeal(dealId);
+  const dealDetail = dealDetailData?.data || dealDetailData;
+
+  const src = dealDetail || deal;
+  const dealUnitId   = getId(src?.unit);
+  const dealUnitCode = typeof src?.unit === 'object' ? src?.unit?.unitCode : null;
   const unitInList   = allUnits.some((u: any) => (u._id || u.id) === dealUnitId);
   const unitsList    = [
     ...(dealUnitId && !unitInList && dealUnitCode
-      ? [{ _id: dealUnitId, unitCode: dealUnitCode, type: deal?.unit?.type, price: deal?.unit?.price }]
+      ? [{ _id: dealUnitId, unitCode: dealUnitCode, type: src?.unit?.type, price: src?.unit?.price }]
       : []),
     ...allUnits,
   ];
 
-  const dealAgentId   = getId(deal?.salesAgent);
-  const dealAgentName = typeof deal?.salesAgent === 'object'
-    ? deal?.salesAgent?.fullName || deal?.salesAgent?.name
+  const dealAgentId   = getId(src?.salesAgent);
+  const dealAgentName = typeof src?.salesAgent === 'object'
+    ? src?.salesAgent?.fullName || src?.salesAgent?.name
     : null;
 
-  // Options للـ dropdowns
+  // ── initialLabel للـ SearchableDropdown ──────────────────────────────────
+  // 1) لو src?.unit هو object كامل (من dealDetail) → استخدمه مباشرة
+  // 2) لو لأ → دوّر في unitsList
+  const unitFromList = unitsList.find((u: any) => (u._id || u.id) === dealUnitId);
+  const unitObj = (typeof src?.unit === 'object' ? src?.unit : null) || unitFromList;
+  const unitInitialLabel = unitObj
+    ? `${unitObj.unitCode}${unitObj.type ? ` - ${unitObj.type}` : ''}${unitObj.price ? ` (${Number(unitObj.price).toLocaleString()} EGP)` : ''}`
+    : '';
+
+  // 1) لو src?.salesAgent هو object كامل → استخدمه
+  // 2) لو لأ → دوّر في usersList
+  const agentFromList = usersList.find((a: any) => (a._id || a.id) === dealAgentId);
+  const agentObj = (typeof src?.salesAgent === 'object' ? src?.salesAgent : null) || agentFromList;
+  const agentInitialLabel = agentObj ? (agentObj.fullName || agentObj.name || '') : (dealAgentName || '');
+
   const unitOptions = unitsList.map((u: any) => ({
     id: u._id || u.id,
     label: `${u.unitCode}${u.type ? ` - ${u.type}` : ''}${u.price ? ` (${u.price.toLocaleString()} EGP)` : ''}`,
@@ -193,28 +205,55 @@ export function DealModal({ deal, onClose, onSave, prefillClient }: DealModalPro
   const [editMode, setEditMode] = useState<EditMode>(deal ? 'view' : 'full');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const initialData = {
-    title:           deal?.title                        || '',
-    client:          prefillClient?.id                  || getId(deal?.client),
-    unit:            dealUnitId,
-    value:           deal?.value?.toString()            || '',
-    salesAgent:      dealAgentId,
-    status:          deal?.status                       || 'NEW',
-    paymentType:     deal?.paymentType?.toLowerCase()   || 'cash',
-    paidAmount:      deal?.paidAmount?.toString()       || '',
-    remainingAmount: deal?.remainingAmount?.toString()  || '',
-    requiredAmount:  deal?.requiredAmount?.toString()   || '',
-    notes:           deal?.notes                        || '',
-  };
+  const initialData = useRef({
+    title:           deal?.title                       || '',
+    client:          prefillClient?.id                 || getId(deal?.client),
+    unit:            getId(deal?.unit),
+    value:           deal?.value?.toString()           || '',
+    salesAgent:      getId(deal?.salesAgent),
+    status:          deal?.status                      || 'NEW',
+    paymentType:     deal?.paymentType?.toLowerCase()  || 'cash',
+    paidAmount:      deal?.paidAmount?.toString()      || '',
+    remainingAmount: deal?.remainingAmount?.toString() || '',
+    requiredAmount:  deal?.requiredAmount?.toString()  || '',
+    notes:           deal?.notes                       || '',
+  });
 
-  const [formData, setFormData] = useState(initialData);
+  const [formData, setFormData] = useState(initialData.current);
+  const [formReady, setFormReady] = useState(!deal);
 
-  const isDirty = JSON.stringify(formData) !== JSON.stringify(initialData);
+  const isDirty = JSON.stringify(formData) !== JSON.stringify(initialData.current);
 
+  // ✅ لما dealDetail يتحمل، ملي الـ form بالبيانات الكاملة
+  useEffect(() => {
+    if (!dealDetail) return;
+    const filled = {
+      title:           dealDetail.title                       || '',
+      client:          getId(dealDetail.client),
+      unit:            getId(dealDetail.unit),
+      value:           dealDetail.value?.toString()           || '',
+      salesAgent:      getId(dealDetail.salesAgent),
+      status:          dealDetail.status                      || 'NEW',
+      paymentType:     dealDetail.paymentType?.toLowerCase()  || 'cash',
+      paidAmount:      dealDetail.paidAmount?.toString()      || '',
+      remainingAmount: dealDetail.remainingAmount?.toString() || '',
+      requiredAmount:  dealDetail.requiredAmount?.toString()  || '',
+      notes:           dealDetail.notes                       || '',
+    };
+    initialData.current = filled;
+    setFormData(filled);
+    setFormReady(true);
+  }, [dealDetail]);
+
+  // Auto-calc remaining
   useEffect(() => {
     if (editMode === 'view' || editMode === 'status') return;
-    const value     = parseFloat(formData.value)     || 0;
-    const paid      = parseFloat(formData.paidAmount) || 0;
+    const value   = parseFloat(formData.value)     || 0;
+    const paid    = parseFloat(formData.paidAmount) || 0;
+    if (paid > value && value > 0) {
+      setFormData(prev => ({ ...prev, paidAmount: value.toString(), remainingAmount: '0' }));
+      return;
+    }
     const remaining = value - paid;
     if (remaining >= 0 && (formData.value || formData.paidAmount)) {
       setFormData(prev => ({ ...prev, remainingAmount: remaining.toString() }));
@@ -236,13 +275,21 @@ export function DealModal({ deal, onClose, onSave, prefillClient }: DealModalPro
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!formData.unit) {
+      triggerToast(isAr ? 'من فضلك اختر الوحدة' : 'Please select a unit', 'error');
+      return;
+    }
+    if (!formData.salesAgent) {
+      triggerToast(isAr ? 'من فضلك اختر مندوب المبيعات' : 'Please select a sales agent', 'error');
+      return;
+    }
+
     const options = {
       onSuccess: () => {
         triggerToast(
           deal ? (isAr ? 'تم التحديث ✅' : 'Updated ✅') : (isAr ? 'تمت الإضافة 🚀' : 'Created 🚀'),
           'success'
         );
-        // ✅ تحديث الـ cache فوراً
         queryClient.invalidateQueries({ queryKey: ['deals'] });
         queryClient.invalidateQueries({ queryKey: ['deals-summary'] });
         onSave?.(formData);
@@ -271,35 +318,35 @@ export function DealModal({ deal, onClose, onSave, prefillClient }: DealModalPro
         salesAgent: formData.salesAgent,
         status:     formData.status,
         paymentType: formData.paymentType,
-        ...(isInstallment && {
-          paidAmount:      Number(formData.paidAmount)      || undefined,
-          remainingAmount: Number(formData.remainingAmount) || undefined,
-          requiredAmount:  Number(formData.requiredAmount)  || undefined,
-        }),
-        notes: formData.notes || undefined,
-      }, options);
-
-    } else if (editMode === 'full') {
-      const payload = {
-        title:       formData.title,
-        client:      formData.client,
-        unit:        formData.unit,
-        value:       Number(formData.value),
-        salesAgent:  formData.salesAgent,
-        paymentType: formData.paymentType,
         requiredAmount: Number(formData.requiredAmount) || undefined,
         ...(isInstallment && {
           paidAmount:      Number(formData.paidAmount)      || undefined,
           remainingAmount: Number(formData.remainingAmount) || undefined,
         }),
         notes: formData.notes || undefined,
-      };
-      updateDeal.mutate({ id: deal._id || deal.id, data: payload }, options);
+      }, options);
+    } else if (editMode === 'full') {
+      updateDeal.mutate({
+        id: deal._id || deal.id,
+        data: {
+          title:       formData.title,
+          client:      formData.client,
+          unit:        formData.unit,
+          value:       Number(formData.value),
+          salesAgent:  formData.salesAgent,
+          paymentType: formData.paymentType,
+          requiredAmount: Number(formData.requiredAmount) || undefined,
+          ...(isInstallment && {
+            paidAmount:      Number(formData.paidAmount)      || undefined,
+            remainingAmount: Number(formData.remainingAmount) || undefined,
+          }),
+          notes: formData.notes || undefined,
+        },
+      }, options);
     }
   };
 
   const isPending = createDeal.isPending || updateDeal.isPending || updateDealStatus.isPending;
-
   const T = (ar: string, en: string) => isAr ? ar : en;
 
   return (
@@ -361,36 +408,41 @@ export function DealModal({ deal, onClose, onSave, prefillClient }: DealModalPro
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6">
+          {deal && isDealLoading && !formReady ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#B5752A]" />
+            </div>
+          ) : (<>
 
           {/* VIEW MODE */}
           {deal && editMode === 'view' ? (
             <div className="space-y-0 divide-y divide-[#F0F0F0]">
               {[
-                { label: T('عنوان الصفقة', 'Deal Title'),       value: deal.title },
-                { label: T('العميل', 'Client'),                  value: (() => {
+                { label: T('عنوان الصفقة', 'Deal Title'), value: deal.title },
+                { label: T('العميل', 'Client'), value: (() => {
                     const c = clientsList.find((c: any) => (c._id || c.id) === getId(deal.client));
                     return c ? (c.fullName || c.name || c.email) : (typeof deal.client === 'object' ? (deal.client?.fullName || deal.client?.name) : deal.client) || '—';
                   })()
                 },
-                { label: T('الوحدة', 'Unit'),                    value: (() => {
+                { label: T('الوحدة', 'Unit'), value: (() => {
                     const u = unitsList.find((u: any) => (u._id || u.id) === dealUnitId);
                     if (u) return `${u.unitCode}${u.type ? ` - ${u.type}` : ''}${u.price ? ` (${u.price.toLocaleString()} EGP)` : ''}`;
                     if (dealUnitCode) return dealUnitCode;
                     return '—';
                   })()
                 },
-                { label: T('قيمة الصفقة', 'Deal Value'),         value: deal.value ? `${Number(deal.value).toLocaleString()} EGP` : '—' },
-                { label: T('مندوب المبيعات', 'Sales Agent'),      value: (() => {
+                { label: T('قيمة الصفقة', 'Deal Value'), value: deal.value ? `${Number(deal.value).toLocaleString()} EGP` : '—' },
+                { label: T('مندوب المبيعات', 'Sales Agent'), value: (() => {
                     const a = usersList.find((a: any) => (a._id || a.id) === dealAgentId);
                     return a ? (a.fullName || a.name) : dealAgentName || '—';
                   })()
                 },
-                { label: T('حالة الصفقة', 'Deal Status'),         value: isAr ? (STATUS_LABELS[deal.status]?.ar || deal.status) : (STATUS_LABELS[deal.status]?.en || deal.status), badge: STATUS_LABELS[deal.status]?.color },
-                { label: T('طريقة الدفع', 'Payment Type'),        value: isAr ? (PAYMENT_LABELS[deal.paymentType?.toLowerCase() || '']?.ar || deal.paymentType) : (PAYMENT_LABELS[deal.paymentType?.toLowerCase() || '']?.en || deal.paymentType) || '—' },
-                { label: T('المبلغ المطلوب', 'Required Amount'),    value: deal.requiredAmount ? `${Number(deal.requiredAmount).toLocaleString()} EGP` : '—' },
+                { label: T('حالة الصفقة', 'Deal Status'), value: isAr ? (STATUS_LABELS[deal.status]?.ar || deal.status) : (STATUS_LABELS[deal.status]?.en || deal.status), badge: STATUS_LABELS[deal.status]?.color },
+                { label: T('طريقة الدفع', 'Payment Type'), value: isAr ? (PAYMENT_LABELS[deal.paymentType?.toLowerCase() || '']?.ar || deal.paymentType) : (PAYMENT_LABELS[deal.paymentType?.toLowerCase() || '']?.en || deal.paymentType) || '—' },
+                { label: T('المبلغ المطلوب', 'Required Amount'), value: deal.requiredAmount ? `${Number(deal.requiredAmount).toLocaleString()} EGP` : '—' },
                 ...(isInstallment ? [
-                  { label: T('المبلغ المدفوع', 'Paid Amount'),       value: deal.paidAmount != null ? `${Number(deal.paidAmount).toLocaleString()} EGP` : '—' },
-                  { label: T('المبلغ المتبقي', 'Remaining Amount'),  value: deal.remainingAmount != null ? `${Number(deal.remainingAmount).toLocaleString()} EGP` : '—' },
+                  { label: T('المبلغ المدفوع', 'Paid Amount'), value: deal.paidAmount != null ? `${Number(deal.paidAmount).toLocaleString()} EGP` : '—' },
+                  { label: T('المبلغ المتبقي', 'Remaining Amount'), value: deal.remainingAmount != null ? `${Number(deal.remainingAmount).toLocaleString()} EGP` : '—' },
                 ] : []),
                 ...(deal.notes ? [{ label: T('ملاحظات', 'Notes'), value: deal.notes }] : []),
               ].map(({ label, value, badge }) => (
@@ -451,11 +503,13 @@ export function DealModal({ deal, onClose, onSave, prefillClient }: DealModalPro
                   {T('الوحدة', 'Unit')} {!deal && '*'}
                 </label>
                 <SearchableDropdown
+                  key={`unit-${unitInitialLabel}`}
                   value={formData.unit}
                   onChange={(id) => setFormData({ ...formData, unit: id })}
                   options={unitOptions}
                   placeholder={T('ابحث عن وحدة...', 'Search unit...')}
                   loading={isUnitsLoading}
+                  initialLabel={unitInitialLabel}
                 />
               </div>
             )}
@@ -482,11 +536,13 @@ export function DealModal({ deal, onClose, onSave, prefillClient }: DealModalPro
                   {T('مندوب المبيعات', 'Sales Agent')} {!deal && '*'}
                 </label>
                 <SearchableDropdown
+                  key={`agent-${agentInitialLabel}`}
                   value={formData.salesAgent}
                   onChange={(id) => setFormData({ ...formData, salesAgent: id })}
                   options={agentOptions}
                   placeholder={T('ابحث عن مندوب...', 'Search agent...')}
                   loading={isUsersLoading}
+                  initialLabel={agentInitialLabel}
                 />
               </div>
             )}
@@ -527,7 +583,7 @@ export function DealModal({ deal, onClose, onSave, prefillClient }: DealModalPro
               </div>
             )}
 
-            {/* Paid + Remaining */}
+            {/* Paid + Remaining — تقسيط فقط */}
             {editMode !== 'status' && isInstallment && (
               <>
                 <div>
@@ -535,7 +591,13 @@ export function DealModal({ deal, onClose, onSave, prefillClient }: DealModalPro
                     {T('المبلغ المدفوع (EGP)', 'Paid Amount (EGP)')}
                   </label>
                   <input type="number" value={formData.paidAmount}
-                    onChange={e => setFormData({ ...formData, paidAmount: e.target.value })}
+                    onChange={e => {
+                      const val     = parseFloat(e.target.value) || 0;
+                      const max     = parseFloat(formData.value) || 0;
+                      const clamped = max > 0 && val > max ? max.toString() : e.target.value;
+                      setFormData({ ...formData, paidAmount: clamped });
+                    }}
+                    max={formData.value || undefined}
                     className="w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]"
                     placeholder="0"
                   />
@@ -552,7 +614,7 @@ export function DealModal({ deal, onClose, onSave, prefillClient }: DealModalPro
               </>
             )}
 
-            {/* Required Amount */}
+            {/* Required Amount — دايمًا ظاهر */}
             {editMode !== 'status' && (
               <div className="md:col-span-2">
                 <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
@@ -582,17 +644,19 @@ export function DealModal({ deal, onClose, onSave, prefillClient }: DealModalPro
           </div>
           )}
 
+          </>)}
+
           {/* Footer */}
           <div className={`flex items-center justify-end gap-3 mt-8 pt-6 border-t border-[#E5E5E5] ${isRTL ? 'flex-row-reverse' : ''}`}>
             {deal && (
               <button type="button" onClick={() => setShowDeleteConfirm(true)}
                 disabled={isPending}
-                className={`px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${isRTL ? 'ml-auto' : 'mr-auto'}`}>
+                className={`px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40 ${isRTL ? 'ml-auto' : 'mr-auto'}`}>
                 {T('حذف الصفقة', 'Delete Deal')}
               </button>
             )}
             <button type="button" onClick={onClose} disabled={isPending}
-              className="px-6 py-2 border border-[#E5E5E5] rounded-lg text-[#555] hover:bg-[#F7F7F7] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+              className="px-6 py-2 border border-[#E5E5E5] rounded-lg text-[#555] hover:bg-[#F7F7F7] transition-colors disabled:opacity-40">
               {T('إلغاء', 'Cancel')}
             </button>
             {(!deal || editMode !== 'view') && (
@@ -617,18 +681,13 @@ export function DealModal({ deal, onClose, onSave, prefillClient }: DealModalPro
                       }
                     );
                   }}
-                  className="px-6 py-2 gradient-primary text-white rounded-lg hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
-                  {updateDealStatus.isPending
-                    ? <span className="flex items-center gap-2">{T('جاري الحفظ', 'Saving')} <span className="animate-spin">⟳</span></span>
-                    : T('حفظ', 'Save')}
+                  className="px-6 py-2 gradient-primary text-white rounded-lg hover:opacity-90 disabled:opacity-40 transition-all">
+                  {updateDealStatus.isPending ? '...' : T('حفظ', 'Save')}
                 </button>
               ) : (
-                <button type="submit"
-                  disabled={isPending || (!!deal && !isDirty)}
-                  className="px-6 py-2 gradient-primary text-white rounded-lg hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
-                  {isPending
-                    ? <span className="flex items-center gap-2">{T('جاري الحفظ', 'Saving')} <span className="animate-spin">⟳</span></span>
-                    : T('حفظ', 'Save')}
+                <button type="submit" disabled={isPending}
+                  className="px-6 py-2 gradient-primary text-white rounded-lg hover:opacity-90 disabled:opacity-40 transition-all">
+                  {isPending ? '...' : T('حفظ', 'Save')}
                 </button>
               )
             )}

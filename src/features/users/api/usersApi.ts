@@ -28,3 +28,9 @@ export const deleteUserPermanently = async (id: string) => {
   const response = await api.delete(`/api/v1/users/${id}/delete`);
   return response.data;
 };
+
+export const getUserByIdApi = async (id: string) => {
+  const response = await api.get(`/api/v1/users/${id}`);
+  return response.data;
+};
+ 
