@@ -11,11 +11,166 @@ import { useCreateDeveloper } from "./hooks/useCreateDeveloper";
 import { useDeleteDeveloper } from "./hooks/useDeleteDeveloper";
 import { useUpdateDeveloper } from "./hooks/useUpdateDeveloper";
 import { useDevelopersSummary } from "./hooks/useDevelopersSummary";
+import { useIndividualDevSummary } from "./hooks/useIndividualDevSummary";
 import { useToastStore } from "../../store/useToastStore";
 import { DeveloperModal } from "./components/DeveloperModal";
 
 const LIMIT = 6;
 
+// ─── كارد منفصل عشان يستخدم useDeveloperSummary بشكل صحيح ───
+function DeveloperCard({
+  developer,
+  isRTL,
+  language,
+  onEdit,
+  onDelete,
+  isDeleting,
+}: {
+  developer: any;
+  isRTL: boolean;
+  language: string;
+  onEdit: () => void;
+  onDelete: () => void;
+  isDeleting: boolean;
+}) {
+  const devId = developer._id || developer.id;
+  const { data: devSummary, isLoading: isSummaryLoading } = useIndividualDevSummary(devId);
+
+  const projectsCount = devSummary?.projectsCount   ?? developer.projectsCount ?? 0;
+  const totalUnits    = devSummary?.totalUnitsSold  ?? developer.totalUnits   ?? 0;
+  const revenue       = devSummary?.revenue         ?? 0;
+
+  const getDisplayUrl = (url: string) => url.replace(/^https?:\/\//, "");
+  const getFullUrl    = (url: string) => url.startsWith("http") ? url : `https://${url}`;
+
+  return (
+    <div className="bg-white rounded-lg border border-[#E5E5E5] p-6 hover:shadow-lg transition-shadow">
+
+      {/* Header */}
+      <div className="flex items-start justify-between mb-4">
+        <div className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className="w-12 h-12 gradient-primary rounded-lg flex items-center justify-center flex-shrink-0">
+            <Building className="w-6 h-6 text-white" />
+          </div>
+          <div className={isRTL ? "text-right" : "text-left"}>
+            <h3 className="font-bold text-[#16100A] text-base">{developer.name}</h3>
+            <p className="text-xs text-[#555555]">
+              {language === "ar" ? "معرف المطور" : "Developer ID"}:{" "}
+              {devId?.slice(-6)}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={e => { e.stopPropagation(); onEdit(); }}
+            className="p-2 hover:bg-[#F7F7F7] rounded-lg transition-colors"
+          >
+            <Edit2 className="w-4 h-4 text-[#AAAAAA]" />
+          </button>
+          <button
+            onClick={e => { e.stopPropagation(); onDelete(); }}
+            className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+            disabled={isDeleting}
+          >
+            <Trash2 className={`w-4 h-4 ${isDeleting ? "text-gray-300" : "text-red-400"}`} />
+          </button>
+        </div>
+      </div>
+
+      {developer.description && (
+        <p className={`text-sm text-[#555555] mb-4 leading-relaxed ${isRTL ? "text-right" : "text-left"}`}>
+          {developer.description}
+        </p>
+      )}
+
+      {/* Contact info */}
+      <div className="space-y-2 mb-4 pb-4 border-b border-[#E5E5E5]">
+        {developer.phone && (
+          <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? "flex-row-reverse" : ""}`}>
+            <Phone className="w-4 h-4 flex-shrink-0" />
+            <span dir="ltr">{developer.phone}</span>
+          </div>
+        )}
+        {developer.email && (
+          <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? "flex-row-reverse" : ""}`}>
+            <Mail className="w-4 h-4 flex-shrink-0" />
+            <span dir="ltr">{developer.email}</span>
+          </div>
+        )}
+        {developer.website && (
+          <div className={`flex items-center gap-2 text-sm ${isRTL ? "flex-row-reverse" : ""}`}>
+            <Globe className="w-4 h-4 flex-shrink-0 text-[#B5752A]" />
+            <a
+              href={getFullUrl(developer.website)}
+              target="_blank"
+              rel="noreferrer"
+              dir="ltr"
+              className="text-[#B5752A] hover:underline"
+            >
+              {getDisplayUrl(developer.website)}
+            </a>
+          </div>
+        )}
+      </div>
+
+      {/* Stats من /summary */}
+      <div className="grid grid-cols-3 gap-3 mb-4">
+        <div className={isRTL ? "text-right" : "text-left"}>
+          <p className="text-xs text-[#555555] mb-1">
+            {language === "ar" ? "المشاريع" : "Projects"}
+          </p>
+          <p className="font-bold text-[#16100A] text-base">
+            {isSummaryLoading
+              ? <span className="inline-block w-6 h-4 bg-gray-200 animate-pulse rounded" />
+              : projectsCount}
+          </p>
+        </div>
+        <div className={isRTL ? "text-right" : "text-left"}>
+          <p className="text-xs text-[#555555] mb-1">
+            {language === "ar" ? "الوحدات المباعة" : "Units Sold"}
+          </p>
+          <p className="font-bold text-[#B5752A] text-base">
+            {isSummaryLoading
+              ? <span className="inline-block w-10 h-4 bg-gray-200 animate-pulse rounded" />
+              : Number(totalUnits).toLocaleString()}
+          </p>
+        </div>
+        <div className={isRTL ? "text-right" : "text-left"}>
+          <p className="text-xs text-[#555555] mb-1">
+            {language === "ar" ? "الإيرادات" : "Revenue"}
+          </p>
+          <p className="font-bold text-[#16100A] text-sm">
+            {isSummaryLoading
+              ? <span className="inline-block w-12 h-4 bg-gray-200 animate-pulse rounded" />
+              : `${Number(revenue).toLocaleString()} EGP`}
+          </p>
+        </div>
+      </div>
+
+      {/* Areas */}
+      {(developer.area || developer.areas || []).length > 0 && (
+        <div className={isRTL ? "text-right" : "text-left"}>
+          <p className={`text-sm font-semibold text-[#16100A] mb-2 flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
+            <MapPin className="w-4 h-4 text-[#555555]" />
+            {language === "ar" ? "المناطق النشطة" : "Active Areas"}:
+          </p>
+          <div className={`flex flex-wrap gap-2 ${isRTL ? "justify-end" : "justify-start"}`}>
+            {(developer.area || developer.areas || []).map((area: string, idx: number) => (
+              <span
+                key={idx}
+                className="px-3 py-1 bg-[#F7F7F7] text-[#555555] text-sm rounded-lg border border-[#E5E5E5]"
+              >
+                {area}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main Page ───
 export default function Developers() {
   const { t, i18n }      = useTranslation(["developers", "common"]);
   const { dir }          = useConfigStore();
@@ -40,16 +195,12 @@ export default function Developers() {
   const updateDeveloper   = useUpdateDeveloper();
   const deleteDevMutation = useDeleteDeveloper();
 
-  const getDisplayUrl = (url: string) => url.replace(/^https?:\/\//, "");
-  const getFullUrl    = (url: string) => url.startsWith("http") ? url : `https://${url}`;
-
   const devList = Array.isArray(backendDevs?.data)
     ? backendDevs.data
     : Array.isArray(backendDevs)
     ? backendDevs
     : backendDevs?.developers || [];
 
-  // Filter + client-side pagination
   const filteredDevelopers = devList.filter((dev: any) =>
     dev.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     dev.email?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -125,7 +276,6 @@ export default function Developers() {
           </button>
         </div>
 
-        {/* Search */}
         <div className="relative">
           <Search className={`absolute ${isRTL ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 w-5 h-5 text-[#555555]`} />
           <input
@@ -157,97 +307,15 @@ export default function Developers() {
       {/* Developers Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {paginatedDevs.map((developer: any) => (
-          <div
+          <DeveloperCard
             key={developer._id || developer.id}
-            className="bg-white rounded-lg border border-[#E5E5E5] p-6 hover:shadow-lg transition-shadow"
-          >
-            {/* Card Header */}
-            <div className="flex items-start justify-between mb-4">
-              <div className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
-                <div className="w-12 h-12 gradient-primary rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Building className="w-6 h-6 text-white" />
-                </div>
-                <div className={isRTL ? "text-right" : "text-left"}>
-                  <h3 className="font-bold text-[#16100A] text-base">{developer.name}</h3>
-                  <p className="text-xs text-[#555555]">
-                    {language === "ar" ? "معرف المطور" : "Developer ID"}:{" "}
-                    {(developer._id || developer.id)?.slice(-6)}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={e => { e.stopPropagation(); setEditingDev(developer); setModalOpen(true); }}
-                  className="p-2 hover:bg-[#F7F7F7] rounded-lg transition-colors"
-                >
-                  <Edit2 className="w-4 h-4 text-[#AAAAAA]" />
-                </button>
-                <button
-                  onClick={e => { e.stopPropagation(); setDeleteConfig({ isOpen: true, id: developer._id || developer.id, name: developer.name }); }}
-                  className="p-2 hover:bg-red-50 rounded-lg transition-colors"
-                  disabled={deleteDevMutation.isPending}
-                >
-                  <Trash2 className={`w-4 h-4 ${deleteDevMutation.isPending ? "text-gray-300" : "text-red-400"}`} />
-                </button>
-              </div>
-            </div>
-
-            {developer.description && (
-              <p className={`text-sm text-[#555555] mb-4 leading-relaxed ${isRTL ? "text-right" : "text-left"}`}>
-                {developer.description}
-              </p>
-            )}
-
-            <div className="space-y-2 mb-4 pb-4 border-b border-[#E5E5E5]">
-              {developer.phone && (
-                <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? "flex-row-reverse" : ""}`}>
-                  <Phone className="w-4 h-4 flex-shrink-0" />
-                  <span dir="ltr">{developer.phone}</span>
-                </div>
-              )}
-              {developer.email && (
-                <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? "flex-row-reverse" : ""}`}>
-                  <Mail className="w-4 h-4 flex-shrink-0" />
-                  <span dir="ltr">{developer.email}</span>
-                </div>
-              )}
-              {developer.website && (
-                <div className={`flex items-center gap-2 text-sm ${isRTL ? "flex-row-reverse" : ""}`}>
-                  <Globe className="w-4 h-4 flex-shrink-0 text-[#B5752A]" />
-                  <a href={getFullUrl(developer.website)} target="_blank" rel="noreferrer" dir="ltr" className="text-[#B5752A] hover:underline">
-                    {getDisplayUrl(developer.website)}
-                  </a>
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className={isRTL ? "text-right" : "text-left"}>
-                <p className="text-xs text-[#555555] mb-1">{t("developers.projects")}</p>
-                <p className="font-bold text-[#16100A] text-base">{developer.projectsCount ?? 0}</p>
-              </div>
-              <div className={isRTL ? "text-right" : "text-left"}>
-                <p className="text-xs text-[#555555] mb-1">{t("developers.totalUnits")}</p>
-                <p className="font-bold text-[#B5752A] text-base">{(developer.totalUnits ?? 0).toLocaleString()}</p>
-              </div>
-            </div>
-
-            {(developer.area || developer.areas || []).length > 0 && (
-              <div className={isRTL ? "text-right" : "text-left"}>
-                <p className={`text-sm font-semibold text-[#16100A] mb-2 flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
-                  <MapPin className="w-4 h-4 text-[#555555]" />
-                  {t("developers.activeAreas")}:
-                </p>
-                <div className={`flex flex-wrap gap-2 ${isRTL ? "justify-end" : "justify-start"}`}>
-                  {(developer.area || developer.areas || []).map((area: string, idx: number) => (
-                    <span key={idx} className="px-3 py-1 bg-[#F7F7F7] text-[#555555] text-sm rounded-lg border border-[#E5E5E5]">
-                      {area}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+            developer={developer}
+            isRTL={isRTL}
+            language={language}
+            onEdit={() => { setEditingDev(developer); setModalOpen(true); }}
+            onDelete={() => setDeleteConfig({ isOpen: true, id: developer._id || developer.id, name: developer.name })}
+            isDeleting={deleteDevMutation.isPending}
+          />
         ))}
 
         {paginatedDevs.length === 0 && (
@@ -257,9 +325,9 @@ export default function Developers() {
         )}
       </div>
 
-      {/* ── Pagination ── */}
+      {/* Pagination */}
       {totalPages > 1 && (
-        <div className={`flex items-center justify-center gap-2 mt-8 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className={`flex items-center justify-center gap-2 mt-8 ${isRTL ? "flex-row-reverse" : ""}`}>
           <button
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1 || isLoading}
@@ -273,9 +341,8 @@ export default function Developers() {
             const isLast  = page === totalPages;
             const isNear  = Math.abs(page - currentPage) <= 1;
             if (!isFirst && !isLast && !isNear) {
-              if (page === 2 || page === totalPages - 1) {
+              if (page === 2 || page === totalPages - 1)
                 return <span key={page} className="text-[#555555] text-sm px-1">...</span>;
-              }
               return null;
             }
             return (
@@ -285,8 +352,8 @@ export default function Developers() {
                 disabled={isLoading}
                 className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed ${
                   page === currentPage
-                    ? 'gradient-primary text-white shadow-sm'
-                    : 'border border-[#E5E5E5] text-[#555555] hover:bg-[#F7F7F7]'
+                    ? "gradient-primary text-white shadow-sm"
+                    : "border border-[#E5E5E5] text-[#555555] hover:bg-[#F7F7F7]"
                 }`}
               >
                 {page}
@@ -303,14 +370,14 @@ export default function Developers() {
           </button>
 
           <span className="text-xs text-[#555555] mr-2 ml-2">
-            {language === 'ar'
+            {language === "ar"
               ? `صفحة ${currentPage} من ${totalPages}`
               : `Page ${currentPage} of ${totalPages}`}
           </span>
         </div>
       )}
 
-      {/* ── Delete Modal ── */}
+      {/* Delete Modal */}
       {deleteConfig.isOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
@@ -346,7 +413,7 @@ export default function Developers() {
         </div>
       )}
 
-      {/* ── Developer Modal ── */}
+      {/* Developer Modal */}
       {modalOpen && (
         <DeveloperModal
           developer={editingDev}
