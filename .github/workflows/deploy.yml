@@ -3,14 +3,18 @@ name: Deploy Website to Hostinger
 on:
   push:
     branches:
-      - main # أو اسم البرانش الأساسي عندك
+      - main
 
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
+    # ✅ إضافة المتغير لضمان العمل على Node 24 كما طلب الـ log
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # 👈 تم التحديث من v3 لـ v4
 
       - name: Install dependencies
         run: npm install
@@ -19,10 +23,12 @@ jobs:
         run: npm run build
 
       - name: Sync files to Hostinger
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5 # 👈 تم التحديث لآخر إصدار
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./dist/ # الفولدر اللي Vite بيطلع فيه الملفات
-          server-dir: /public_html/ # المسار على هوستنجر
+          local-dir: ./dist/
+          server-dir: /public_html/
+          # ✅ إضافة خيار لزيادة استقرار الاتصال
+          dry-run: false
