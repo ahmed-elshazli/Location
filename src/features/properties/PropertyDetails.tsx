@@ -152,8 +152,8 @@ export default function PropertyDetails() {
     };
     if (viewingForm.location) payload.location = viewingForm.location;
     if (viewingForm.notes)    payload.notes    = viewingForm.notes;
-console.log('submitting payload:', payload);
-console.log('createEvent state:', createEvent);
+// console.log('submitting payload:', payload);
+// console.log('createEvent state:', createEvent);
     createEvent.mutate(payload, {
       onSuccess: () => {
         setViewingSubmitted(true);
