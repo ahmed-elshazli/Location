@@ -1,7 +1,9 @@
 import { api } from '../../../utils/axios';
 
 export const createProjectApi = async (formData: FormData) => {
-  const response = await api.post('/api/v1/projects', formData);
+  const response = await api.post('/api/v1/projects', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
   return response.data;
 };
 
@@ -28,7 +30,9 @@ export const getProjectSummaryApi = async (id: string) => {
 };
 
 export const updateProjectApi = async ({ id, data }: { id: string; data: FormData }) => {
-  const response = await api.patch(`/api/v1/projects/${id}`, data);
+  const response = await api.patch(`/api/v1/projects/${id}`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
   return response.data;
 };
 

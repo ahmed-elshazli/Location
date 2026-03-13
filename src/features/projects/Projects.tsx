@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Plus, Search, MapPin, Building, Calendar, Edit2, Trash2, FileText, X, User, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Plus, Search, MapPin, Building, Calendar, Edit2, Trash2, FileText, X, User, ChevronLeft, ChevronRight, Upload, Image as ImageIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useConfigStore } from '../../store/useConfigStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -30,13 +30,34 @@ export default function Projects() {
   const { data: developersData } = useDevelopers();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // ─── Image Upload ─────────────────────────────────────────────────────────
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const remaining = 5 - imagePreviews.filter(p => p.startsWith('http')).length - imageFiles.length;
+    const toAdd = files.slice(0, Math.max(0, remaining));
+    if (toAdd.length === 0) return;
+    setImageFiles(prev => [...prev, ...toAdd]);
+    toAdd.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreviews(prev => [...prev, reader.result as string]);
+      reader.readAsDataURL(file);
+    });
+  };
   const [isEditing, setIsEditing] = useState(false);
   const updateProject = useUpdateProject();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const { data: projectsData, isLoading } = useProjects(currentPage);
   const deleteProject = useDeleteProject();
 
-  // ─── Confirm Delete Modal ──────────────────────────────────────────────────
+
+
+  // ─── Confirm Delete Modal ─────────────────────────────────────────────────
   const [deleteConfig, setDeleteConfig] = useState<{ isOpen: boolean; id: string; name: string }>({
     isOpen: false, id: '', name: ''
   });
@@ -69,6 +90,10 @@ export default function Projects() {
     setIsModalOpen(false);
     setIsEditing(false);
     setSelectedProjectId(null);
+    setImageFiles([]);
+    setImagePreviews([]);
+    setImageFile(null);
+    setImagePreview('');
     setFormData({
       name: '', description: '', location: '', area: '',
       developer: '', startDate: '', status: 'Active',
@@ -102,6 +127,12 @@ export default function Projects() {
 
     if (formData.status) submissionData.append('status', formData.status);
 
+    // ✅ الصورة في الـ create والـ update
+    // ⚠️ الباك-إند بيستبدل الصور كلها لما تبعت images جديدة
+    if (imageFiles.length > 0) {
+      imageFiles.forEach(file => submissionData.append('images', file));
+    }
+
     if (isEditing && selectedProjectId) {
       updateProject.mutate({ id: selectedProjectId, data: submissionData }, {
         onSuccess: () => { triggerToast("تم تحديث المشروع بنجاح ✅", "success"); closeModal(); },
@@ -124,25 +155,20 @@ export default function Projects() {
   const pagination  = projectsData?.pagination;
   const totalPages  = pagination?.numberOfPages ?? 1;
 
-  // ─── Filter (على الصفحة الحالية فقط) ──────────────────────────────────────
   const filteredProjects = projectList.filter((project: any) => {
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch =
       project.name?.toLowerCase().includes(searchLower) ||
       project.location?.toLowerCase().includes(searchLower) ||
       project.area?.toLowerCase().includes(searchLower);
-
     const matchesStatus =
       filterStatus === 'all' ||
       project.status?.toLowerCase() === filterStatus.toLowerCase();
-
     return matchesSearch && matchesStatus;
   });
 
-  // server-side pagination — paginatedProjects = filteredProjects مباشرةً
   const paginatedProjects = filteredProjects;
   const navigate = useNavigate();
-
   const projectSummaries = useProjectsSummary(paginatedProjects);
 
   const getStatusColor = (status: string) => {
@@ -186,6 +212,8 @@ export default function Projects() {
   const handleEditClick = (project: any) => {
     setSelectedProjectId(project._id || project.id);
     setIsEditing(true);
+    setImageFiles([]);
+    setImagePreviews(project.images || (project.image ? [project.image] : []));
     setFormData({
       name: project.name || '',
       description: project.description || '',
@@ -227,7 +255,6 @@ export default function Projects() {
           </button>
         </div>
 
-        {/* Search and Filter */}
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-[#555555]`} />
@@ -239,7 +266,6 @@ export default function Projects() {
               className={`w-full ${isRTL ? 'pr-10 pl-4 text-right' : 'pl-10 pr-4 text-left'} py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
             />
           </div>
-          {/* ✅ الـ options بقيم lowercase تتطابق مع الـ filter logic */}
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
@@ -259,10 +285,10 @@ export default function Projects() {
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         {[
-          { label: t('projects.totalProjects'),         value: stats.totalProjects,                  color: 'text-[#16100A]' },
-          { label: t('developers:developers.totalUnits'), value: stats.totalUnits?.toLocaleString(),  color: 'text-[#16100A]' },
-          { label: t('projects.availableUnits'),        value: stats.availableUnits?.toLocaleString(), color: 'text-green-600' },
-          { label: t('projects.soldUnits'),             value: stats.soldUnits?.toLocaleString(),    color: 'text-[#B5752A]' },
+          { label: t('projects.totalProjects'),           value: stats.totalProjects,                   color: 'text-[#16100A]' },
+          { label: t('developers:developers.totalUnits'), value: stats.totalUnits?.toLocaleString(),    color: 'text-[#16100A]' },
+          { label: t('projects.availableUnits'),          value: stats.availableUnits?.toLocaleString(), color: 'text-green-600' },
+          { label: t('projects.soldUnits'),               value: stats.soldUnits?.toLocaleString(),     color: 'text-[#B5752A]' },
         ].map((stat, i) => (
           <div key={i} className="bg-white rounded-lg border border-[#E5E5E5] p-6">
             <p className={`text-sm text-[#555555] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>{stat.label}</p>
@@ -299,7 +325,7 @@ export default function Projects() {
               <div key={project._id || project.id} className="bg-white rounded-lg border border-[#E5E5E5] overflow-hidden hover:shadow-lg transition-shadow">
                 <div className="h-48 overflow-hidden">
                   <ImageWithFallback
-                    src={project.image}
+                    src={project.images?.[0] || project.image}
                     alt={language === 'ar' ? (project.nameAr || project.name) : project.name}
                     className="w-full h-full object-cover"
                   />
@@ -347,9 +373,9 @@ export default function Projects() {
 
                   <div className="grid grid-cols-3 gap-4 mb-4">
                     {[
-                      { label: t('developers:developers.totalUnits'), value: totalUnits.toLocaleString(),     color: 'text-[#16100A]' },
-                      { label: t('properties:properties.available'),  value: availableUnits.toLocaleString(), color: 'text-green-600' },
-                      { label: t('properties:properties.sold'),       value: soldUnits.toLocaleString(),      color: 'text-[#B5752A]' },
+                      { label: t('developers:developers.totalUnits'), value: totalUnits.toLocaleString(),      color: 'text-[#16100A]' },
+                      { label: t('properties:properties.available'),  value: availableUnits.toLocaleString(),  color: 'text-green-600' },
+                      { label: t('properties:properties.sold'),       value: soldUnits.toLocaleString(),       color: 'text-[#B5752A]' },
                     ].map((stat, i) => (
                       <div key={i} className={isRTL ? 'text-right' : 'text-left'}>
                         <p className="text-xs text-[#555555] mb-1">{stat.label}</p>
@@ -395,10 +421,9 @@ export default function Projects() {
         </div>
       )}
 
-      {/* ─── Pagination ──────────────────────────────────────────────────────── */}
+      {/* Pagination */}
       {totalPages > 1 && (
         <div className={`flex items-center justify-center gap-2 mt-8 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          {/* Prev */}
           <button
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1 || isLoading}
@@ -407,15 +432,13 @@ export default function Projects() {
             {isRTL ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </button>
 
-          {/* Page Numbers */}
           {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
             const isFirst = page === 1;
             const isLast  = page === totalPages;
             const isNear  = Math.abs(page - currentPage) <= 1;
             if (!isFirst && !isLast && !isNear) {
-              if (page === 2 || page === totalPages - 1) {
+              if (page === 2 || page === totalPages - 1)
                 return <span key={page} className="text-[#555555] text-sm px-1">...</span>;
-              }
               return null;
             }
             return (
@@ -434,7 +457,6 @@ export default function Projects() {
             );
           })}
 
-          {/* Next */}
           <button
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages || isLoading}
@@ -451,7 +473,7 @@ export default function Projects() {
         </div>
       )}
 
-      {/* ─── Confirm Delete Modal ─────────────────────────────────────────────── */}
+      {/* Confirm Delete Modal */}
       {deleteConfig.isOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl animate-in zoom-in-95 duration-200" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -459,9 +481,7 @@ export default function Projects() {
               <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
                 <Trash2 className="w-8 h-8 text-red-600" />
               </div>
-              <h3 className="text-xl font-bold text-[#16100A] mb-2">
-                {t('common:common.confirmDelete')}
-              </h3>
+              <h3 className="text-xl font-bold text-[#16100A] mb-2">{t('common:common.confirmDelete')}</h3>
               <p className="text-[#555555] mb-6">
                 {isRTL
                   ? `هل أنت متأكد من حذف مشروع "${deleteConfig.name}"؟ هذا الإجراء لا يمكن التراجع عنه.`
@@ -487,7 +507,7 @@ export default function Projects() {
         </div>
       )}
 
-      {/* ─── Project Modal ────────────────────────────────────────────────────── */}
+      {/* Project Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div
@@ -504,6 +524,7 @@ export default function Projects() {
             </div>
 
             <form onSubmit={handleSaveProject} className="px-6 py-4 flex flex-col gap-5 max-h-[75vh] overflow-y-auto">
+
               {/* Auto-Translation Notice */}
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
                 <p className="text-sm text-blue-700">
@@ -512,6 +533,66 @@ export default function Projects() {
                     : 'You can write in any language - auto-translation will handle the rest'}
                 </p>
               </div>
+
+
+
+              {/* ✅ Image Upload */}
+              {(
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-[#16100A] flex items-center gap-2 flex-wrap">
+                    {language === 'ar' ? 'صور المشروع' : 'Project Images'}
+                    {isEditing && (
+                      <span className="text-xs font-normal text-orange-500">
+                        {language === 'ar' ? '⚠️ رفع صور جديدة سيحذف القديمة' : '⚠️ Uploading new images will replace existing ones'}
+                      </span>
+                    )}
+                  </label>
+                  {/* Previews grid */}
+                  {imagePreviews.length > 0 && (
+                    <div className="grid grid-cols-5 gap-2 mb-2">
+                      {imagePreviews.map((src, idx) => (
+                        <div key={idx} className="relative group">
+                          <img src={src} alt={`img-${idx}`} className="w-full h-16 object-cover rounded-lg border border-[#E5E5E5]" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setImagePreviews(prev => prev.filter((_, i) => i !== idx));
+                              if (!src.startsWith('http')) {
+                                setImageFiles(prev => prev.filter((_, i) => {
+                                  const newFileIdx = imagePreviews.filter((p,pi) => pi < idx && !p.startsWith('http')).length;
+                                  return i !== newFileIdx;
+                                }));
+                              }
+                            }}
+                            className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                          >×</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {imagePreviews.length < 5 && (
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="cursor-pointer border-2 border-dashed border-[#E5E5E5] rounded-xl h-24 flex flex-col items-center justify-center gap-1 text-[#AAAAAA] hover:border-[#B5752A] transition-colors"
+                    >
+                      <Upload className="w-7 h-7" />
+                      <p className="text-xs">
+                        {language === 'ar'
+                          ? `أضف صورة (${imagePreviews.length}/5)`
+                          : `Add image (${imagePreviews.length}/5)`}
+                      </p>
+                    </div>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </div>
+              )}
 
               {/* Project Name */}
               <div className="space-y-1">
@@ -573,26 +654,6 @@ export default function Projects() {
                     ))}
                   </select>
                 </div>
-              </div>
-
-              {/* Units Stats */}
-              <div className="grid grid-cols-3 gap-4">
-                {[
-                  { label: t('projects.totalUnits'), key: 'units' },
-                  { label: t('projects.availableUnits'), key: 'availableUnits' },
-                  { label: t('projects.soldUnits'), key: 'soldUnits' },
-                ].map(({ label, key }) => (
-                  <div key={key} className="space-y-1">
-                    <label className="text-sm font-medium text-[#16100A]">{label}</label>
-                    <input
-                      type="number" min="0"
-                      value={(formData as any)[key]}
-                      onChange={(e) => setFormData({ ...formData, [key]: parseInt(e.target.value) || 0 })}
-                      className="w-full px-4 py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm"
-                      placeholder="0"
-                    />
-                  </div>
-                ))}
               </div>
 
               {/* Start Date & Status */}
