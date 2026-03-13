@@ -7,6 +7,7 @@ import { useToastStore } from '../../store/useToastStore';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../utils/axios';
 import { useGetProfile } from './hooks/useGetProfile';
+import { changeUserPasswordApi } from '../users/api/usersApi';
 
 export default function Profile() {
   const { t, i18n }          = useTranslation(['profile', 'common']);
@@ -37,7 +38,6 @@ export default function Profile() {
 
   const [avatarPreview, setAvatarPreview] = useState<string>('');
 
-  // ✅ sync مرة واحدة بس لما profile يتحمل — ref يمنع التكرار
   const profileSynced = useRef(false);
   useEffect(() => {
     if (!profile || profileSynced.current) return;
@@ -52,10 +52,11 @@ export default function Profile() {
   }, [profile]);
 
   const [passwordData, setPasswordData] = useState({
-    currentPassword:    '',
     newPassword:        '',
     confirmNewPassword: '',
   });
+
+  const [pwLoading, setPwLoading] = useState(false);
 
   const [preferences, setPreferences] = useState({ emailNotifications: true });
 
@@ -113,24 +114,27 @@ export default function Profile() {
     });
   };
 
-  const handleChangePassword = () => {
-    if (!passwordData.currentPassword || !passwordData.newPassword) {
-      triggerToast(language === 'ar' ? 'أدخل كلمة المرور' : 'Enter password fields', 'error');
+  const handleChangePassword = async () => {
+    if (!passwordData.newPassword) {
+      triggerToast(language === 'ar' ? 'أدخل كلمة المرور الجديدة' : 'Enter new password', 'error');
       return;
     }
     if (passwordData.newPassword !== passwordData.confirmNewPassword) {
       triggerToast(language === 'ar' ? 'كلمتا المرور غير متطابقتين' : 'Passwords do not match', 'error');
       return;
     }
-    const pwPayload = new FormData();
-    pwPayload.append('password',        passwordData.newPassword);
-    pwPayload.append('currentPassword', passwordData.currentPassword);
-    updateMutation.mutate(pwPayload, {
-      onSuccess: () => {
-        triggerToast(language === 'ar' ? 'تم تغيير كلمة المرور ✅' : 'Password changed ✅', 'success');
-        setPasswordData({ currentPassword: '', newPassword: '', confirmNewPassword: '' });
-      },
-    });
+    if (!user?.id) return;
+    setPwLoading(true);
+    try {
+      await changeUserPasswordApi(user.id, passwordData.newPassword);
+      triggerToast(language === 'ar' ? 'تم تغيير كلمة المرور ✅' : 'Password changed ✅', 'success');
+      setPasswordData({ newPassword: '', confirmNewPassword: '' });
+    } catch (err: any) {
+      const msg = err.response?.data?.message;
+      triggerToast(Array.isArray(msg) ? msg[0] : msg || (language === 'ar' ? 'فشل تغيير كلمة المرور' : 'Failed to change password'), 'error');
+    } finally {
+      setPwLoading(false);
+    }
   };
 
   const getRoleBadge = () => {
@@ -291,21 +295,7 @@ export default function Profile() {
           <div className="bg-white rounded-lg border border-[#E5E5E5] p-6">
             <h3 className="font-semibold text-[#16100A] mb-4">{t('profile.accountSecurity')}</h3>
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-[#16100A] mb-2">
-                  {language === 'ar' ? 'كلمة المرور الحالية' : 'Current Password'}
-                </label>
-                <div className="relative">
-                  <Lock className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-[#555555]`} />
-                  <input
-                    type="password"
-                    value={passwordData.currentPassword}
-                    placeholder="••••••••"
-                    onChange={e => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                    className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
-                  />
-                </div>
-              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-[#16100A] mb-2">
@@ -341,11 +331,11 @@ export default function Profile() {
               <div className={`mt-2 flex ${isRTL ? 'justify-start' : 'justify-end'}`}>
                 <button
                   onClick={handleChangePassword}
-                  disabled={updateMutation.isPending}
+                  disabled={pwLoading}
                   className="flex items-center gap-2 bg-[#16100A] text-white px-6 py-3 rounded-lg hover:bg-[#2A2015] transition-all disabled:opacity-50"
                 >
                   <Lock className="w-5 h-5" />
-                  {language === 'ar' ? 'تغيير كلمة المرور' : 'Update Password'}
+                  {pwLoading ? '...' : (language === 'ar' ? 'تغيير كلمة المرور' : 'Update Password')}
                 </button>
               </div>
             </div>
@@ -390,7 +380,7 @@ export default function Profile() {
                     onChange={e => setPreferences({ ...preferences, emailNotifications: e.target.checked })}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#B5752A]/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[\'\'] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#B5752A]" />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#B5752A]/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#B5752A]" />
                 </label>
               </div>
             </div>

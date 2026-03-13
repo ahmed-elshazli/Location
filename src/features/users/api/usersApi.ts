@@ -6,21 +6,21 @@ export const fetchUsers = async (page: number = 1) => {
 };
 
 export const createUserApi = async (data: FormData) => {
-  const response = await api.post('/api/v1/users/create', data, {
+  const response = await api.post('/api/v1/auth/register', data, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response.data;
 };
 
 export const updateUser = async ({ id, data }: { id: string; data: FormData }) => {
-  const response = await api.patch(`/api/v1/users/${id}`, data, {
+  const response = await api.put(`/api/v1/users/${id}`, data, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response.data;
 };
 
 export const deactivateUser = async (id: string) => {
-  const response = await api.patch(`/api/v1/users/${id}`);
+  const response = await api.delete(`/api/v1/users/${id}`);
   return response.data;
 };
 
@@ -33,4 +33,11 @@ export const getUserByIdApi = async (id: string) => {
   const response = await api.get(`/api/v1/users/${id}`);
   return response.data;
 };
- 
+
+// backward compat alias
+export const deleteUser = deleteUserPermanently;
+
+export const changeUserPasswordApi = async (id: string, password: string) => {
+  const response = await api.patch(`/api/v1/users/${id}`, { password });
+  return response.data;
+};
