@@ -58,3 +58,6 @@ export const updateTransactionApi = (id: string, payload: Partial<CreateTransact
 
 export const deleteTransactionApi = (id: string) =>
   api.delete(`/api/v1/treasury/transactions/${id}`).then(r => r.data);
+
+export const exportTransactionsApi = () =>
+  api.get('/api/v1/treasury/transactions/export', { responseType: 'blob' }).then(r => r.data);
