@@ -92,8 +92,8 @@ export default function Projects() {
     setSelectedProjectId(null);
     setImageFiles([]);
     setImagePreviews([]);
-    setImageFile(null);
-    setImagePreview('');
+    setImageFiles([]);
+    setImagePreviews([]);
     setFormData({
       name: '', description: '', location: '', area: '',
       developer: '', startDate: '', status: 'Active',
