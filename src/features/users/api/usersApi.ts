@@ -20,7 +20,7 @@ export const updateUser = async ({ id, data }: { id: string; data: FormData }) =
 };
 
 export const deactivateUser = async (id: string) => {
-  const response = await api.delete(`/api/v1/users/${id}`);
+  const response = await api.patch(`/api/v1/users/${id}`);
   return response.data;
 };
 
