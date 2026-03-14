@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   ArrowLeft, MapPin, Building, Calendar, TrendingUp, Home,
   Edit2, ChevronRight, Trash2, X, User, FileText, Search,
-  Bed, Bath, Maximize2, ChevronLeft
+  Bed, Bath, Maximize2, ChevronLeft, Upload
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useConfigStore } from '../../store/useConfigStore';
@@ -33,6 +33,25 @@ export default function ProjectDetails() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [formData, setFormData] = useState<any>(null);
+
+  // ─── Image Upload ─────────────────────────────────────────────────
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const remaining = 5 - imagePreviews.filter(p => p.startsWith('http')).length - imageFiles.length;
+    const toAdd = files.slice(0, Math.max(0, remaining));
+    if (!toAdd.length) return;
+    setImageFiles(prev => [...prev, ...toAdd]);
+    toAdd.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreviews(prev => [...prev, reader.result as string]);
+      reader.readAsDataURL(file);
+    });
+  };
 
   if (isLoading) {
     return (
@@ -79,6 +98,8 @@ export default function ProjectDetails() {
       startDate:   project.startDate ? new Date(project.startDate).toISOString().split('T')[0] : '',
       status:      project.status      || 'Active',
     });
+    setImageFiles([]);
+    setImagePreviews(project.images || (project.image ? [project.image] : []));
     setShowEditModal(true);
   };
 
@@ -94,10 +115,15 @@ export default function ProjectDetails() {
         }
       }
     });
+    if (imageFiles.length > 0) {
+      imageFiles.forEach(file => data.append('images', file));
+    }
     updateProject.mutate({ id: id!, data }, {
       onSuccess: () => {
         triggerToast(language === 'ar' ? 'تم تحديث المشروع ✅' : 'Project updated ✅', 'success');
         setShowEditModal(false);
+        setImageFiles([]);
+        setImagePreviews([]);
       },
       onError: (err: any) => {
         const msg = err.response?.data?.message;
@@ -287,46 +313,123 @@ export default function ProjectDetails() {
                 <X className="w-5 h-5 text-[#555555]" />
               </button>
             </div>
-            <form onSubmit={handleUpdate} className="px-6 py-4 flex flex-col gap-4 max-h-[75vh] overflow-y-auto">
-              {/* Name */}
-              <div>
-                <label className="text-sm font-medium text-[#16100A] block mb-1">{t('projects.projectName')} *</label>
-                <input type="text" required value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm"
-                />
+            <form onSubmit={handleUpdate} className="px-6 py-4 flex flex-col gap-5 max-h-[75vh] overflow-y-auto">
+
+              {/* Images */}
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-[#16100A] flex items-center gap-2 flex-wrap">
+                  {language === 'ar' ? 'صور المشروع' : 'Project Images'}
+                  <span className="text-xs font-normal text-orange-500">
+                    {language === 'ar' ? '⚠️ رفع صور جديدة سيحذف القديمة' : '⚠️ Uploading new images will replace existing ones'}
+                  </span>
+                </label>
+                {imagePreviews.length > 0 && (
+                  <div className="grid grid-cols-5 gap-2 mb-2">
+                    {imagePreviews.map((src, idx) => (
+                      <div key={idx} className="relative group">
+                        <img src={src} alt={`img-${idx}`} className="w-full h-16 object-cover rounded-lg border border-[#E5E5E5]" />
+                        <button type="button"
+                          onClick={() => {
+                            setImagePreviews(prev => prev.filter((_, i) => i !== idx));
+                            if (!src.startsWith('http')) {
+                              setImageFiles(prev => {
+                                const newFileIdx = imagePreviews.filter((p, pi) => pi < idx && !p.startsWith('http')).length;
+                                return prev.filter((_, i) => i !== newFileIdx);
+                              });
+                            }
+                          }}
+                          className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                        >×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {imagePreviews.length < 5 && (
+                  <div onClick={() => fileInputRef.current?.click()}
+                    className="cursor-pointer border-2 border-dashed border-[#E5E5E5] rounded-xl h-24 flex flex-col items-center justify-center gap-1 text-[#AAAAAA] hover:border-[#B5752A] transition-colors"
+                  >
+                    <Upload className="w-7 h-7" />
+                    <p className="text-xs">
+                      {language === 'ar' ? `أضف صورة (${imagePreviews.length}/5)` : `Add image (${imagePreviews.length}/5)`}
+                    </p>
+                  </div>
+                )}
+                <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp"
+                  multiple onChange={handleImageChange} className="hidden" />
               </div>
+
+              {/* Name */}
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-[#16100A]">{t('projects.projectName')} *</label>
+                <div className="relative">
+                  <Building className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-4 h-4 text-[#AAAAAA]`} />
+                  <input type="text" required value={formData.name}
+                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                    className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm`}
+                  />
+                </div>
+              </div>
+
               {/* Location & Area */}
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-[#16100A] block mb-1">{t('common:common.location')} *</label>
-                  <input type="text" required value={formData.location}
-                    onChange={e => setFormData({ ...formData, location: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm"
-                  />
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-[#16100A]">{t('common:common.location')} *</label>
+                  <div className="relative">
+                    <MapPin className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-4 h-4 text-[#AAAAAA]`} />
+                    <input type="text" required value={formData.location}
+                      onChange={e => setFormData({ ...formData, location: e.target.value })}
+                      className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm`}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-[#16100A] block mb-1">{t('common:common.area')} *</label>
-                  <input type="text" required value={formData.area}
-                    onChange={e => setFormData({ ...formData, area: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm"
-                  />
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-[#16100A]">{t('common:common.area')} *</label>
+                  <div className="relative">
+                    <MapPin className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-4 h-4 text-[#AAAAAA]`} />
+                    <input type="text" required value={formData.area}
+                      onChange={e => setFormData({ ...formData, area: e.target.value })}
+                      className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm`}
+                    />
+                  </div>
                 </div>
               </div>
+
+              {/* Developer */}
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-[#16100A]">{t('properties:properties.developer')} *</label>
+                <div className="relative">
+                  <User className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-4 h-4 text-[#AAAAAA]`} />
+                  <select required value={formData.developer}
+                    onChange={e => setFormData({ ...formData, developer: e.target.value })}
+                    className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2.5 border border-[#E5E5E5] rounded-lg outline-none focus:ring-2 focus:ring-[#B5752A] text-sm appearance-none bg-white`}
+                  >
+                    <option value="">{language === 'ar' ? 'اختر مطور...' : 'Select developer...'}</option>
+                    {developers.map((dev: any) => (
+                      <option key={dev._id} value={dev._id}>
+                        {language === 'ar' ? dev.nameAr || dev.name : dev.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               {/* Start Date & Status */}
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-[#16100A] block mb-1">{t('projects.startDate')}</label>
-                  <input type="date" value={formData.startDate}
-                    onChange={e => setFormData({ ...formData, startDate: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm"
-                  />
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-[#16100A]">{t('projects.startDate')} *</label>
+                  <div className="relative">
+                    <Calendar className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-4 h-4 text-[#AAAAAA]`} />
+                    <input type="date" required value={formData.startDate}
+                      onChange={e => setFormData({ ...formData, startDate: e.target.value })}
+                      className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm`}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-[#16100A] block mb-1">{t('properties:properties.status')}</label>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-[#16100A]">{t('properties:properties.status')} *</label>
                   <select value={formData.status}
                     onChange={e => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm bg-white"
+                    className="w-full px-4 py-2.5 border border-[#E5E5E5] rounded-lg outline-none focus:ring-2 focus:ring-[#B5752A] text-sm bg-white"
                   >
                     <option value="Active">{t('projects.active')}</option>
                     <option value="Inactive">{t('projects.inactive')}</option>
@@ -336,37 +439,29 @@ export default function ProjectDetails() {
                   </select>
                 </div>
               </div>
-              {/* Developer */}
-              <div>
-                <label className="text-sm font-medium text-[#16100A] block mb-1">{t('properties:properties.developer')}</label>
-                <select value={formData.developer}
-                  onChange={e => setFormData({ ...formData, developer: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm bg-white"
-                >
-                  <option value="">{language === 'ar' ? 'اختر مطور...' : 'Select developer...'}</option>
-                  {developers.map((dev: any) => (
-                    <option key={dev._id} value={dev._id}>{dev.name}</option>
-                  ))}
-                </select>
-              </div>
 
               {/* Description */}
-              <div>
-                <label className="text-sm font-medium text-[#16100A] block mb-1">{t('common:common.description')}</label>
-                <textarea value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm min-h-[100px]"
-                />
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-[#16100A]">{t('common:common.description')}</label>
+                <div className="relative">
+                  <FileText className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-3 w-4 h-4 text-[#AAAAAA]`} />
+                  <textarea value={formData.description}
+                    onChange={e => setFormData({ ...formData, description: e.target.value })}
+                    className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2.5 border border-[#E5E5E5] rounded-lg outline-none focus:ring-2 focus:ring-[#B5752A] min-h-[100px] text-sm`}
+                    placeholder={language === 'ar' ? 'وصف المشروع...' : 'Project description...'}
+                  />
+                </div>
               </div>
+
               {/* Buttons */}
-              <div className={`flex gap-3 pt-2 border-t border-[#E5E5E5] ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <div className={`flex items-center gap-3 pt-4 border-t border-[#E5E5E5] ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <button type="submit" disabled={updateProject.isPending}
-                  className="flex-1 gradient-primary text-white py-2.5 rounded-lg font-medium disabled:opacity-50"
+                  className="flex-1 gradient-primary text-white py-2.5 rounded-lg font-medium disabled:opacity-50 transition-all hover:opacity-90"
                 >
                   {updateProject.isPending ? '...' : t('common:common.update')}
                 </button>
-                <button type="button" onClick={() => setShowEditModal(false)}
-                  className="flex-1 bg-[#F7F7F7] text-[#555555] py-2.5 rounded-lg font-medium hover:bg-[#E5E5E5]"
+                <button type="button" onClick={() => { setShowEditModal(false); setImageFiles([]); setImagePreviews([]); }}
+                  className="flex-1 bg-[#F7F7F7] text-[#555555] py-2.5 rounded-lg font-medium hover:bg-[#E5E5E5] transition-all"
                 >
                   {t('common:common.cancel')}
                 </button>

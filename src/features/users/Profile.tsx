@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Save, Shield, Mail, Phone, Lock, Bell, Globe } from 'lucide-react';
+import { Camera, Save, Shield, Mail, Phone, Lock, Bell, Globe, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useConfigStore } from '../../store/useConfigStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -55,6 +55,9 @@ export default function Profile() {
     newPassword:        '',
     confirmNewPassword: '',
   });
+
+  const [showNewPassword,     setShowNewPassword]     = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [pwLoading, setPwLoading] = useState(false);
 
@@ -295,8 +298,9 @@ export default function Profile() {
           <div className="bg-white rounded-lg border border-[#E5E5E5] p-6">
             <h3 className="font-semibold text-[#16100A] mb-4">{t('profile.accountSecurity')}</h3>
             <div className="space-y-4">
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                {/* New Password */}
                 <div>
                   <label className="block text-sm font-medium text-[#16100A] mb-2">
                     {language === 'ar' ? 'كلمة المرور الجديدة' : 'New Password'}
@@ -304,14 +308,23 @@ export default function Profile() {
                   <div className="relative">
                     <Lock className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-[#555555]`} />
                     <input
-                      type="password"
+                      type={showNewPassword ? 'text' : 'password'}
                       value={passwordData.newPassword}
                       placeholder="••••••••"
                       onChange={e => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                      className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
+                      className={`w-full ${isRTL ? 'pr-10 pl-10' : 'pl-10 pr-10'} py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(v => !v)}
+                      className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 text-[#555555] hover:text-[#B5752A] transition-colors`}
+                    >
+                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
+
+                {/* Confirm Password */}
                 <div>
                   <label className="block text-sm font-medium text-[#16100A] mb-2">
                     {language === 'ar' ? 'تأكيد كلمة المرور' : 'Confirm Password'}
@@ -319,14 +332,22 @@ export default function Profile() {
                   <div className="relative">
                     <Lock className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-[#555555]`} />
                     <input
-                      type="password"
+                      type={showConfirmPassword ? 'text' : 'password'}
                       value={passwordData.confirmNewPassword}
                       placeholder="••••••••"
                       onChange={e => setPasswordData({ ...passwordData, confirmNewPassword: e.target.value })}
-                      className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
+                      className={`w-full ${isRTL ? 'pr-10 pl-10' : 'pl-10 pr-10'} py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(v => !v)}
+                      className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 text-[#555555] hover:text-[#B5752A] transition-colors`}
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
+
               </div>
               <div className={`mt-2 flex ${isRTL ? 'justify-start' : 'justify-end'}`}>
                 <button

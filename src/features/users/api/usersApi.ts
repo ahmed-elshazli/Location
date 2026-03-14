@@ -13,14 +13,14 @@ export const createUserApi = async (data: FormData) => {
 };
 
 export const updateUser = async ({ id, data }: { id: string; data: FormData }) => {
-  const response = await api.put(`/api/v1/users/${id}`, data, {
+  const response = await api.patch(`/api/v1/users/${id}`, data, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response.data;
 };
 
 export const deactivateUser = async (id: string) => {
-  const response = await api.delete(`/api/v1/users/${id}`);
+  const response = await api.patch(`/api/v1/users/${id}/activations`);
   return response.data;
 };
 

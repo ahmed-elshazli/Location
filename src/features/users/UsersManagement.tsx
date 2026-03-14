@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Search, Edit2, Trash2, Shield, UserCheck, TrendingUp, X, Camera, Upload, ChevronLeft, ChevronRight, AlertTriangle, UserX } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Shield, UserCheck, TrendingUp, X, Camera, Upload, ChevronLeft, ChevronRight, AlertTriangle, UserX, UserCheck2, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useConfigStore } from '../../store/useConfigStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -57,7 +57,12 @@ export default function UsersManagement() {
   const language = i18n.language;
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [deleteConfig, setDeleteConfig] = useState<{ isOpen: boolean; id: string; name: string; action: 'deactivate' | 'delete' }>({ isOpen: false, id: '', name: '', action: 'delete' });
+  const [deleteConfig, setDeleteConfig] = useState<{
+    isOpen: boolean;
+    id: string;
+    name: string;
+    action: 'activate' | 'deactivate' | 'delete';
+  }>({ isOpen: false, id: '', name: '', action: 'delete' });
   const [searchTerm, setSearchTerm]   = useState('');
   const [filterRole, setFilterRole]   = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -68,6 +73,8 @@ export default function UsersManagement() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [formData, setFormData]       = useState({ ...emptyForm });
+  const [showPassword, setShowPassword]        = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const createUser             = useCreateUser();
   const deactivateUserMutation = useDeactivateUser();
@@ -75,7 +82,6 @@ export default function UsersManagement() {
   const updateUserMutation     = useUpdateUser();
   const queryClient            = useQueryClient();
 
-  // ── FIX: pass currentPage, extract data & pagination correctly ──
   const { data: backendUsers, isLoading } = useUsers(currentPage);
   const usersList  = backendUsers?.data ?? [];
   const totalPages = backendUsers?.pagination?.numberOfPages ?? 1;
@@ -190,12 +196,8 @@ export default function UsersManagement() {
     fd.append('phone',     formatPhoneForBackend(formData.phone));
     fd.append('role',      formData.role);
     if (editingUser) fd.append('isActive', String(formData.status === 'active'));
+    if (!editingUser) fd.append('password', formData.password);
 
-    if (!editingUser) {
-      fd.append('password', formData.password);
-    }
-
-    // صورة في الكرييت والإيديت
     const fileFromInput = fileInputRef.current?.files?.[0];
     if (fileFromInput) fd.append('images', fileFromInput);
 
@@ -204,7 +206,6 @@ export default function UsersManagement() {
         onSuccess: () => {
           triggerToast(language === 'ar' ? 'تم تحديث المستخدم ✅' : 'User updated ✅', 'success');
           handleClose();
-          // ── FIX: use correct query key ──
           queryClient.invalidateQueries({ queryKey: ['users-all'] });
         },
         onError: (err: any) => {
@@ -217,7 +218,6 @@ export default function UsersManagement() {
         onSuccess: () => {
           triggerToast(language === 'ar' ? 'تم إضافة المستخدم 🎉' : 'User added 🎉', 'success');
           handleClose();
-          // ── FIX: use correct query key ──
           queryClient.invalidateQueries({ queryKey: ['users-all'] });
         },
         onError: (err: any) => {
@@ -228,29 +228,45 @@ export default function UsersManagement() {
     }
   };
 
-  const handleDelete = (id: string, name: string, action: 'deactivate' | 'delete') => {
-    setDeleteConfig({ isOpen: true, id, name, action });
+  // ── Toggle activate / deactivate ─────────────────────────────────────────────
+  const handleToggleStatus = (id: string, name: string, isActive: boolean) => {
+    setDeleteConfig({ isOpen: true, id, name, action: isActive ? 'deactivate' : 'activate' });
   };
 
-  const confirmDelete = () => {
-    const mutate = deleteConfig.action === 'deactivate'
-      ? deactivateUserMutation.mutate
-      : deletePermanentlyMutation.mutate;
-    mutate(deleteConfig.id, {
-      onSuccess: () => {
-        // ── FIX: use correct query key ──
-        queryClient.invalidateQueries({ queryKey: ['users-all'] });
-        const msg = deleteConfig.action === 'deactivate'
-          ? (language === 'ar' ? 'تم تعطيل المستخدم ✅' : 'User deactivated ✅')
-          : (language === 'ar' ? 'تم حذف المستخدم نهائياً 🗑️' : 'User deleted permanently 🗑️');
-        triggerToast(msg, 'success');
-        setDeleteConfig({ isOpen: false, id: '', name: '', action: 'delete' });
-      },
-      onError: (err: any) => {
-        const msg = err.response?.data?.message;
-        triggerToast(Array.isArray(msg) ? msg[0] : msg || 'Failed', 'error');
-      },
-    });
+  const handleDelete = (id: string, name: string) => {
+    setDeleteConfig({ isOpen: true, id, name, action: 'delete' });
+  };
+
+  const confirmAction = () => {
+    if (deleteConfig.action === 'delete') {
+      deletePermanentlyMutation.mutate(deleteConfig.id, {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['users-all'] });
+          triggerToast(language === 'ar' ? 'تم حذف المستخدم نهائياً 🗑️' : 'User deleted permanently 🗑️', 'success');
+          setDeleteConfig({ isOpen: false, id: '', name: '', action: 'delete' });
+        },
+        onError: (err: any) => {
+          const msg = err.response?.data?.message;
+          triggerToast(Array.isArray(msg) ? msg[0] : msg || 'Failed', 'error');
+        },
+      });
+    } else {
+      // activate OR deactivate → same mutation (toggles isActive on backend)
+      deactivateUserMutation.mutate(deleteConfig.id, {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['users-all'] });
+          const msg = deleteConfig.action === 'deactivate'
+            ? (language === 'ar' ? 'تم تعطيل المستخدم ✅' : 'User deactivated ✅')
+            : (language === 'ar' ? 'تم تفعيل المستخدم ✅' : 'User activated ✅');
+          triggerToast(msg, 'success');
+          setDeleteConfig({ isOpen: false, id: '', name: '', action: 'delete' });
+        },
+        onError: (err: any) => {
+          const msg = err.response?.data?.message;
+          triggerToast(Array.isArray(msg) ? msg[0] : msg || 'Failed', 'error');
+        },
+      });
+    }
   };
 
   if (isLoading) {
@@ -265,7 +281,6 @@ export default function UsersManagement() {
   const renderModal = () => (
     <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto" dir={isRTL ? 'rtl' : 'ltr'}>
-
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-[#E5E5E5] p-6 flex items-center justify-between">
           <div className={isRTL ? 'text-right' : 'text-left'}>
@@ -285,8 +300,7 @@ export default function UsersManagement() {
 
         {/* Body */}
         <form className="p-6" onSubmit={handleSubmit}>
-
-          {/* Profile Picture - Add only */}
+          {/* Profile Picture */}
           <div className="mb-6">
             <label className={`block text-sm font-semibold text-[#16100A] mb-3 ${isRTL ? 'text-right' : 'text-left'}`}>
               {language === 'ar' ? 'صورة الملف الشخصي' : 'Profile Picture'}
@@ -327,7 +341,6 @@ export default function UsersManagement() {
 
           {/* Fields Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
             {/* Name */}
             <div>
               <label className={`block text-sm font-semibold text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
@@ -400,11 +413,18 @@ export default function UsersManagement() {
               <label className={`block text-sm font-semibold text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                 {language === 'ar' ? 'كلمة المرور' : 'Password'} {!editingUser && <span className="text-red-500">*</span>}
               </label>
-              <input type="password" value={formData.password}
-                onChange={e => setFormData({ ...formData, password: e.target.value })}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] transition-all"
-              />
+              <div className="relative">
+                <input type={showPassword ? 'text' : 'password'} value={formData.password}
+                  onChange={e => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="••••••••"
+                  className={`w-full px-4 py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] transition-all ${isRTL ? 'pl-10' : 'pr-10'}`}
+                />
+                <button type="button" onClick={() => setShowPassword(v => !v)}
+                  className={`absolute top-1/2 -translate-y-1/2 ${isRTL ? 'left-3' : 'right-3'} text-[#555555] hover:text-[#B5752A] transition-colors`}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
               <p className={`text-xs text-[#555555] mt-1 ${isRTL ? 'text-right' : 'text-left'}`}>
                 {editingUser
                   ? (language === 'ar' ? 'اتركه فارغاً للإبقاء على كلمة المرور الحالية' : 'Leave blank to keep current password')
@@ -417,11 +437,18 @@ export default function UsersManagement() {
               <label className={`block text-sm font-semibold text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                 {language === 'ar' ? 'تأكيد كلمة المرور' : 'Confirm Password'} {!editingUser && <span className="text-red-500">*</span>}
               </label>
-              <input type="password" value={formData.confirmPassword}
-                onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] transition-all"
-              />
+              <div className="relative">
+                <input type={showConfirmPassword ? 'text' : 'password'} value={formData.confirmPassword}
+                  onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  placeholder="••••••••"
+                  className={`w-full px-4 py-3 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] transition-all ${isRTL ? 'pl-10' : 'pr-10'}`}
+                />
+                <button type="button" onClick={() => setShowConfirmPassword(v => !v)}
+                  className={`absolute top-1/2 -translate-y-1/2 ${isRTL ? 'left-3' : 'right-3'} text-[#555555] hover:text-[#B5752A] transition-colors`}
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -558,13 +585,39 @@ export default function UsersManagement() {
                   </td>
                   <td className="px-6 py-4">
                     <div className={`flex items-center gap-2 ${isRTL ? 'justify-start' : 'justify-end'}`}>
-                      <button onClick={() => openEdit(userData)} className="p-2 hover:bg-[#F7F7F7] rounded-lg transition-colors" title={language === 'ar' ? 'تعديل' : 'Edit'}>
+                      {/* Edit */}
+                      <button
+                        onClick={() => openEdit(userData)}
+                        className="p-2 hover:bg-[#F7F7F7] rounded-lg transition-colors"
+                        title={language === 'ar' ? 'تعديل' : 'Edit'}
+                      >
                         <Edit2 className="w-4 h-4 text-[#555555]" />
                       </button>
-                      <button onClick={() => handleDelete(userData._id || userData.id, userData.fullName, 'deactivate')} className="p-2 hover:bg-orange-50 rounded-lg transition-colors" title={language === 'ar' ? 'تعطيل' : 'Deactivate'}>
-                        <UserX className="w-4 h-4 text-orange-500" />
+
+                      {/* Toggle: Deactivate if active, Activate if inactive */}
+                      <button
+                        onClick={() => handleToggleStatus(userData._id || userData.id, userData.fullName, userData.isActive)}
+                        className={`p-2 rounded-lg transition-colors ${
+                          userData.isActive ? 'hover:bg-orange-50' : 'hover:bg-green-50'
+                        }`}
+                        title={
+                          userData.isActive
+                            ? (language === 'ar' ? 'تعطيل' : 'Deactivate')
+                            : (language === 'ar' ? 'تفعيل' : 'Activate')
+                        }
+                      >
+                        {userData.isActive
+                          ? <UserX className="w-4 h-4 text-orange-500" />
+                          : <UserCheck2 className="w-4 h-4 text-green-600" />
+                        }
                       </button>
-                      <button onClick={() => handleDelete(userData._id || userData.id, userData.fullName, 'delete')} className="p-2 hover:bg-red-50 rounded-lg transition-colors" title={language === 'ar' ? 'حذف نهائي' : 'Delete permanently'}>
+
+                      {/* Delete permanently */}
+                      <button
+                        onClick={() => handleDelete(userData._id || userData.id, userData.fullName)}
+                        className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                        title={language === 'ar' ? 'حذف نهائي' : 'Delete permanently'}
+                      >
                         <Trash2 className="w-4 h-4 text-red-600" />
                       </button>
                     </div>
@@ -612,34 +665,70 @@ export default function UsersManagement() {
         </div>
       )}
 
-      {/* ── Delete Confirm Modal ── */}
+      {/* ── Confirm Modal ── */}
       {deleteConfig.isOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl" dir={isRTL ? 'rtl' : 'ltr'}>
             <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
-                <AlertTriangle className="w-8 h-8 text-red-600" />
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
+                deleteConfig.action === 'activate'   ? 'bg-green-50'  :
+                deleteConfig.action === 'deactivate' ? 'bg-orange-50' : 'bg-red-50'
+              }`}>
+                {deleteConfig.action === 'activate'
+                  ? <UserCheck2 className="w-8 h-8 text-green-600" />
+                  : deleteConfig.action === 'deactivate'
+                    ? <UserX className="w-8 h-8 text-orange-500" />
+                    : <AlertTriangle className="w-8 h-8 text-red-600" />
+                }
               </div>
+
               <h3 className="text-xl font-bold text-[#16100A] mb-2">
-                {deleteConfig.action === 'deactivate'
-                  ? (language === 'ar' ? 'تأكيد التعطيل' : 'Confirm Deactivation')
-                  : (language === 'ar' ? 'تأكيد الحذف النهائي' : 'Confirm Permanent Delete')}
+                {deleteConfig.action === 'activate'
+                  ? (language === 'ar' ? 'تأكيد التفعيل' : 'Confirm Activation')
+                  : deleteConfig.action === 'deactivate'
+                    ? (language === 'ar' ? 'تأكيد التعطيل' : 'Confirm Deactivation')
+                    : (language === 'ar' ? 'تأكيد الحذف النهائي' : 'Confirm Permanent Delete')}
               </h3>
+
               <p className="text-[#555555] mb-6">
-                {deleteConfig.action === 'deactivate'
-                  ? (language === 'ar' ? `هل تريد تعطيل "${deleteConfig.name}"؟ يمكن إعادة تفعيله لاحقاً.` : `Deactivate "${deleteConfig.name}"? They can be reactivated later.`)
-                  : (language === 'ar' ? `هل أنت متأكد من حذف "${deleteConfig.name}" نهائياً؟ لا يمكن التراجع عنه.` : `Permanently delete "${deleteConfig.name}"? This cannot be undone.`)}
+                {deleteConfig.action === 'activate'
+                  ? (language === 'ar'
+                      ? `هل تريد تفعيل "${deleteConfig.name}"؟`
+                      : `Activate "${deleteConfig.name}"?`)
+                  : deleteConfig.action === 'deactivate'
+                    ? (language === 'ar'
+                        ? `هل تريد تعطيل "${deleteConfig.name}"؟ يمكن إعادة تفعيله لاحقاً.`
+                        : `Deactivate "${deleteConfig.name}"? They can be reactivated later.`)
+                    : (language === 'ar'
+                        ? `هل أنت متأكد من حذف "${deleteConfig.name}" نهائياً؟ لا يمكن التراجع عنه.`
+                        : `Permanently delete "${deleteConfig.name}"? This cannot be undone.`)}
               </p>
+
               <div className="flex gap-3 w-full">
-                <button onClick={() => setDeleteConfig({ isOpen: false, id: '', name: '', action: 'delete' })}
+                <button
+                  onClick={() => setDeleteConfig({ isOpen: false, id: '', name: '', action: 'delete' })}
                   className="flex-1 px-4 py-2 border border-[#E5E5E5] rounded-lg text-[#555555] hover:bg-[#F7F7F7] font-medium"
                 >
                   {language === 'ar' ? 'إلغاء' : 'Cancel'}
                 </button>
-                <button onClick={confirmDelete} disabled={deactivateUserMutation.isPending || deletePermanentlyMutation.isPending}
-                  className={`flex-1 px-4 py-2 text-white rounded-lg font-bold disabled:opacity-50 ${deleteConfig.action === "deactivate" ? "bg-orange-500 hover:bg-orange-600" : "bg-red-600 hover:bg-red-700"}`}
+                <button
+                  onClick={confirmAction}
+                  disabled={deactivateUserMutation.isPending || deletePermanentlyMutation.isPending}
+                  className={`flex-1 px-4 py-2 text-white rounded-lg font-bold disabled:opacity-50 ${
+                    deleteConfig.action === 'activate'
+                      ? 'bg-green-600 hover:bg-green-700'
+                      : deleteConfig.action === 'deactivate'
+                        ? 'bg-orange-500 hover:bg-orange-600'
+                        : 'bg-red-600 hover:bg-red-700'
+                  }`}
                 >
-                  {(deactivateUserMutation.isPending || deletePermanentlyMutation.isPending) ? '...' : deleteConfig.action === 'deactivate' ? (language === 'ar' ? 'تعطيل' : 'Deactivate') : (language === 'ar' ? 'حذف نهائي' : 'Delete')}
+                  {(deactivateUserMutation.isPending || deletePermanentlyMutation.isPending)
+                    ? '...'
+                    : deleteConfig.action === 'activate'
+                      ? (language === 'ar' ? 'تفعيل' : 'Activate')
+                      : deleteConfig.action === 'deactivate'
+                        ? (language === 'ar' ? 'تعطيل' : 'Deactivate')
+                        : (language === 'ar' ? 'حذف نهائي' : 'Delete')}
                 </button>
               </div>
             </div>
