@@ -32,7 +32,7 @@ jobs:
           local-dir: ./dist/
           
           # بما إننا باليوزر الماستر، هنحدد المسار "المطلق" عشان ننهي الجدل
-          server-dir: /public_html/
+          server-dir: /public_html/location-properties.com/
           
           protocol: ftp
           port: 21
