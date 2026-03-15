@@ -26,20 +26,14 @@ jobs:
       - name: 📤 Sync files to Hostinger
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          # البيانات المسحوبة من GitHub Secrets
           server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          
-          # المسار المحلي (ناتج الـ Build في React/Vite)
+          username: ${{ secrets.FTP_USERNAME }} # تأكد إنه u837916390
+          password: ${{ secrets.FTP_PASSWORD }} 
           local-dir: ./dist/
           
-          # المسار على السيرفر (المجلد الرئيسي الذي يعمل منه الدومين حالياً)
-          server-dir: public_html/
+          # بما إننا باليوزر الماستر، هنحدد المسار "المطلق" عشان ننهي الجدل
+          server-dir: /public_html/
           
-          # إعدادات حل مشكلة الـ Timeout والاتصال
           protocol: ftp
           port: 21
-          timeout: 90000        # زيادة وقت الانتظار لـ 90 ثانية
-          dry-run: false        # تنفيذ الرفع فعلياً
-          dangerous-clean-slate: false # حماية ملفات السيرفر من الحذف العشوائي
+          timeout: 90000
