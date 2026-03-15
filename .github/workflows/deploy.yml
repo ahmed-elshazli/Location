@@ -35,7 +35,7 @@ jobs:
           local-dir: ./dist/
           
           # المسار على السيرفر (المجلد الرئيسي الذي يعمل منه الدومين حالياً)
-          server-dir: ./public_html/
+          server-dir: ./
           
           # إعدادات حل مشكلة الـ Timeout والاتصال
           protocol: ftp
