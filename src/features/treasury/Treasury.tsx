@@ -54,6 +54,7 @@ export default function Treasury() {
   const [typeFilter, setTypeFilter]                 = useState<'all' | 'income' | 'expense'>('all');
   const [categoryFilter, setCategoryFilter]         = useState('all');
   const [sourceFilter, setSourceFilter]             = useState('all');
+  const [agentFilter, setAgentFilter]               = useState('all');
   const [dateFrom, setDateFrom]                     = useState('');
   const [dateTo, setDateTo]                         = useState('');
   const [showFilters, setShowFilters]               = useState(false);
@@ -84,17 +85,19 @@ export default function Treasury() {
     const matchDateTo   = !dateTo            || tx.date?.split('T')[0] <= dateTo;
     const matchCategory = categoryFilter === 'all' || safeStr(tx.category) === categoryFilter;
     const matchSource   = sourceFilter   === 'all' || safeStr(tx.source)   === sourceFilter;
-    return matchSearch && matchDateFrom && matchDateTo && matchCategory && matchSource;
+    const matchAgent    = agentFilter    === 'all' || safeStr(tx.salesAgent) === agentFilter;
+    return matchSearch && matchDateFrom && matchDateTo && matchCategory && matchSource && matchAgent;
   });
 
   // Dynamic filter options من الصفحة الحالية
   const allCategories = [...new Set(transactions.map((tx: any) => safeStr(tx.category)).filter(c => c !== '—'))];
+  const allAgents     = [...new Set(transactions.map((tx: any) => safeStr(tx.salesAgent)).filter(a => a !== '—'))];
   const allSources    = [...new Set(transactions.map((tx: any) => safeStr(tx.source)).filter(s => s !== '—'))];
 
   const canManage = user?.role === 'super_admin' || user?.role === 'admin';
 
   // Reset page on filter change
-  useEffect(() => { setPage(1); }, [typeFilter, searchTerm, categoryFilter, sourceFilter, dateFrom, dateTo]);
+  useEffect(() => { setPage(1); }, [typeFilter, searchTerm, categoryFilter, sourceFilter, agentFilter, dateFrom, dateTo]);
 
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat(isAr ? 'ar-EG' : 'en-US', { style: 'currency', currency: 'EGP', minimumFractionDigits: 0 }).format(v || 0);
@@ -206,7 +209,7 @@ export default function Treasury() {
           </div>
 
           {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 pt-4 border-t border-[#E5E5E5]">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 pt-4 border-t border-[#E5E5E5]">
               <div>
                 <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>{isAr ? 'نوع العملية' : 'Type'}</label>
                 <select value={typeFilter} onChange={e => setTypeFilter(e.target.value as any)}
@@ -233,6 +236,16 @@ export default function Treasury() {
                   <option value="all">{isAr ? 'الكل' : 'All'}</option>
                   {allSources.map(src => (
                     <option key={src} value={src}>{src}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>{isAr ? 'المبيعات' : 'Sales Agent'}</label>
+                <select value={agentFilter} onChange={e => setAgentFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]">
+                  <option value="all">{isAr ? 'الكل' : 'All'}</option>
+                  {allAgents.map(agent => (
+                    <option key={agent} value={agent}>{agent}</option>
                   ))}
                 </select>
               </div>

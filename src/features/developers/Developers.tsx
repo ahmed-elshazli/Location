@@ -114,7 +114,7 @@ function DeveloperCard({
       </div>
 
       {/* Stats من /summary */}
-      <div className="grid grid-cols-3 gap-3 mb-4">
+      {/* <div className="grid grid-cols-3 gap-3 mb-4">
         <div className={isRTL ? "text-right" : "text-left"}>
           <p className="text-xs text-[#555555] mb-1">
             {language === "ar" ? "المشاريع" : "Projects"}
@@ -145,7 +145,7 @@ function DeveloperCard({
               : `${Number(revenue).toLocaleString()} EGP`}
           </p>
         </div>
-      </div>
+      </div> */}
 
       {/* Areas */}
       {(developer.area || developer.areas || []).length > 0 && (

@@ -11,6 +11,7 @@ import { useToastStore } from '../../store/useToastStore';
 import { useClientById } from './hooks/useClientById';
 import { useClientAnalytics } from './hooks/useClientAnalytics';
 import { useDeleteClient } from './hooks/useDeleteClient';
+import { useUpdateClient } from './hooks/useUpdateClient';
 import { ClientModal } from './components/ClientModal';
 
 export default function ClientDetails() {
@@ -35,6 +36,7 @@ export default function ClientDetails() {
   const totalProperties = analytics?.totalProperties ?? client?.properties?.length ?? 0;
 
   const deleteClient = useDeleteClient();
+  const updateClient = useUpdateClient();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editOpen,   setEditOpen]   = useState(false);
 
@@ -317,8 +319,19 @@ export default function ClientDetails() {
         <ClientModal
           client={client}
           onClose={() => setEditOpen(false)}
-          onSave={() => setEditOpen(false)}
-          isLoading={false}
+          onSave={(data: any) => {
+            updateClient.mutate({ id: clientId!, data }, {
+              onSuccess: () => {
+                triggerToast(language === 'ar' ? 'تم التحديث ✅' : 'Updated successfully ✅', 'success');
+                setEditOpen(false);
+              },
+              onError: (err: any) => {
+                const msg = err.response?.data?.message;
+                triggerToast(Array.isArray(msg) ? msg[0] : msg || (language === 'ar' ? 'خطأ' : 'Error'), 'error');
+              }
+            });
+          }}
+          isLoading={updateClient.isPending}
         />
       )}
     </div>

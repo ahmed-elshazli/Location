@@ -105,7 +105,7 @@ export default function Clients() {
     <div className="p-6" dir={isRTL ? 'rtl' : 'ltr'}>
 
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-6" dir={isRTL ? 'rtl' : 'ltr'}>
         <div className="flex items-center justify-between mb-4">
           <div className={isRTL ? 'text-right' : 'text-left'}>
             <h1 className="text-2xl font-bold text-[#16100A] mb-2">{t('clients.management')}</h1>
