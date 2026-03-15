@@ -1,15 +1,45 @@
-- name: 📤 Sync files to Hostinger
+name: Deploy Website to Hostinger
+
+on:
+  push:
+    branches:
+      - main  # تأكد إن ده اسم الفرع الأساسي عندك (main أو master)
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    
+    # ضمان العمل على Node 24 لتجنب أي مشاكل في الـ Build
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: 🔍 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🏗️ Install dependencies
+        run: npm install
+
+      - name: 🚀 Build project
+        run: npm run build
+
+      - name: 📤 Sync files to Hostinger
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.FTP_SERVER }}    # تأكد إنه الـ IP: 82.198.227.251
-          username: ${{ secrets.FTP_USERNAME }}  # تأكد إنه: u837916390
-          password: ${{ secrets.FTP_PASSWORD }}  # باسورد الحساب الرئيسي
+          # البيانات المسحوبة من GitHub Secrets
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          
+          # المسار المحلي (ناتج الـ Build في React/Vite)
           local-dir: ./dist/
           
-          # جرب المسار ده (بدون نقط ولا سلاشات في الأول)
-          # لو ده ما اشتغلش، جرب تكتبه كدة: server-dir: ./
+          # المسار على السيرفر (المجلد الرئيسي الذي يعمل منه الدومين حالياً)
           server-dir: public_html/
           
+          # إعدادات حل مشكلة الـ Timeout والاتصال
           protocol: ftp
           port: 21
-          timeout: 90000
+          timeout: 90000        # زيادة وقت الانتظار لـ 90 ثانية
+          dry-run: false        # تنفيذ الرفع فعلياً
+          dangerous-clean-slate: false # حماية ملفات السيرفر من الحذف العشوائي
