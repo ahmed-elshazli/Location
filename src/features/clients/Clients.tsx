@@ -236,7 +236,7 @@ export default function Clients() {
             </div>
 
             {/* ── Stats Row ── */}
-            <div className={`flex items-center gap-4 py-3 border-t border-b border-[#F0F0F0] mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            {/* <div className={`flex items-center gap-4 py-3 border-t border-b border-[#F0F0F0] mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <div className={isRTL ? 'text-right' : 'text-left'}>
                 <p className="text-xs text-[#AAAAAA] mb-0.5">{language === 'ar' ? 'الصفقات' : 'Total Deals'}</p>
                 <div className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -256,10 +256,10 @@ export default function Clients() {
                   </p>
                 </div>
               </div>
-            </div>
+            </div> */}
 
             {/* ── Properties ── */}
-            {client.properties?.length > 0 && (
+            {/* {client.properties?.length > 0 && (
               <div className={`mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
                 <p className="text-xs font-semibold text-[#16100A] mb-1">
                   {language === 'ar' ? 'العقارات المملوكة:' : 'Properties Owned:'}
@@ -272,7 +272,7 @@ export default function Clients() {
                   ))}
                 </ul>
               </div>
-            )}
+            )} */}
 
             {/* ── Notes ── */}
             {client.notes && (
