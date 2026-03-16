@@ -291,6 +291,15 @@ export default function Properties() {
 
       {/* Grid View */}
       {viewMode === 'grid' && (
+        <>
+        {filteredProperties.length === 0 ? (
+          <div className="bg-white rounded-lg border border-[#E5E5E5] p-16 text-center text-[#AAAAAA]">
+            <Building2 className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p className="text-lg font-medium">
+              {isRTL ? 'لا توجد وحدات' : 'No properties found'}
+            </p>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredProperties.map((property: any) => {
             const price = property.price || 0;
@@ -360,7 +369,7 @@ export default function Properties() {
                   </div>
 
                   <div className="mt-auto space-y-2">
-                    {property.status?.toLowerCase() === 'available' && (
+                    {/* {property.status?.toLowerCase() === 'available' && (
                       <button
                         onClick={(e) => { e.stopPropagation(); handleSellClick(property._id || property.id, property.unitCode); }}
                         className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors text-sm font-bold"
@@ -368,7 +377,7 @@ export default function Properties() {
                         <TrendingUp className="w-4 h-4" />
                         {t('properties.sellUnit')}
                       </button>
-                    )}
+                    )} */}
 
                     {!isReadOnly && (
                       <div className="flex gap-2">
@@ -393,6 +402,8 @@ export default function Properties() {
             );
           })}
         </div>
+        )}
+        </>
       )}
 
       {/* Table View */}
@@ -431,6 +442,16 @@ export default function Properties() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E5E5]">
+                {filteredProperties.length === 0 && (
+                  <tr>
+                    <td colSpan={isReadOnly ? 7 : 8} className="px-6 py-16 text-center text-[#AAAAAA]">
+                      <div className="flex flex-col items-center gap-2">
+                        <Building2 className="w-10 h-10 opacity-30" />
+                        <p>{isRTL ? 'لا توجد وحدات' : 'No properties found'}</p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
                 {filteredProperties.map((property: any) => (
                   <tr
                     key={property._id || property.id}

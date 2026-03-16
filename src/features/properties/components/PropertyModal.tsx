@@ -193,19 +193,18 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
 
     const submissionData = new FormData();
     submissionData.append('unitCode', formData.unitCode);
-    submissionData.append('project', formData.project);
+    if (!property || formData.project) submissionData.append('project', formData.project);
     submissionData.append('type', formData.type.toLowerCase());
     submissionData.append('purpose', formData.purpose.toLowerCase());
     submissionData.append('status', formData.status.toLowerCase());
-    submissionData.append('area', formData.area);
+    if (!property || formData.area) submissionData.append('area', formData.area);
     submissionData.append('price', String(formData.price));
     submissionData.append('size', String(formData.size));
     submissionData.append('bedrooms', String(Math.max(0, Number(formData.bedrooms) || 0)));
     submissionData.append('bathrooms', String(Math.max(0, Number(formData.bathrooms) || 0)));
 
-    if (formData.phase)     submissionData.append('phase', formData.phase);
-    if (formData.floor)     submissionData.append('floor', formData.floor);
-    if (formData.apartment) submissionData.append('apartment', formData.apartment);
+    if (formData.phase) submissionData.append('phase', formData.phase);
+    if (formData.floor)  submissionData.append('floor',  formData.floor);
 
     // Only append images on CREATE - server rejects images on PATCH
     if (!property && newFiles.length > 0) {
@@ -312,7 +311,7 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
                 options={projectOptions}
                 placeholder={t('properties.selectProject', 'Select Project')}
                 loading={isProjectsLoading}
-                required
+                required={!property}
                 initialLabel={projectInitialLabel}
               />
             </div>
@@ -324,7 +323,7 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
                 value={formData.area}
                 onChange={(e) => setFormData({ ...formData, area: e.target.value })}
                 className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm bg-white"
-                required
+                required={!property}
               >
                 <option value="">{t('properties.selectArea') || 'Select Area'}</option>
                 {areaList.map((area) => (

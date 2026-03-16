@@ -16,20 +16,37 @@ const SOURCES = [
   'WALK_IN', 'PHONE_CALL', 'DATA_OFFICE', 'OTHER'
 ];
 
+const formatPhone = (prefix: string, number: string): string => {
+  const cleaned = number.replace(/\D/g, '');
+  return `${prefix}${cleaned}`;
+};
+
+const getPhonePrefix = (phone: string) => {
+  if (!phone) return '+20';
+  if (phone.startsWith('+966')) return '+966';
+  return '+20';
+};
+
+const getPhoneNumber = (phone: string) => {
+  if (!phone) return '';
+  return phone.replace(/^\+20|^\+966/, '');
+};
+
 export function LeadModal({ lead, onClose, onSave, isLoading }: LeadModalProps) {
   const { t, i18n } = useTranslation(['leads', 'common']);
   const { dir }     = useConfigStore();
   const isRTL       = dir === 'rtl';
   const language    = i18n.language;
 
-  const { data: usersData } = useUsers();
+  const { data: usersData } = useUsers({});
   const users = Array.isArray(usersData?.data) ? usersData.data
     : Array.isArray(usersData)                 ? usersData
     : [];
 
   const [formData, setFormData] = useState({
     fullName:     lead?.fullName     || '',
-    phone:        lead?.phone        || '',
+    phonePrefix:  getPhonePrefix(lead?.phone || ''),
+    phone:        getPhoneNumber(lead?.phone || ''),
     email:        lead?.email        || '',
     source:       lead?.source       || 'WEBSITE',
     assignedTo:   typeof lead?.assignedTo === 'object'
@@ -57,10 +74,9 @@ export function LeadModal({ lead, onClose, onSave, isLoading }: LeadModalProps) 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // ✅ فقط الـ fields اللي السيرفر بيقبلها
     const payload: any = {
       fullName: formData.fullName,
-      phone:    formData.phone,
+      phone:    formatPhone(formData.phonePrefix, formData.phone),
       source:   formData.source,
       status:   formData.status,
     };
@@ -74,21 +90,14 @@ export function LeadModal({ lead, onClose, onSave, isLoading }: LeadModalProps) 
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl"
-        onClick={e => e.stopPropagation()}
-        dir={isRTL ? 'rtl' : 'ltr'}
-      >
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4" onClick={onClose}>
+      <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl"
+        onClick={e => e.stopPropagation()} dir={isRTL ? 'rtl' : 'ltr'}>
+
         {/* Header */}
         <div className={`sticky top-0 bg-white border-b border-[#E5E5E5] px-6 py-4 flex items-center justify-between z-10 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <h2 className="font-bold text-[#16100A] text-lg">
-            {lead
-              ? (language === 'ar' ? 'تعديل ليد' : 'Edit Lead')
-              : (language === 'ar' ? 'إضافة ليد جديد' : 'Add New Lead')}
+            {lead ? (language === 'ar' ? 'تعديل ليد' : 'Edit Lead') : (language === 'ar' ? 'إضافة ليد جديد' : 'Add New Lead')}
           </h2>
           <button onClick={onClose} className="p-2 hover:bg-[#F7F7F7] rounded-full transition-colors">
             <X className="w-5 h-5 text-[#555555]" />
@@ -106,14 +115,10 @@ export function LeadModal({ lead, onClose, onSave, isLoading }: LeadModalProps) 
               </label>
               <div className="relative">
                 <User className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-[#555555]`} />
-                <input
-                  type="text"
-                  required
-                  value={formData.fullName}
+                <input type="text" required value={formData.fullName}
                   onChange={e => setFormData({ ...formData, fullName: e.target.value })}
                   className={`w-full ${isRTL ? 'pr-10 pl-4 text-right' : 'pl-10 pr-4 text-left'} py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
-                  placeholder={language === 'ar' ? 'أحمد محمد' : 'Ahmed Mohamed'}
-                />
+                  placeholder={language === 'ar' ? 'أحمد محمد' : 'Ahmed Mohamed'} />
               </div>
             </div>
 
@@ -122,16 +127,18 @@ export function LeadModal({ lead, onClose, onSave, isLoading }: LeadModalProps) 
               <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                 {language === 'ar' ? 'رقم الهاتف' : 'Phone Number'} *
               </label>
-              <div className="relative">
-                <Phone className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-[#555555]`} />
-                <input
-                  type="tel"
-                  required
-                  value={formData.phone}
-                  onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                  className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
-                  placeholder="+20 100 123 4567"
-                />
+              <div className="flex">
+                <select value={formData.phonePrefix}
+                  onChange={e => setFormData({ ...formData, phonePrefix: e.target.value })}
+                  className="flex-shrink-0 px-2 py-2 bg-[#F7F7F7] border border-[#E5E5E5] rounded-l-lg text-sm text-[#555555] focus:outline-none border-r-0"
+                  dir="ltr">
+                  <option value="+20">🇪🇬 +20</option>
+                  <option value="+966">🇸🇦 +966</option>
+                </select>
+                <input type="tel" required value={formData.phone}
+                  onChange={e => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '') })}
+                  className="flex-1 px-3 py-2 border border-[#E5E5E5] rounded-r-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm"
+                  placeholder="1001234567" dir="ltr" maxLength={11} />
               </div>
             </div>
 
@@ -142,13 +149,10 @@ export function LeadModal({ lead, onClose, onSave, isLoading }: LeadModalProps) 
               </label>
               <div className="relative">
                 <Mail className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-[#555555]`} />
-                <input
-                  type="email"
-                  value={formData.email}
+                <input type="email" value={formData.email}
                   onChange={e => setFormData({ ...formData, email: e.target.value })}
                   className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
-                  placeholder="email@example.com"
-                />
+                  placeholder="email@example.com" />
               </div>
             </div>
 
@@ -157,15 +161,10 @@ export function LeadModal({ lead, onClose, onSave, isLoading }: LeadModalProps) 
               <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                 {language === 'ar' ? 'المصدر' : 'Source'} *
               </label>
-              <select
-                required
-                value={formData.source}
+              <select required value={formData.source}
                 onChange={e => setFormData({ ...formData, source: e.target.value })}
-                className={`w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] ${isRTL ? 'text-right' : 'text-left'}`}
-              >
-                {SOURCES.map(s => (
-                  <option key={s} value={s}>{getSourceLabel(s)}</option>
-                ))}
+                className={`w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] ${isRTL ? 'text-right' : 'text-left'}`}>
+                {SOURCES.map(s => <option key={s} value={s}>{getSourceLabel(s)}</option>)}
               </select>
             </div>
 
@@ -174,12 +173,9 @@ export function LeadModal({ lead, onClose, onSave, isLoading }: LeadModalProps) 
               <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                 {language === 'ar' ? 'الحالة' : 'Status'} *
               </label>
-              <select
-                required
-                value={formData.status}
+              <select required value={formData.status}
                 onChange={e => setFormData({ ...formData, status: e.target.value })}
-                className={`w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] ${isRTL ? 'text-right' : 'text-left'}`}
-              >
+                className={`w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] ${isRTL ? 'text-right' : 'text-left'}`}>
                 <option value="NEW">           {language === 'ar' ? 'جديد'        : 'New'}           </option>
                 <option value="CONTACTED">     {language === 'ar' ? 'تم التواصل'  : 'Contacted'}     </option>
                 <option value="INTERESTED">    {language === 'ar' ? 'مهتم'        : 'Interested'}    </option>
@@ -195,16 +191,12 @@ export function LeadModal({ lead, onClose, onSave, isLoading }: LeadModalProps) 
               </label>
               <div className="relative">
                 <User className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-[#555555]`} />
-                <select
-                  value={formData.assignedTo}
+                <select value={formData.assignedTo}
                   onChange={e => setFormData({ ...formData, assignedTo: e.target.value })}
-                  className={`w-full ${isRTL ? 'pr-10 pl-4 text-right' : 'pl-10 pr-4 text-left'} py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
-                >
+                  className={`w-full ${isRTL ? 'pr-10 pl-4 text-right' : 'pl-10 pr-4 text-left'} py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}>
                   <option value="">{language === 'ar' ? 'اختر موظف...' : 'Select staff...'}</option>
                   {users.map((u: any) => (
-                    <option key={u._id || u.id} value={u._id || u.id}>
-                      {u.fullName || u.name}
-                    </option>
+                    <option key={u._id || u.id} value={u._id || u.id}>{u.fullName || u.name}</option>
                   ))}
                 </select>
               </div>
@@ -217,13 +209,10 @@ export function LeadModal({ lead, onClose, onSave, isLoading }: LeadModalProps) 
               </label>
               <div className="relative">
                 <Tag className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-[#555555]`} />
-                <input
-                  type="text"
-                  value={formData.interestedIn}
+                <input type="text" value={formData.interestedIn}
                   onChange={e => setFormData({ ...formData, interestedIn: e.target.value })}
                   className={`w-full ${isRTL ? 'pr-10 pl-4 text-right' : 'pl-10 pr-4 text-left'} py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
-                  placeholder={language === 'ar' ? 'شقة في مدينتي' : 'Apartment in Madinaty'}
-                />
+                  placeholder={language === 'ar' ? 'شقة في مدينتي' : 'Apartment in Madinaty'} />
               </div>
             </div>
 
@@ -234,32 +223,24 @@ export function LeadModal({ lead, onClose, onSave, isLoading }: LeadModalProps) 
               </label>
               <div className="relative">
                 <FileText className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-3 w-5 h-5 text-[#555555]`} />
-                <textarea
-                  value={formData.notes}
+                <textarea value={formData.notes}
                   onChange={e => setFormData({ ...formData, notes: e.target.value })}
                   className={`w-full ${isRTL ? 'pr-10 pl-4 text-right' : 'pl-10 pr-4 text-left'} py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] min-h-[90px]`}
-                  placeholder={language === 'ar' ? 'أي ملاحظات إضافية...' : 'Any additional notes...'}
-                />
+                  placeholder={language === 'ar' ? 'أي ملاحظات إضافية...' : 'Any additional notes...'} />
               </div>
             </div>
           </div>
 
           {/* Actions */}
           <div className={`flex items-center gap-3 mt-6 pt-6 border-t border-[#E5E5E5] ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="flex-1 gradient-primary text-white py-3 rounded-lg hover:opacity-90 transition-all font-medium disabled:opacity-50"
-            >
+            <button type="submit" disabled={isLoading}
+              className="flex-1 gradient-primary text-white py-3 rounded-lg hover:opacity-90 transition-all font-medium disabled:opacity-50">
               {isLoading ? '...' : lead
                 ? (language === 'ar' ? 'حفظ التعديلات' : 'Save Changes')
                 : (language === 'ar' ? 'إضافة ليد'     : 'Add Lead')}
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-[#F7F7F7] text-[#555555] py-3 rounded-lg hover:bg-[#E5E5E5] transition-all font-medium"
-            >
+            <button type="button" onClick={onClose}
+              className="flex-1 bg-[#F7F7F7] text-[#555555] py-3 rounded-lg hover:bg-[#E5E5E5] transition-all font-medium">
               {language === 'ar' ? 'إلغاء' : 'Cancel'}
             </button>
           </div>

@@ -10,7 +10,7 @@ import { useCreateArea } from './hooks/useCreateArea';
 import { useUpdateArea } from './hooks/useUpdateArea';
 import { useDeleteArea } from './hooks/useDeleteArea';
 
-type AreaType = 'villaZone' | 'apartmentZone' | 'commercialZone' | 'RESIDENTIAL';
+type AreaType = 'villa Zone' | 'apartment Zone' | 'commercial Zone' | 'mixed' | 'service Area';
 
 interface Area {
   _id: string;
@@ -57,7 +57,7 @@ function AreaModal({ area, onClose, onSave, isPending }: AreaModalProps) {
     zone:        area?.zone        || '',
     group:       area?.group       || '',
     groupAr:     area?.groupAr     || '',
-    type:        area?.type        || 'villaZone',
+    type:        area?.type        || 'villa Zone',
     stats: {
       totalUnits:             area?.stats?.totalUnits            || 0,
       availableUnits:         area?.stats?.availableUnits        || 0,
@@ -140,10 +140,11 @@ function AreaModal({ area, onClose, onSave, isPending }: AreaModalProps) {
               <label className="text-sm font-medium text-[#16100A]">{t('areas.type', 'Type')} *</label>
               <select required value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value as Area['type'] })}
                 className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm bg-white">
-                <option value="villaZone">{t('areas:villaZone', 'Villa Zone')}</option>
-                <option value="apartmentZone">{t('areas:apartmentZone', 'Apartment Zone')}</option>
-                <option value="commercialZone">{t('areas:commercialZone', 'Commercial Zone')}</option>
-                <option value="RESIDENTIAL">{t('areas:residential', 'Residential')}</option>
+                <option value="villa Zone">{t('areas:villaZone', 'Villa Zone')}</option>
+                <option value="apartment Zone">{t('areas:apartmentZone', 'Apartment Zone')}</option>
+                <option value="commercial Zone">{t('areas:commercialZone', 'Commercial Zone')}</option>
+                <option value="mixed">{t('areas:mixed', 'Mixed')}</option>
+                <option value="service Area">{t('areas:serviceArea', 'Service Area')}</option>
               </select>
             </div>
 
@@ -267,28 +268,30 @@ export default function Areas() {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'villaZone':      return 'bg-[#FEF3E2] text-[#B5752A] border-[#B5752A]';
-      case 'apartmentZone':  return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'commercialZone': return 'bg-purple-50 text-purple-700 border-purple-200';
-      case 'RESIDENTIAL':    return 'bg-green-50 text-green-700 border-green-200';
-      default:               return 'bg-gray-50 text-gray-700 border-gray-200';
+      case 'villa Zone':      return 'bg-[#FEF3E2] text-[#B5752A] border-[#B5752A]';
+      case 'apartment Zone':  return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'commercial Zone': return 'bg-purple-50 text-purple-700 border-purple-200';
+      case 'mixed':           return 'bg-green-50 text-green-700 border-green-200';
+      case 'service Area':    return 'bg-gray-50 text-gray-600 border-gray-200';
+      default:                return 'bg-gray-50 text-gray-700 border-gray-200';
     }
   };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'villaZone': return <Home className="w-4 h-4" />;
-      default:          return <Building2 className="w-4 h-4" />;
+      case 'villa Zone': return <Home className="w-4 h-4" />;
+      default:           return <Building2 className="w-4 h-4" />;
     }
   };
 
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case 'villaZone':      return t('areas:villaZone');
-      case 'apartmentZone':  return t('areas:apartmentZone');
-      case 'commercialZone': return t('areas:commercialZone');
-      case 'RESIDENTIAL':    return t('areas:residential');
-      default:               return type;
+      case 'villa Zone':      return t('areas:villaZone', 'Villa Zone');
+      case 'apartment Zone':  return t('areas:apartmentZone', 'Apartment Zone');
+      case 'commercial Zone': return t('areas:commercialZone', 'Commercial Zone');
+      case 'mixed':           return t('areas:mixed', 'Mixed');
+      case 'service Area':    return t('areas:serviceArea', 'Service Area');
+      default:                return type;
     }
   };
 
@@ -327,10 +330,11 @@ export default function Areas() {
             className={`px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] ${isRTL ? 'text-right' : 'text-left'}`}
             dir={isRTL ? 'rtl' : 'ltr'}>
             <option value="all">{t('areas.allTypes')}</option>
-            <option value="villaZone">{t('areas.villaZone')}</option>
-            <option value="apartmentZone">{t('areas.apartmentZone')}</option>
-            <option value="commercialZone">{t('areas.commercialZone')}</option>
-            <option value="RESIDENTIAL">{t('areas.residential')}</option>
+            <option value="villa Zone">{t('areas.villaZone')}</option>
+            <option value="apartment Zone">{t('areas.apartmentZone')}</option>
+            <option value="commercial Zone">{t('areas.commercialZone')}</option>
+            <option value="mixed">{t('areas:mixed', 'Mixed')}</option>
+            <option value="service Area">{t('areas:serviceArea', 'Service Area')}</option>
           </select>
         </div>
       </div>
@@ -376,6 +380,14 @@ export default function Areas() {
       )}
 
       {/* Areas Grid */}
+      {areaList.length === 0 && !isLoading && (
+        <div className="bg-white rounded-lg border border-[#E5E5E5] p-16 text-center text-[#AAAAAA]">
+          <MapPin className="w-12 h-12 mx-auto mb-3 opacity-30" />
+          <p className="text-lg font-medium">
+            {language === 'ar' ? 'لا توجد مناطق' : 'No areas found'}
+          </p>
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {areaList.map((area) => (
           <div key={area._id || area.id} className="bg-white rounded-lg border border-[#E5E5E5] p-6 hover:shadow-lg transition-shadow">
