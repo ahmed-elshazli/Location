@@ -102,6 +102,17 @@ export default function Properties() {
     code: ''
   });
 
+  const handleEditProperty = (property: any) => {
+    setEditingProperty(property);
+    setModalOpen(true);
+  };
+
+  const [sellConfig, setSellConfig] = useState<{ isOpen: boolean; id: string; code: string }>({ isOpen: false, id: '', code: '' });
+
+  const handleSellClick = (id: string, unitCode: string) => {
+    setSellConfig({ isOpen: true, id, code: unitCode });
+  };
+
   const handleDeleteUnit = (id: string, unitCode: string) => {
     setDeleteConfig({ isOpen: true, id, code: unitCode });
   };
@@ -536,6 +547,49 @@ export default function Properties() {
               ? `صفحة ${pagination.currentPage} من ${pagination.numberOfPages}`
               : `Page ${pagination.currentPage} of ${pagination.numberOfPages}`}
           </span>
+        </div>
+      )}
+
+      {/* Sell Confirmation Modal */}
+      {sellConfig.isOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-4">
+                <TrendingUp className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-bold text-[#16100A] mb-2">
+                {isRTL ? 'تأكيد البيع' : 'Confirm Sale'}
+              </h3>
+              <p className="text-[#555555] mb-6">
+                {isRTL
+                  ? `هل تريد تحديد الوحدة "${sellConfig.code}" كمباعة؟`
+                  : `Mark unit "${sellConfig.code}" as sold?`}
+              </p>
+              <div className="flex gap-3 w-full">
+                <button onClick={() => setSellConfig({ isOpen: false, id: '', code: '' })}
+                  className="flex-1 px-4 py-2 border border-[#E5E5E5] rounded-lg text-[#555555] hover:bg-[#F7F7F7] font-medium transition-colors">
+                  {t('properties.cancel')}
+                </button>
+                <button
+                  onClick={() => {
+                    sellUnit.mutate(sellConfig.id, {
+                      onSuccess: () => {
+                        triggerToast(isRTL ? 'تم تحديث الوحدة ✅' : 'Unit marked as sold ✅', 'success');
+                        setSellConfig({ isOpen: false, id: '', code: '' });
+                      },
+                      onError: (err: any) => {
+                        triggerToast(err.response?.data?.message || 'Failed', 'error');
+                      }
+                    });
+                  }}
+                  disabled={sellUnit.isPending}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold transition-colors disabled:opacity-50">
+                  {sellUnit.isPending ? '...' : (isRTL ? 'تأكيد' : 'Confirm')}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
