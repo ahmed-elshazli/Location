@@ -66,14 +66,13 @@ export default function Treasury() {
     return () => clearTimeout(t);
   }, [searchTerm]);
 
-  // ── Server-side paginated fetch ───────────────────────────────────────────
+  // ── Server-side fetch — بدون agent عشان الـ API مش بيقبله ────────────────
   const { data: txData, isLoading: loadingTx } = useTransactions({
     page,
     limit:    LIMIT,
     type:     typeFilter     !== 'all' ? typeFilter     : undefined,
     category: categoryFilter !== 'all' ? categoryFilter : undefined,
     source:   sourceFilter   !== 'all' ? sourceFilter   : undefined,
-    agent:    agentFilter    !== 'all' ? agentFilter    : undefined,
     keyword:  keyword || undefined,
     dateFrom: dateFrom || undefined,
     dateTo:   dateTo   || undefined,
@@ -90,12 +89,15 @@ export default function Treasury() {
   const totalResults: number        = txData?.results ?? transactions.length;
   const stats                       = statsData?.data || statsData || {};
 
-  const filtered = transactions;
-
-  // Dynamic filter options من الصفحة الحالية
+  // Dynamic filter options
   const allCategories = [...new Set(transactions.map((tx: any) => safeStr(tx.category)).filter(c => c !== '—'))];
   const allAgents     = [...new Set(transactions.map((tx: any) => safeStr(tx.salesAgent)).filter(a => a !== '—'))];
   const allSources    = [...new Set(transactions.map((tx: any) => safeStr(tx.source)).filter(s => s !== '—'))];
+
+  // ✅ agent filter client-side فقط
+  const filtered = agentFilter === 'all'
+    ? transactions
+    : transactions.filter((tx: any) => safeStr(tx.salesAgent) === agentFilter);
 
   const canManage = user?.role === 'super_admin' || user?.role === 'admin';
 
@@ -149,16 +151,14 @@ export default function Treasury() {
     <div className="p-6" dir={isRTL ? 'rtl' : 'ltr'}>
 
       {/* Header */}
-      <div className={`mb-8 flex items-center justify-between `}>
+      <div className="mb-8 flex items-center justify-between">
         <div className={isRTL ? 'text-right' : 'text-left'}>
           <h1 className="text-2xl font-bold text-[#16100A] mb-1">{isAr ? 'الخزينة' : 'Treasury'}</h1>
           <p className="text-[#555555]">{isAr ? 'إدارة المعاملات المالية' : 'Manage financial transactions'}</p>
         </div>
         <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <button
-            onClick={handleExport}
-            className={`border border-[#B5752A] text-[#B5752A] px-5 py-3 rounded-lg hover:bg-[#FEF3E2] transition-colors flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
-          >
+          <button onClick={handleExport}
+            className={`border border-[#B5752A] text-[#B5752A] px-5 py-3 rounded-lg hover:bg-[#FEF3E2] transition-colors flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <Download className="w-5 h-5" />
             <span className="font-medium">{isAr ? 'تصدير Excel' : 'Export Excel'}</span>
           </button>
@@ -353,36 +353,27 @@ export default function Treasury() {
 
           {totalPages > 1 && (
             <div className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              {/* Prev */}
               <button disabled={page === 1 || loadingTx} onClick={() => setPage(p => p - 1)}
                 className="w-9 h-9 flex items-center justify-center rounded-lg border border-[#E5E5E5] hover:bg-white disabled:opacity-40 transition-colors">
                 {isRTL ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
               </button>
-
-              {/* Page numbers */}
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => {
-                const isFirst  = p === 1;
-                const isLast   = p === totalPages;
-                const isNear   = Math.abs(p - page) <= 1;
+                const isFirst = p === 1;
+                const isLast  = p === totalPages;
+                const isNear  = Math.abs(p - page) <= 1;
                 if (!isFirst && !isLast && !isNear) {
-                  if (p === 2 || p === totalPages - 1) {
-                    return <span key={p} className="text-[#555555] text-sm px-1">…</span>;
-                  }
+                  if (p === 2 || p === totalPages - 1) return <span key={p} className="text-[#555555] text-sm px-1">…</span>;
                   return null;
                 }
                 return (
                   <button key={p} onClick={() => setPage(p)}
                     className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
-                      p === page
-                        ? 'gradient-primary text-white'
-                        : 'border border-[#E5E5E5] text-[#555555] hover:bg-white'
+                      p === page ? 'gradient-primary text-white' : 'border border-[#E5E5E5] text-[#555555] hover:bg-white'
                     }`}>
                     {p}
                   </button>
                 );
               })}
-
-              {/* Next */}
               <button disabled={page === totalPages || loadingTx} onClick={() => setPage(p => p + 1)}
                 className="w-9 h-9 flex items-center justify-center rounded-lg border border-[#E5E5E5] hover:bg-white disabled:opacity-40 transition-colors">
                 {isRTL ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
