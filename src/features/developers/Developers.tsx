@@ -97,17 +97,17 @@ function DeveloperCard({
             <span dir="ltr">{developer.email}</span>
           </div>
         )}
-        {developer.website && (
+        {developer.site && (
           <div className={`flex items-center gap-2 text-sm ${isRTL ? "flex-row-reverse" : ""}`}>
             <Globe className="w-4 h-4 flex-shrink-0 text-[#B5752A]" />
             <a
-              href={getFullUrl(developer.website)}
+              href={getFullUrl(developer.site)}
               target="_blank"
               rel="noreferrer"
               dir="ltr"
               className="text-[#B5752A] hover:underline"
             >
-              {getDisplayUrl(developer.website)}
+              {getDisplayUrl(developer.site)}
             </a>
           </div>
         )}

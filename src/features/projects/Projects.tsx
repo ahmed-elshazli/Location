@@ -161,7 +161,7 @@ export default function Projects() {
   };
 
   const [formData, setFormData] = useState({
-    name: '', description: '', location: '', area: '',
+    name: '', description: '', location: '',
     developer: '', startDate: '', status: 'Active',
     units: 0, availableUnits: 0, soldUnits: 0
   });
@@ -172,7 +172,6 @@ export default function Projects() {
     name: z.string().min(3, "اسم المشروع مطلوب"),
     description: z.string().min(10, "الوصف يجب أن يكون مفصلاً"),
     location: z.string().nonempty("الموقع الجغرافي مطلوب"),
-    area: z.string().nonempty("المنطقة مطلوبة"),
     developer: z.string().nonempty("يجب اختيار مطور للمشروع"),
     startDate: z.string().nonempty("تاريخ البدء مطلوب"),
     status: z.string().optional(),
@@ -187,7 +186,7 @@ export default function Projects() {
     setImageFiles([]);
     setImagePreviews([]);
     setFormData({
-      name: '', description: '', location: '', area: '',
+      name: '', description: '', location: '',
       developer: '', startDate: '', status: 'Active',
       units: 0, availableUnits: 0, soldUnits: 0
     });
@@ -206,7 +205,6 @@ export default function Projects() {
     submissionData.append('name', formData.name);
     submissionData.append('description', formData.description);
     submissionData.append('location', formData.location);
-    submissionData.append('area', formData.area);
     submissionData.append('developer', formData.developer);
 
     try {
@@ -299,7 +297,6 @@ export default function Projects() {
       name: project.name || '',
       description: project.description || '',
       location: project.location || '',
-      area: project.area || '',
       developer: project.developer?._id || project.developer || '',
       startDate: project.startDate ? new Date(project.startDate).toISOString().split('T')[0] : '',
       status: project.status || 'Active',
@@ -432,10 +429,10 @@ export default function Projects() {
                   </p>
 
                   <div className="space-y-3 mb-4 pb-4 border-b border-[#E5E5E5]">
-                    <div className={`flex items-center justify-between text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    {/* <div className={`flex items-center justify-between text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <span className="text-[#555555]">{t('common:common.area')}:</span>
                       <span className="font-medium text-[#16100A]">{language === 'ar' ? project.areaAr : project.area}</span>
-                    </div>
+                    </div> */}
                     <div className={`flex items-center justify-between text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <span className="text-[#555555]">{t('properties:properties.developer')}:</span>
                       <span className="font-medium text-[#16100A]">
@@ -689,30 +686,16 @@ export default function Projects() {
                 </div>
               </div>
 
-              {/* Location & Area */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-[#16100A]">{t('common:common.location')} *</label>
-                  <div className="relative">
-                    <MapPin className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-4 h-4 text-[#AAAAAA]`} />
-                    <input
-                      type="text" required value={formData.location}
-                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                      className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm`}
-                      placeholder={language === 'ar' ? 'القاهرة الجديدة' : 'New Cairo'}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-[#16100A]">{t('common:common.area')} *</label>
-                  <SearchableDropdown
-                    key={`area-${formData.area}`}
-                    value={formData.area}
-                    onChange={(id) => setFormData({ ...formData, area: id })}
-                    options={areaOptions}
-                    placeholder={language === 'ar' ? 'ابحث عن منطقة...' : 'Search area...'}
-                    required
-                    initialLabel={areaOptions.find(a => a.id === formData.area)?.label || ''}
+              {/* Location */}
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-[#16100A]">{t('common:common.location')} *</label>
+                <div className="relative">
+                  <MapPin className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-4 h-4 text-[#AAAAAA]`} />
+                  <input
+                    type="text" required value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm`}
+                    placeholder={language === 'ar' ? 'القاهرة الجديدة' : 'New Cairo'}
                   />
                 </div>
               </div>

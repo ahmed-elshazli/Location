@@ -32,37 +32,33 @@ export function DeveloperModal({ developer, onClose, onSave, isLoading }: Develo
     phone:       getPhoneNumber(developer?.phone || ''),
     phonePrefix: getPhonePrefix(developer?.phone || ''),
     email:       developer?.email       || '',
-    website:     developer?.website     || '',
+    site:        developer?.site        || '',
     location:    developer?.location    || '',
     description: developer?.description || '',
-    area:        developer?.area        || [],
   });
 
+
+
   const [areaInput, setAreaInput] = useState('');
+  const [areas, setAreas] = useState<string[]>(developer?.area || []);
 
   const addArea = () => {
     const trimmed = areaInput.trim();
-    if (trimmed && !formData.area.includes(trimmed)) {
-      setFormData({ ...formData, area: [...formData.area, trimmed] });
+    if (trimmed && !areas.includes(trimmed)) {
+      setAreas(prev => [...prev, trimmed]);
       setAreaInput('');
     }
   };
 
-  const removeArea = (val: string) => {
-    setFormData({ ...formData, area: formData.area.filter((a: string) => a !== val) });
-  };
+  const removeArea = (val: string) => setAreas(prev => prev.filter(a => a !== val));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const submissionData = { ...formData };
-  
-  // ✅ حذف الحقول التي تسبب Error 400 في الباك-إند
-  delete (submissionData as any).website;
-  
-  const { phonePrefix, phone, ...rest } = submissionData;
+    const { phonePrefix, phone, ...rest } = formData;
     onSave({
       ...rest,
       phone: `${phonePrefix}${phone}`,
+      area: areas,
     });
   };
 
@@ -166,7 +162,8 @@ export function DeveloperModal({ developer, onClose, onSave, isLoading }: Develo
               </div>
             </div>
 
-            {/* Website */}
+
+            {/* Site */}
             <div>
               <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                 {language === 'ar' ? 'الموقع الإلكتروني' : 'Website'}
@@ -175,8 +172,8 @@ export function DeveloperModal({ developer, onClose, onSave, isLoading }: Develo
                 <Globe className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-[#555555]`} />
                 <input
                   type="url"
-                  value={formData.website}
-                  onChange={e => setFormData({ ...formData, website: e.target.value })}
+                  value={formData.site}
+                  onChange={e => setFormData({ ...formData, site: e.target.value })}
                   className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
                   placeholder="https://www.developer.com"
                   dir="ltr"
@@ -214,34 +211,26 @@ export function DeveloperModal({ developer, onClose, onSave, isLoading }: Develo
               />
             </div>
 
-            {/* Area Tags */}
+
+          </div>
+
+          {/* Active Areas */}
             <div>
               <label className={`block text-sm font-medium text-[#16100A] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {language === 'ar' ? 'المناطق' : 'Areas'}
+                {language === 'ar' ? 'المناطق النشطة' : 'Active Areas'}
               </label>
-
-              {/* Tags */}
-              {formData.area.length > 0 && (
+              {areas.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-2">
-                  {formData.area.map((a: string) => (
-                    <span
-                      key={a}
-                      className="flex items-center gap-1 px-3 py-1 bg-[#FEF3E2] text-[#B5752A] rounded-full text-sm font-medium border border-[#B5752A]/20"
-                    >
+                  {areas.map((a: string) => (
+                    <span key={a} className="flex items-center gap-1 px-3 py-1 bg-[#FEF3E2] text-[#B5752A] rounded-full text-sm font-medium border border-[#B5752A]/20">
                       {a}
-                      <button
-                        type="button"
-                        onClick={() => removeArea(a)}
-                        className="hover:text-red-500 transition-colors ml-1"
-                      >
+                      <button type="button" onClick={() => removeArea(a)} className="hover:text-red-500 transition-colors ml-1">
                         <X className="w-3 h-3" />
                       </button>
                     </span>
                   ))}
                 </div>
               )}
-
-              {/* Add Area Input */}
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -251,16 +240,12 @@ export function DeveloperModal({ developer, onClose, onSave, isLoading }: Develo
                   className={`flex-1 px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm ${isRTL ? 'text-right' : 'text-left'}`}
                   placeholder={language === 'ar' ? 'أضف منطقة واضغط Enter' : 'Add area and press Enter'}
                 />
-                <button
-                  type="button"
-                  onClick={addArea}
-                  className="px-4 py-2 bg-[#F7F7F7] text-[#555555] rounded-lg hover:bg-[#E5E5E5] text-sm font-medium transition-colors border border-[#E5E5E5]"
-                >
+                <button type="button" onClick={addArea}
+                  className="px-4 py-2 bg-[#F7F7F7] text-[#555555] rounded-lg hover:bg-[#E5E5E5] text-sm font-medium transition-colors border border-[#E5E5E5]">
                   {language === 'ar' ? 'إضافة' : 'Add'}
                 </button>
               </div>
             </div>
-          </div>
 
           {/* Actions */}
           <div className={`flex items-center gap-3 mt-6 pt-6 border-t border-[#E5E5E5] ${isRTL ? 'flex-row-reverse' : ''}`}>
