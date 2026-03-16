@@ -5,5 +5,6 @@ export const useTransactions = (params?: GetTransactionsParams) =>
   useQuery({
     queryKey: ['transactions', params],
     queryFn:  () => getTransactionsApi(params),
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
+    placeholderData: (prev) => prev,
   });

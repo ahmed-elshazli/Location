@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Plus, Search, Building, MapPin, Phone,
   Mail, Edit2, Globe, Trash2, ChevronLeft, ChevronRight,
@@ -188,7 +188,17 @@ export default function Developers() {
     isOpen: false, id: "", name: "",
   });
 
-  const { data: backendDevs, isLoading, error } = useDevelopers();
+  const [keyword, setKeyword] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setKeyword(searchTerm), 500);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
+  useEffect(() => { setCurrentPage(1); }, [keyword]);
+
+  const { data: backendDevs, isLoading, error } = useDevelopers({
+    keyword: keyword || undefined,
+  });
   const { data: summary, isLoading: isSummaryLoading } = useDevelopersSummary();
 
   const createDeveloper   = useCreateDeveloper();
@@ -201,12 +211,8 @@ export default function Developers() {
     ? backendDevs
     : backendDevs?.developers || [];
 
-  const filteredDevelopers = devList.filter((dev: any) =>
-    dev.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    dev.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  const totalPages    = Math.max(1, Math.ceil(filteredDevelopers.length / LIMIT));
-  const paginatedDevs = filteredDevelopers.slice((currentPage - 1) * LIMIT, currentPage * LIMIT);
+  const totalPages    = Math.max(1, Math.ceil(devList.length / LIMIT));
+  const paginatedDevs = devList.slice((currentPage - 1) * LIMIT, currentPage * LIMIT);
 
   const handleSave = (data: any) => {
     const options = {

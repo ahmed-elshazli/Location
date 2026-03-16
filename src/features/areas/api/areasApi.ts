@@ -1,8 +1,18 @@
-// src/api/areasApi.ts
 import { api } from '../../../utils/axios';
 
-export const getAreasApi = async ({ page = 1, limit = 9 }: { page?: number; limit?: number } = {}) => {
-  const response = await api.get('/api/v1/areas', { params: { page, limit } });
+export interface FetchAreasParams {
+  page?: number;
+  limit?: number;
+  keyword?: string;
+  type?: string;
+}
+
+export const getAreasApi = async (params: FetchAreasParams = {}) => {
+  const { page = 1, limit = 9, keyword, type } = params;
+  const query: Record<string, any> = { page, limit };
+  if (keyword) query.keyword = keyword;
+  if (type && type !== 'all') query.type = type;
+  const response = await api.get('/api/v1/areas', { params: query });
   return response.data;
 };
 

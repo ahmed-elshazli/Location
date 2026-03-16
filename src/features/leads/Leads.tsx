@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Search, Phone, Mail, Edit2, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useConfigStore } from '../../store/useConfigStore';
@@ -26,13 +26,28 @@ export default function Leads() {
   const { user }         = useAuthStore();
   const { triggerToast } = useToastStore();
 
-  const isRTL  = dir === 'rtl';
+  const isRTL    = dir === 'rtl';
   const language = i18n.language;
-
   const isReadOnly = user?.role === 'sales';
 
+  // Debounce search
+  const [keyword, setKeyword] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setKeyword(searchTerm), 500);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
+  // Reset page on filter/search change
+  useEffect(() => { setCurrentPage(1); }, [keyword, filterStatus]);
+
   // ── API ──────────────────────────────────────────────────────────────────
-  const { data: leadsData, isLoading } = useLeads(currentPage, 10);
+  const { data: leadsData, isLoading } = useLeads({
+    page:    currentPage,
+    limit:   10,
+    keyword: keyword || undefined,
+    status:  filterStatus !== 'all' ? filterStatus : undefined,
+  });
+
   const createLead = useCreateLead();
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
@@ -44,25 +59,15 @@ export default function Leads() {
   const pagination = leadsData?.pagination;
   const totalPages = pagination?.numberOfPages ?? 1;
 
-  // ── Status counts from API data ───────────────────────────────────────────
+  // Status counts from current page data
   const statusCounts: any = {
-    all:           leadList.length,
-    NEW:           leadList.filter(l => l.status === 'NEW').length,
-    CONTACTED:     leadList.filter(l => l.status === 'CONTACTED').length,
-    INTERESTED:    leadList.filter(l => l.status === 'INTERESTED').length,
-    NOT_INTERESTED:leadList.filter(l => l.status === 'NOT_INTERESTED').length,
-    CONVERTED:     leadList.filter(l => l.status === 'CONVERTED').length,
+    all:            leadsData?.results ?? leadList.length,
+    NEW:            leadList.filter(l => l.status === 'NEW').length,
+    CONTACTED:      leadList.filter(l => l.status === 'CONTACTED').length,
+    INTERESTED:     leadList.filter(l => l.status === 'INTERESTED').length,
+    NOT_INTERESTED: leadList.filter(l => l.status === 'NOT_INTERESTED').length,
+    CONVERTED:      leadList.filter(l => l.status === 'CONVERTED').length,
   };
-
-  // ── Filter ────────────────────────────────────────────────────────────────
-  const filteredLeads = leadList.filter(lead => {
-    const matchesSearch =
-      (lead.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (lead.phone    || '').includes(searchTerm) ||
-      (lead.email    || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || lead.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleSave = (data: any) => {
@@ -134,18 +139,18 @@ export default function Leads() {
 
   const getSourceLabel = (source: string) => {
     switch (source) {
-      case 'WEBSITE':    return language === 'ar' ? 'الموقع'       : 'Website';
-      case 'REFERRAL':   return language === 'ar' ? 'إحالة'        : 'Referral';
-      case 'FACEBOOK':   return language === 'ar' ? 'فيسبوك'       : 'Facebook';
-      case 'INSTAGRAM':  return language === 'ar' ? 'إنستجرام'     : 'Instagram';
-      case 'PHONE_CALL': return language === 'ar' ? 'مكالمة هاتفية': 'Phone Call';
-      case 'WALK_IN':    return language === 'ar' ? 'زيارة مباشرة' : 'Walk-in';
-      case 'DATA_OFFICE':return language === 'ar' ? 'مكتب البيانات': 'Data Office';
-      default:           return source;
+      case 'WEBSITE':     return language === 'ar' ? 'الموقع'        : 'Website';
+      case 'REFERRAL':    return language === 'ar' ? 'إحالة'         : 'Referral';
+      case 'FACEBOOK':    return language === 'ar' ? 'فيسبوك'        : 'Facebook';
+      case 'INSTAGRAM':   return language === 'ar' ? 'إنستجرام'      : 'Instagram';
+      case 'PHONE_CALL':  return language === 'ar' ? 'مكالمة هاتفية' : 'Phone Call';
+      case 'WALK_IN':     return language === 'ar' ? 'زيارة مباشرة'  : 'Walk-in';
+      case 'DATA_OFFICE': return language === 'ar' ? 'مكتب البيانات' : 'Data Office';
+      default:            return source;
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !leadsData) {
     return (
       <div className="h-64 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#B5752A]" />
@@ -160,7 +165,7 @@ export default function Leads() {
 
       {/* Header */}
       <div className="mb-6">
-        <div className={`flex items-center justify-between mb-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className={`flex items-center justify-between mb-6  `} >
           <div className={isRTL ? 'text-right' : 'text-left'}>
             <h1 className="text-2xl font-bold text-[#16100A] mb-2">{t('leads.title')}</h1>
             <p className="text-[#555555]">{t('leads.subtitle')}</p>
@@ -188,9 +193,7 @@ export default function Leads() {
                   : 'bg-white border border-[#E5E5E5] text-[#555555] hover:bg-[#F7F7F7]'
               }`}
             >
-              {status === 'all'
-                ? (language === 'ar' ? 'الكل' : 'All')
-                : getStatusLabel(status)}{' '}
+              {status === 'all' ? (language === 'ar' ? 'الكل' : 'All') : getStatusLabel(status)}{' '}
               ({statusCounts[status] ?? 0})
             </button>
           ))}
@@ -212,14 +215,14 @@ export default function Leads() {
       </div>
 
       {/* Leads Grid */}
-      {filteredLeads.length === 0 ? (
+      {leadList.length === 0 ? (
         <div className="bg-white rounded-lg border border-[#E5E5E5] p-16 text-center text-[#AAAAAA]">
           <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p>{language === 'ar' ? 'لا توجد نتائج' : 'No leads found'}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filteredLeads.map(lead => (
+          {leadList.map(lead => (
             <div key={lead._id || lead.id} className="bg-white rounded-lg border border-[#E5E5E5] p-6 hover:shadow-lg transition-shadow">
 
               {/* Card Header */}
@@ -285,7 +288,6 @@ export default function Leads() {
                 </div>
               </div>
 
-              {/* Interested In */}
               {lead.interestedIn && (
                 <div className={`mt-4 pt-4 border-t border-[#E5E5E5] ${isRTL ? 'text-right' : 'text-left'}`}>
                   <p className="text-xs text-[#555555] mb-1">{t('leads.interestedIn')}</p>
@@ -293,7 +295,6 @@ export default function Leads() {
                 </div>
               )}
 
-              {/* Notes */}
               {lead.notes && (
                 <div className={`mt-4 pt-4 border-t border-[#E5E5E5] ${isRTL ? 'text-right' : 'text-left'}`}>
                   <p className="text-xs text-[#555555] mb-1">{t('common:common.notes')}</p>
@@ -301,7 +302,6 @@ export default function Leads() {
                 </div>
               )}
 
-              {/* Actions */}
               {!isReadOnly && (
                 <div className={`mt-4 pt-4 border-t border-[#E5E5E5] flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <button
@@ -342,13 +342,9 @@ export default function Leads() {
               return null;
             }
             return (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
+              <button key={page} onClick={() => setCurrentPage(page)}
                 className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
-                  page === currentPage
-                    ? 'gradient-primary text-white shadow-sm'
-                    : 'border border-[#E5E5E5] text-[#555555] hover:bg-[#F7F7F7]'
+                  page === currentPage ? 'gradient-primary text-white shadow-sm' : 'border border-[#E5E5E5] text-[#555555] hover:bg-[#F7F7F7]'
                 }`}
               >
                 {page}
@@ -395,17 +391,12 @@ export default function Leads() {
                 : `Are you sure you want to delete "${deleteConfig.name}"? This action cannot be undone.`}
             </p>
             <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <button
-                onClick={confirmDelete}
-                disabled={deleteLead.isPending}
-                className="flex-1 bg-red-500 text-white py-2.5 rounded-lg hover:bg-red-600 transition-colors font-medium disabled:opacity-50"
-              >
+              <button onClick={confirmDelete} disabled={deleteLead.isPending}
+                className="flex-1 bg-red-500 text-white py-2.5 rounded-lg hover:bg-red-600 transition-colors font-medium disabled:opacity-50">
                 {deleteLead.isPending ? '...' : (language === 'ar' ? 'حذف' : 'Delete')}
               </button>
-              <button
-                onClick={() => setDeleteConfig({ isOpen: false, id: '', name: '' })}
-                className="flex-1 bg-[#F7F7F7] text-[#555555] py-2.5 rounded-lg hover:bg-[#E5E5E5] transition-colors font-medium"
-              >
+              <button onClick={() => setDeleteConfig({ isOpen: false, id: '', name: '' })}
+                className="flex-1 bg-[#F7F7F7] text-[#555555] py-2.5 rounded-lg hover:bg-[#E5E5E5] transition-colors font-medium">
                 {language === 'ar' ? 'إلغاء' : 'Cancel'}
               </button>
             </div>

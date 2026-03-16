@@ -209,7 +209,7 @@ const confirmDelete = () => {
 
       {/* Header */}
       <div className="mb-6" dir={isRTL ? 'rtl' : 'ltr'}>
-        <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className={`flex items-center justify-between mb-4 }`}>
           <div className={isRTL ? 'text-right' : 'text-left'}>
             <h1 className="text-2xl font-bold text-[#16100A] mb-2">{t('calendar.eventsSchedule')}</h1>
             <p className="text-[#555555]">{t('calendar.manageSchedule')}</p>

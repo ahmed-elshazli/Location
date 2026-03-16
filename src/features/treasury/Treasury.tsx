@@ -59,11 +59,24 @@ export default function Treasury() {
   const [dateTo, setDateTo]                         = useState('');
   const [showFilters, setShowFilters]               = useState(false);
 
+  // Debounce search
+  const [keyword, setKeyword] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setKeyword(searchTerm), 500);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
   // ── Server-side paginated fetch ───────────────────────────────────────────
   const { data: txData, isLoading: loadingTx } = useTransactions({
     page,
-    limit: LIMIT,
-    type: typeFilter === 'all' ? undefined : typeFilter,
+    limit:    LIMIT,
+    type:     typeFilter     !== 'all' ? typeFilter     : undefined,
+    category: categoryFilter !== 'all' ? categoryFilter : undefined,
+    source:   sourceFilter   !== 'all' ? sourceFilter   : undefined,
+    agent:    agentFilter    !== 'all' ? agentFilter    : undefined,
+    keyword:  keyword || undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo:   dateTo   || undefined,
   });
 
   const { data: statsData, isLoading: loadingStats } = useTransactionStats();
@@ -77,17 +90,7 @@ export default function Treasury() {
   const totalResults: number        = txData?.results ?? transactions.length;
   const stats                       = statsData?.data || statsData || {};
 
-  // Client-side filter (search + date + category + source) على الصفحة الحالية
-  const filtered = transactions.filter((tx: any) => {
-    const haystack = `${safeStr(tx.category)} ${safeStr(tx.source)} ${safeStr(tx.linkedDeal)} ${safeStr(tx.salesAgent)}`.toLowerCase();
-    const matchSearch   = !searchTerm        || haystack.includes(searchTerm.toLowerCase());
-    const matchDateFrom = !dateFrom          || tx.date >= dateFrom;
-    const matchDateTo   = !dateTo            || tx.date?.split('T')[0] <= dateTo;
-    const matchCategory = categoryFilter === 'all' || safeStr(tx.category) === categoryFilter;
-    const matchSource   = sourceFilter   === 'all' || safeStr(tx.source)   === sourceFilter;
-    const matchAgent    = agentFilter    === 'all' || safeStr(tx.salesAgent) === agentFilter;
-    return matchSearch && matchDateFrom && matchDateTo && matchCategory && matchSource && matchAgent;
-  });
+  const filtered = transactions;
 
   // Dynamic filter options من الصفحة الحالية
   const allCategories = [...new Set(transactions.map((tx: any) => safeStr(tx.category)).filter(c => c !== '—'))];
@@ -97,7 +100,7 @@ export default function Treasury() {
   const canManage = user?.role === 'super_admin' || user?.role === 'admin';
 
   // Reset page on filter change
-  useEffect(() => { setPage(1); }, [typeFilter, searchTerm, categoryFilter, sourceFilter, agentFilter, dateFrom, dateTo]);
+  useEffect(() => { setPage(1); }, [typeFilter, keyword, categoryFilter, sourceFilter, agentFilter, dateFrom, dateTo]);
 
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat(isAr ? 'ar-EG' : 'en-US', { style: 'currency', currency: 'EGP', minimumFractionDigits: 0 }).format(v || 0);
@@ -146,7 +149,7 @@ export default function Treasury() {
     <div className="p-6" dir={isRTL ? 'rtl' : 'ltr'}>
 
       {/* Header */}
-      <div className={`mb-8 flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className={`mb-8 flex items-center justify-between `}>
         <div className={isRTL ? 'text-right' : 'text-left'}>
           <h1 className="text-2xl font-bold text-[#16100A] mb-1">{isAr ? 'الخزينة' : 'Treasury'}</h1>
           <p className="text-[#555555]">{isAr ? 'إدارة المعاملات المالية' : 'Manage financial transactions'}</p>

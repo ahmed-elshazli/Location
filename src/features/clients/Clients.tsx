@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Search, Phone, Mail, MapPin, Calendar, Edit2, Trash2, Eye, DollarSign, Handshake, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Search, Phone, Mail, MapPin, Calendar, Edit2, Trash2, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useConfigStore } from '../../store/useConfigStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -9,15 +9,15 @@ import { useCreateClient } from './hooks/useCreateClient';
 import { useUpdateClient } from './hooks/useUpdateClient';
 import { useDeleteClient } from './hooks/useDeleteClient';
 import { ClientModal } from './components/ClientModal';
-import  ClientDetails  from './ClientDetails';
 import { useNavigate } from 'react-router-dom';
 
 export default function Clients() {
-  const [searchTerm, setSearchTerm]           = useState('');
-  const [currentPage, setCurrentPage]         = useState(1);
-  const [modalOpen, setModalOpen]             = useState(false);
-  const [editingClient, setEditingClient]     = useState<any>(null);
-  const [deleteConfig, setDeleteConfig]       = useState<{ isOpen: boolean; id: string; name: string }>({
+  const [searchTerm, setSearchTerm]       = useState('');
+  const [keyword, setKeyword]             = useState('');
+  const [currentPage, setCurrentPage]     = useState(1);
+  const [modalOpen, setModalOpen]         = useState(false);
+  const [editingClient, setEditingClient] = useState<any>(null);
+  const [deleteConfig, setDeleteConfig]   = useState<{ isOpen: boolean; id: string; name: string }>({
     isOpen: false, id: '', name: ''
   });
 
@@ -28,25 +28,30 @@ export default function Clients() {
 
   const isRTL    = dir === 'rtl';
   const language = i18n.language;
+  const navigate = useNavigate();
 
-  const { data: clientsData, isLoading } = useClients(currentPage);
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => setKeyword(searchTerm), 500);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
+  // Reset page on search change
+  useEffect(() => { setCurrentPage(1); }, [keyword]);
+
+  const { data: clientsData, isLoading } = useClients({
+    page:    currentPage,
+    keyword: keyword || undefined,
+  });
+
   const clients    = Array.isArray(clientsData?.data) ? clientsData.data : [];
   const pagination = clientsData?.pagination;
-  const navigate = useNavigate();
 
   const createClient = useCreateClient();
   const updateClient = useUpdateClient();
   const deleteClient = useDeleteClient();
 
   const isReadOnly = user?.role === 'sales';
-
-  const filteredClients = clients.filter((client: any) => {
-    const name  = client.fullName?.toLowerCase() || '';
-    const phone = client.phone                   || '';
-    const email = client.email?.toLowerCase()    || '';
-    const term  = searchTerm.toLowerCase();
-    return name.includes(term) || phone.includes(term) || email.includes(term);
-  });
 
   const handleSave = (data: any) => {
     const options = {
@@ -78,7 +83,6 @@ export default function Clients() {
     });
   };
 
-  // Pagination pages with ellipsis
   const getPageNumbers = () => {
     const total = pagination?.numberOfPages || 1;
     if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
@@ -90,7 +94,7 @@ export default function Clients() {
     return pages;
   };
 
-  if (isLoading) {
+  if (isLoading && !clientsData) {
     return (
       <div className="h-64 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#B5752A]" />
@@ -98,14 +102,11 @@ export default function Clients() {
     );
   }
 
-  // ✅ لو في client محدد — عرض صفحة التفاصيل
- 
-
   return (
     <div className="p-6" dir={isRTL ? 'rtl' : 'ltr'}>
 
       {/* Header */}
-      <div className="mb-6" dir={isRTL ? 'rtl' : 'ltr'}>
+      <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className={isRTL ? 'text-right' : 'text-left'}>
             <h1 className="text-2xl font-bold text-[#16100A] mb-2">{t('clients.management')}</h1>
@@ -129,7 +130,7 @@ export default function Clients() {
             type="text"
             placeholder={t('clients.searchPlaceholder')}
             value={searchTerm}
-            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className={`w-full ${isRTL ? 'pr-10 pl-4 text-right' : 'pl-10 pr-4 text-left'} py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
           />
         </div>
@@ -158,15 +159,10 @@ export default function Clients() {
 
       {/* Clients Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {filteredClients.map((client: any) => (
-          <div
-            key={client._id || client.id}
-            className="bg-white rounded-xl border border-[#E5E5E5] p-5 hover:shadow-md transition-shadow"
-          >
-            {/* ── Card Header ── */}
+        {clients.map((client: any) => (
+          <div key={client._id || client.id} className="bg-white rounded-xl border border-[#E5E5E5] p-5 hover:shadow-md transition-shadow">
             <div className={`flex items-start justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                {/* Avatar */}
                 <div className="w-11 h-11 gradient-primary rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
                   {client.fullName?.charAt(0)?.toUpperCase() || '?'}
                 </div>
@@ -178,29 +174,20 @@ export default function Clients() {
                   </p>
                 </div>
               </div>
-
-              {/* Actions */}
               {!isReadOnly && (
                 <div className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <button
-                    onClick={() => { setEditingClient(client); setModalOpen(true); }}
-                    className="p-1.5 hover:bg-[#F7F7F7] rounded-lg transition-colors"
-                    title="Edit"
-                  >
+                  <button onClick={() => { setEditingClient(client); setModalOpen(true); }}
+                    className="p-1.5 hover:bg-[#F7F7F7] rounded-lg transition-colors">
                     <Edit2 className="w-4 h-4 text-[#555555]" />
                   </button>
-                  <button
-                    onClick={() => setDeleteConfig({ isOpen: true, id: client._id || client.id, name: client.fullName })}
-                    className="p-1.5 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Delete"
-                  >
+                  <button onClick={() => setDeleteConfig({ isOpen: true, id: client._id || client.id, name: client.fullName })}
+                    className="p-1.5 hover:bg-red-50 rounded-lg transition-colors">
                     <Trash2 className="w-4 h-4 text-red-500" />
                   </button>
                 </div>
               )}
             </div>
 
-            {/* ── Contact Info ── */}
             <div className="space-y-1.5 mb-4">
               {client.phone && (
                 <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -226,55 +213,13 @@ export default function Clients() {
                   <span>
                     {language === 'ar' ? 'عميل منذ' : 'Client since'}{' '}
                     <span dir="ltr">
-                      {new Date(client.clientSince || client.createdAt).toLocaleDateString(
-                        language === 'ar' ? 'ar-EG' : 'en-US'
-                      )}
+                      {new Date(client.clientSince || client.createdAt).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US')}
                     </span>
                   </span>
                 </div>
               )}
             </div>
 
-            {/* ── Stats Row ── */}
-            {/* <div className={`flex items-center gap-4 py-3 border-t border-b border-[#F0F0F0] mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <div className={isRTL ? 'text-right' : 'text-left'}>
-                <p className="text-xs text-[#AAAAAA] mb-0.5">{language === 'ar' ? 'الصفقات' : 'Total Deals'}</p>
-                <div className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <Handshake className="w-3.5 h-3.5 text-[#B5752A]" />
-                  <p className="font-bold text-[#16100A]">{client.deals || 0}</p>
-                </div>
-              </div>
-              <div className="w-px h-8 bg-[#E5E5E5]" />
-              <div className={isRTL ? 'text-right' : 'text-left'}>
-                <p className="text-xs text-[#AAAAAA] mb-0.5">{language === 'ar' ? 'قيمة الصفقات' : 'Deal Value'}</p>
-                <div className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <DollarSign className="w-3.5 h-3.5 text-[#B5752A]" />
-                  <p className="font-bold text-[#B5752A]" dir="ltr">
-                    {client.totalSpent
-                      ? `${(client.totalSpent / 1_000_000).toFixed(1)} M EGP`
-                      : '—'}
-                  </p>
-                </div>
-              </div>
-            </div> */}
-
-            {/* ── Properties ── */}
-            {/* {client.properties?.length > 0 && (
-              <div className={`mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-                <p className="text-xs font-semibold text-[#16100A] mb-1">
-                  {language === 'ar' ? 'العقارات المملوكة:' : 'Properties Owned:'}
-                </p>
-                <ul className="space-y-0.5">
-                  {client.properties.map((p: string, i: number) => (
-                    <li key={i} className="text-sm text-[#555555] flex items-center gap-1">
-                      <span className="text-[#B5752A]">•</span> {p}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )} */}
-
-            {/* ── Notes ── */}
             {client.notes && (
               <div className={`mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
                 <p className="text-xs text-[#AAAAAA] mb-0.5">{language === 'ar' ? 'ملاحظات:' : 'Notes:'}</p>
@@ -282,7 +227,6 @@ export default function Clients() {
               </div>
             )}
 
-            {/* ── View Details Button ── */}
             <button
               onClick={() => navigate(`/clients/${client._id || client.id}`)}
               className="w-full py-2.5 gradient-primary text-white rounded-lg text-sm font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2"
@@ -293,75 +237,50 @@ export default function Clients() {
           </div>
         ))}
 
-        {filteredClients.length === 0 && (
+        {clients.length === 0 && (
           <div className="col-span-2 text-center py-16 text-[#AAAAAA]">
             <p>{language === 'ar' ? 'لا يوجد عملاء' : 'No clients found'}</p>
           </div>
         )}
       </div>
 
-      {/* ── Pagination ── */}
+      {/* Pagination */}
       {pagination && (
         <div className={`flex items-center justify-between mt-8 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          {/* عدد النتائج */}
           <p className="text-sm text-[#555555]">
-            {isRTL
-              ? `إجمالي ${clientsData?.results || 0} عميل`
-              : `Total ${clientsData?.results || 0} clients`}
+            {isRTL ? `إجمالي ${clientsData?.results || 0} عميل` : `Total ${clientsData?.results || 0} clients`}
           </p>
-
-          {/* أزرار الصفحات */}
           {pagination.numberOfPages > 1 && (
             <div className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              {/* Prev */}
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="p-2 rounded-lg border border-[#E5E5E5] hover:bg-[#F7F7F7] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
+              <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
+                className="p-2 rounded-lg border border-[#E5E5E5] hover:bg-[#F7F7F7] disabled:opacity-40 transition-colors">
                 {isRTL ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
               </button>
-
-              {/* Page Numbers */}
               {getPageNumbers().map((page, i) =>
                 page === '...' ? (
                   <span key={`d${i}`} className="px-3 py-2 text-[#AAAAAA] text-sm">...</span>
                 ) : (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page as number)}
+                  <button key={page} onClick={() => setCurrentPage(page as number)}
                     className={`w-10 h-10 rounded-lg text-sm font-bold transition-colors border ${
-                      currentPage === page
-                        ? 'gradient-primary text-white border-transparent shadow-sm'
-                        : 'border-[#E5E5E5] text-[#555555] hover:bg-[#F7F7F7]'
-                    }`}
-                  >
+                      currentPage === page ? 'gradient-primary text-white border-transparent shadow-sm' : 'border-[#E5E5E5] text-[#555555] hover:bg-[#F7F7F7]'
+                    }`}>
                     {page}
                   </button>
                 )
               )}
-
-              {/* Next */}
-              <button
-                onClick={() => setCurrentPage(p => Math.min(pagination.numberOfPages, p + 1))}
-                disabled={currentPage === pagination.numberOfPages}
-                className="p-2 rounded-lg border border-[#E5E5E5] hover:bg-[#F7F7F7] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
+              <button onClick={() => setCurrentPage(p => Math.min(pagination.numberOfPages, p + 1))} disabled={currentPage === pagination.numberOfPages}
+                className="p-2 rounded-lg border border-[#E5E5E5] hover:bg-[#F7F7F7] disabled:opacity-40 transition-colors">
                 {isRTL ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
               </button>
             </div>
           )}
-
-          {/* رقم الصفحة الحالية */}
           <p className="text-sm text-[#555555]">
-            {isRTL
-              ? `صفحة ${pagination.currentPage} من ${pagination.numberOfPages}`
-              : `Page ${pagination.currentPage} of ${pagination.numberOfPages}`}
+            {isRTL ? `صفحة ${pagination.currentPage} من ${pagination.numberOfPages}` : `Page ${pagination.currentPage} of ${pagination.numberOfPages}`}
           </p>
         </div>
       )}
 
-      {/* ── Delete Modal ── */}
+      {/* Delete Modal */}
       {deleteConfig.isOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl animate-in zoom-in-95 duration-200">
@@ -376,17 +295,12 @@ export default function Clients() {
                   : `Are you sure you want to delete "${deleteConfig.name}"? This action cannot be undone.`}
               </p>
               <div className="flex gap-3 w-full">
-                <button
-                  onClick={() => setDeleteConfig({ isOpen: false, id: '', name: '' })}
-                  className="flex-1 px-4 py-2 border border-[#E5E5E5] rounded-lg text-[#555555] hover:bg-[#F7F7F7] font-medium transition-colors"
-                >
+                <button onClick={() => setDeleteConfig({ isOpen: false, id: '', name: '' })}
+                  className="flex-1 px-4 py-2 border border-[#E5E5E5] rounded-lg text-[#555555] hover:bg-[#F7F7F7] font-medium transition-colors">
                   {t('common:common.cancel')}
                 </button>
-                <button
-                  onClick={confirmDelete}
-                  disabled={deleteClient.isPending}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-bold transition-colors disabled:opacity-50"
-                >
+                <button onClick={confirmDelete} disabled={deleteClient.isPending}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-bold transition-colors disabled:opacity-50">
                   {deleteClient.isPending ? '...' : t('common:common.delete')}
                 </button>
               </div>
@@ -395,7 +309,7 @@ export default function Clients() {
         </div>
       )}
 
-      {/* ── Client Modal ── */}
+      {/* Client Modal */}
       {modalOpen && (
         <ClientModal
           client={editingClient}

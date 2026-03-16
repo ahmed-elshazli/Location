@@ -1,9 +1,16 @@
 import { api } from '../../../utils/axios';
 
-export const getAllClientsApi = async (page: number = 1) => {
-  const response = await api.get('/api/v1/clients', {
-    params: { page, limit: 10 },
-  });
+export interface FetchClientsParams {
+  page?: number;
+  limit?: number;
+  keyword?: string;
+}
+
+export const getAllClientsApi = async (params: FetchClientsParams = {}) => {
+  const { page = 1, limit = 10, keyword } = params;
+  const query: Record<string, any> = { page, limit };
+  if (keyword) query.keyword = keyword;
+  const response = await api.get('/api/v1/clients', { params: query });
   return response.data;
 };
 

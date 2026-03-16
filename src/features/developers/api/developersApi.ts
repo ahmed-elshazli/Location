@@ -1,9 +1,16 @@
 import { api } from '../../../utils/axios';
 
-export const fetchDevelopers = async (page: number = 1, limit: number = 6) => {
-  const response = await api.get('/api/v1/developers', {
-    params: { page, limit },
-  });
+export interface FetchDevelopersParams {
+  page?: number;
+  limit?: number;
+  keyword?: string;
+}
+
+export const fetchDevelopers = async (params: FetchDevelopersParams = {}) => {
+  const { page = 1, limit = 100, keyword } = params;
+  const query: Record<string, any> = { page, limit };
+  if (keyword) query.keyword = keyword;
+  const response = await api.get('/api/v1/developers', { params: query });
   return response.data;
 };
 
@@ -17,12 +24,10 @@ export interface CreateDeveloperPayload {
 }
 
 export const createDeveloperApi = async (data: CreateDeveloperPayload) => {
-  // إرسال طلب POST للمسار المحدد
   const response = await api.post('/api/v1/developers', data);
   return response.data;
 };
 
-// src/api/developersApi.ts
 export interface DevelopersSummary {
   totalDevelopers: number;
   totalProjects: number;
@@ -31,11 +36,9 @@ export interface DevelopersSummary {
 
 export const fetchDevelopersSummary = async (): Promise<DevelopersSummary> => {
   const response = await api.get('/api/v1/developers/summary');
-  // تأكد إذا كانت البيانات داخل response.data مباشرة أو كائن data
-  return response.data?.data || response.data; 
+  return response.data?.data || response.data;
 };
 
-// تعريف واجهة البيانات للملخص الفردي
 export interface IndividualDevSummary {
   projectsCount: number;
   totalUnitsSold: number;
@@ -43,9 +46,8 @@ export interface IndividualDevSummary {
 }
 
 export const fetchIndividualDevSummary = async (id: string): Promise<IndividualDevSummary> => {
-  // طلب GET باستخدام الـ ID الخاص بالمطور
   const response = await api.get(`/api/v1/developers/${id}/summary`);
-  return response.data?.data || response.data; // تأمين استخراج البيانات
+  return response.data?.data || response.data;
 };
 
 export const getDeveloperByIdApi = async (id: string) => {
@@ -53,13 +55,11 @@ export const getDeveloperByIdApi = async (id: string) => {
   return response.data?.data || response.data;
 };
 
-// تحديث بيانات مطور (PATCH)
 export const updateDeveloperApi = async (id: string, data: any) => {
   const response = await api.patch(`/api/v1/developers/${id}`, data);
   return response.data;
 };
 
-// حذف مطور نهائياً
 export const deleteDeveloperApi = async (id: string) => {
   const response = await api.delete(`/api/v1/developers/${id}`);
   return response.data;

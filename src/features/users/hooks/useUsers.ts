@@ -1,9 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchUsers } from '../api/usersApi';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { fetchUsers, FetchUsersParams } from '../api/usersApi';
 
-export const useUsers = (page: number = 1) =>
+export const useUsers = (params: FetchUsersParams = {}) =>
   useQuery({
-    queryKey: ['users-all', page],
-    queryFn:  () => fetchUsers(page),
-    staleTime: 5 * 60 * 1000,
+    queryKey: ['users-all', params],
+    queryFn:  () => fetchUsers(params),
+    staleTime: 0,
+    placeholderData: keepPreviousData,
   });

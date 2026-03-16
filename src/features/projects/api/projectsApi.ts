@@ -1,5 +1,12 @@
 import { api } from '../../../utils/axios';
 
+export interface FetchProjectsParams {
+  page?: number;
+  limit?: number;
+  keyword?: string;
+  status?: string;
+}
+
 export const createProjectApi = async (formData: FormData) => {
   const response = await api.post('/api/v1/projects', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
@@ -7,10 +14,12 @@ export const createProjectApi = async (formData: FormData) => {
   return response.data;
 };
 
-export const getProjectsApi = async (page: number = 1, limit: number = 6) => {
-  const response = await api.get('/api/v1/projects', {
-    params: { page, limit },
-  });
+export const getProjectsApi = async (params: FetchProjectsParams = {}) => {
+  const { page = 1, limit = 6, keyword, status } = params;
+  const query: Record<string, any> = { page, limit };
+  if (keyword) query.keyword = keyword;
+  if (status && status !== 'all') query.status = status; // send as-is (e.g. 'Active', 'Inactive')
+  const response = await api.get('/api/v1/projects', { params: query });
   return response.data;
 };
 

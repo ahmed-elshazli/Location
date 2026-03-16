@@ -25,6 +25,9 @@ export interface GetTransactionsParams {
   limit?:    number;
   type?:     'income' | 'expense';
   category?: string;
+  source?:   string;
+  agent?:    string;
+  keyword?:  string;
   dateFrom?: string;
   dateTo?:   string;
 }
@@ -40,7 +43,6 @@ export interface CreateTransactionPayload {
   notes?:      string;
 }
 
-// ── Treasury API ──────────────────────────────────────────────────────────────
 export const getTransactionsApi = (params?: GetTransactionsParams) =>
   api.get('/api/v1/treasury/transactions', { params }).then(r => r.data);
 

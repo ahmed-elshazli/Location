@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Plus, Search, MapPin, Building, Calendar, Edit2, Trash2, FileText, X, User, ChevronLeft, ChevronRight, Upload, Image as ImageIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useConfigStore } from '../../store/useConfigStore';
@@ -6,6 +6,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { ImageWithFallback } from './components/ImageWithFallback';
 import { useCreateProject } from './hooks/useCreateProject';
 import { useDevelopers } from '../developers/hooks/useDevelopers';
+import { useAreas } from '../areas/hooks/useAreas';
 import { useToastStore } from '../../store/useToastStore';
 import z from 'zod';
 import { useProjects } from './hooks/useProjects';
@@ -14,6 +15,73 @@ import { useUpdateProject } from './hooks/useUpdateProject';
 import { useDeleteProject } from './hooks/useDeleteProject';
 import { useProjectsSummary } from './hooks/useProjectSummary';
 import { useNavigate } from 'react-router';
+
+
+// ─── Searchable Dropdown ──────────────────────────────────────────────────
+interface SearchableDropdownProps {
+  value: string;
+  onChange: (id: string) => void;
+  options: { id: string; label: string }[];
+  placeholder: string;
+  loading?: boolean;
+  required?: boolean;
+  initialLabel?: string;
+}
+
+function SearchableDropdown({ value, onChange, options, placeholder, loading, required, initialLabel }: SearchableDropdownProps) {
+  const [search, setSearch] = useState('');
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const selectedLabel = options.find(o => o.id === value)?.label || initialLabel || '';
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        setSearch('');
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filtered = options.filter(o => o.label.toLowerCase().includes(search.toLowerCase()));
+  const displayValue = open ? search : selectedLabel;
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        type="text"
+        value={displayValue}
+        onChange={e => setSearch(e.target.value)}
+        onFocus={() => { setOpen(true); setSearch(''); }}
+        placeholder={loading ? 'جاري التحميل...' : placeholder}
+        disabled={loading}
+        className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm bg-white"
+      />
+      {required && !value && <input type="text" required className="sr-only" />}
+      {open && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-[#E5E5E5] rounded-lg shadow-lg max-h-48 overflow-y-auto">
+          {filtered.length === 0 ? (
+            <div className="px-4 py-3 text-sm text-[#888]">لا توجد نتائج</div>
+          ) : (
+            filtered.map(opt => (
+              <div
+                key={opt.id}
+                onMouseDown={() => { onChange(opt.id); setSearch(''); setOpen(false); }}
+                className={`px-4 py-2.5 text-sm cursor-pointer hover:bg-[#FEF3E2] transition-colors ${opt.id === value ? 'bg-[#FEF3E2] font-medium text-[#B5752A]' : 'text-[#16100A]'}`}
+              >
+                {opt.label}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+// ──────────────────────────────────────────────────────────────────────────
 
 export default function Projects() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,6 +96,18 @@ export default function Projects() {
   const language = i18n.language;
   const createProject = useCreateProject();
   const { data: developersData } = useDevelopers();
+  const { data: areasData } = useAreas();
+  const areaList: { _id: string; name: string; nameAr?: string }[] = areasData?.data || areasData || [];
+  const developerList = developersData?.data || developersData || [];
+  const developerOptions = developerList.map((d: any) => ({
+    id: d._id || d.id,
+    label: language === 'ar' ? (d.nameAr || d.name) : d.name,
+  }));
+
+  const areaOptions = areaList.map((a) => ({
+    id: a._id,
+    label: language === 'ar' ? (a.nameAr || a.name) : a.name,
+  }));
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -52,7 +132,19 @@ export default function Projects() {
   const [isEditing, setIsEditing] = useState(false);
   const updateProject = useUpdateProject();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const { data: projectsData, isLoading } = useProjects(currentPage);
+  const [keyword, setKeyword] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setKeyword(searchTerm), 500);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
+  useEffect(() => { setCurrentPage(1); }, [keyword, filterStatus]);
+
+  const { data: projectsData, isLoading } = useProjects({
+    page:    currentPage,
+    keyword: keyword || undefined,
+    status:  filterStatus !== 'all' ? filterStatus : undefined,
+  });
   const deleteProject = useDeleteProject();
 
 
@@ -155,19 +247,8 @@ export default function Projects() {
   const pagination  = projectsData?.pagination;
   const totalPages  = pagination?.numberOfPages ?? 1;
 
-  const filteredProjects = projectList.filter((project: any) => {
-    const searchLower = searchTerm.toLowerCase();
-    const matchesSearch =
-      project.name?.toLowerCase().includes(searchLower) ||
-      project.location?.toLowerCase().includes(searchLower) ||
-      project.area?.toLowerCase().includes(searchLower);
-    const matchesStatus =
-      filterStatus === 'all' ||
-      project.status?.toLowerCase() === filterStatus.toLowerCase();
-    return matchesSearch && matchesStatus;
-  });
-
-  const paginatedProjects = filteredProjects;
+  const filteredProjects = projectList;
+  const paginatedProjects = projectList;
   const navigate = useNavigate();
   const projectSummaries = useProjectsSummary(paginatedProjects);
 
@@ -273,11 +354,11 @@ export default function Projects() {
             dir={isRTL ? 'rtl' : 'ltr'}
           >
             <option value="all">{t('properties:properties.allStatus')}</option>
-            <option value="active">{t('projects.active')}</option>
-            <option value="completed">{t('projects.completed')}</option>
-            <option value="upcoming">{t('projects.upcoming')}</option>
-            <option value="inactive">{t('projects.inactive')}</option>
-            <option value="sold out">{t('projects.soldOut')}</option>
+            <option value="Active">{t('projects.active')}</option>
+            <option value="Completed">{t('projects.completed')}</option>
+            <option value="Upcoming">{t('projects.upcoming')}</option>
+            <option value="Inactive">{t('projects.inactive')}</option>
+            <option value="Sold Out">{t('projects.soldOut')}</option>
           </select>
         </div>
       </div>
@@ -624,36 +705,30 @@ export default function Projects() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-[#16100A]">{t('common:common.area')} *</label>
-                  <div className="relative">
-                    <MapPin className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-4 h-4 text-[#AAAAAA]`} />
-                    <input
-                      type="text" required value={formData.area}
-                      onChange={(e) => setFormData({ ...formData, area: e.target.value })}
-                      className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm`}
-                      placeholder={language === 'ar' ? 'مدينتي' : 'Madinaty'}
-                    />
-                  </div>
+                  <SearchableDropdown
+                    key={`area-${formData.area}`}
+                    value={formData.area}
+                    onChange={(id) => setFormData({ ...formData, area: id })}
+                    options={areaOptions}
+                    placeholder={language === 'ar' ? 'ابحث عن منطقة...' : 'Search area...'}
+                    required
+                    initialLabel={areaOptions.find(a => a.id === formData.area)?.label || ''}
+                  />
                 </div>
               </div>
 
               {/* Developer */}
               <div className="space-y-1">
                 <label className="text-sm font-medium text-[#16100A]">{t('properties:properties.developer')} *</label>
-                <div className="relative">
-                  <User className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-4 h-4 text-[#AAAAAA]`} />
-                  <select
-                    required value={formData.developer}
-                    onChange={(e) => setFormData({ ...formData, developer: e.target.value })}
-                    className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2.5 border border-[#E5E5E5] rounded-lg outline-none focus:ring-2 focus:ring-[#B5752A] text-sm appearance-none bg-white`}
-                  >
-                    <option value="">{t('developers:developers.selectDeveloper')}</option>
-                    {(developersData?.data || developersData || []).map((dev: any) => (
-                      <option key={dev._id} value={dev._id}>
-                        {language === 'ar' ? dev.nameAr : dev.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <SearchableDropdown
+                  key={`dev-${formData.developer}`}
+                  value={formData.developer}
+                  onChange={(id) => setFormData({ ...formData, developer: id })}
+                  options={developerOptions}
+                  placeholder={language === 'ar' ? 'ابحث عن مطور...' : 'Search developer...'}
+                  required
+                  initialLabel={developerOptions.find((d: any) => d.id === formData.developer)?.label || ''}
+                />
               </div>
 
               {/* Start Date & Status */}

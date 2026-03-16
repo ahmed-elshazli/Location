@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { getLeadsApi } from '../api/leadsApi';
+import { getLeadsApi, FetchLeadsParams } from '../api/leadsApi';
 
-export const useLeads = (page = 1, limit = 10) => {
+export const useLeads = (params: FetchLeadsParams = {}) => {
   return useQuery({
-    queryKey: ['leads', page, limit],
-    queryFn: () => getLeadsApi(page, limit),
-    staleTime: 5 * 60 * 1000,
+    queryKey: ['leads', params],
+    queryFn: () => getLeadsApi(params),
+    staleTime: 0,
     placeholderData: (prev) => prev,
   });
 };

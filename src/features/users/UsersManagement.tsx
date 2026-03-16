@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, Shield, UserCheck, TrendingUp, X, Camera, Upload, ChevronLeft, ChevronRight, AlertTriangle, UserX, UserCheck2, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useConfigStore } from '../../store/useConfigStore';
@@ -82,17 +82,25 @@ export default function UsersManagement() {
   const updateUserMutation     = useUpdateUser();
   const queryClient            = useQueryClient();
 
-  const { data: backendUsers, isLoading } = useUsers(currentPage);
+  const [keyword, setKeyword] = useState('');
+  React.useEffect(() => {
+    const t = setTimeout(() => setKeyword(searchTerm), 500);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
+  // Reset page when filters change
+  React.useEffect(() => { setCurrentPage(1); }, [keyword, filterRole, filterStatus]);
+
+  const { data: backendUsers, isLoading, isFetching } = useUsers({
+    page: currentPage,
+    keyword:  keyword  || undefined,
+    role:     filterRole !== 'all'    ? filterRole    : undefined,
+    isActive: filterStatus !== 'all'  ? (filterStatus === 'active' ? 'true' : 'false') : undefined,
+  });
+
   const usersList  = backendUsers?.data ?? [];
   const totalPages = backendUsers?.pagination?.numberOfPages ?? 1;
-
-  const filteredUsers = usersList.filter((u: any) => {
-    const q = searchTerm.toLowerCase();
-    const matchesSearch = u.fullName?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q);
-    const matchesRole   = filterRole === 'all' || u.role === filterRole;
-    const matchesStatus = filterStatus === 'all' || (filterStatus === 'active' ? u.isActive === true : u.isActive === false);
-    return matchesSearch && matchesRole && matchesStatus;
-  });
+  const pagedUsers = usersList;
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
   const getRoleLabel = (role: string) => {
@@ -206,7 +214,7 @@ export default function UsersManagement() {
         onSuccess: () => {
           triggerToast(language === 'ar' ? 'تم تحديث المستخدم ✅' : 'User updated ✅', 'success');
           handleClose();
-          queryClient.invalidateQueries({ queryKey: ['users-all'] });
+          queryClient.invalidateQueries({ queryKey: ['users'] });
         },
         onError: (err: any) => {
           const msg = err.response?.data?.message;
@@ -218,7 +226,7 @@ export default function UsersManagement() {
         onSuccess: () => {
           triggerToast(language === 'ar' ? 'تم إضافة المستخدم 🎉' : 'User added 🎉', 'success');
           handleClose();
-          queryClient.invalidateQueries({ queryKey: ['users-all'] });
+          queryClient.invalidateQueries({ queryKey: ['users'] });
         },
         onError: (err: any) => {
           const msg = err.response?.data?.message;
@@ -241,7 +249,7 @@ export default function UsersManagement() {
     if (deleteConfig.action === 'delete') {
       deletePermanentlyMutation.mutate(deleteConfig.id, {
         onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: ['users-all'] });
+          queryClient.invalidateQueries({ queryKey: ['users'] });
           triggerToast(language === 'ar' ? 'تم حذف المستخدم نهائياً 🗑️' : 'User deleted permanently 🗑️', 'success');
           setDeleteConfig({ isOpen: false, id: '', name: '', action: 'delete' });
         },
@@ -254,7 +262,7 @@ export default function UsersManagement() {
       // activate OR deactivate → same mutation (toggles isActive on backend)
       deactivateUserMutation.mutate(deleteConfig.id, {
         onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: ['users-all'] });
+          queryClient.invalidateQueries({ queryKey: ['users'] });
           const msg = deleteConfig.action === 'deactivate'
             ? (language === 'ar' ? 'تم تعطيل المستخدم ✅' : 'User deactivated ✅')
             : (language === 'ar' ? 'تم تفعيل المستخدم ✅' : 'User activated ✅');
@@ -269,7 +277,7 @@ export default function UsersManagement() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !backendUsers) {
     return (
       <div className="h-64 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#B5752A]" />
@@ -525,7 +533,7 @@ export default function UsersManagement() {
 
       {/* Table */}
       <div className="bg-white rounded-lg border border-[#E5E5E5] overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className={`overflow-x-auto transition-opacity duration-200 ${isFetching ? "opacity-60 pointer-events-none" : ""}`}>
           <table className="w-full" dir={isRTL ? 'rtl' : 'ltr'}>
             <thead className="bg-[#F7F7F7] border-b border-[#E5E5E5]">
               <tr>
@@ -539,7 +547,7 @@ export default function UsersManagement() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E5E5]">
-              {filteredUsers.map((userData: any) => (
+              {pagedUsers.map((userData: any) => (
                 <tr key={userData._id || userData.id} className="hover:bg-[#FAFAFA]">
                   <td className="px-6 py-4">
                     <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -634,7 +642,7 @@ export default function UsersManagement() {
         <div className={`flex items-center justify-center gap-2 mt-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <button
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-            disabled={currentPage === 1 || isLoading}
+            disabled={currentPage === 1 || isFetching}
             className="w-9 h-9 flex items-center justify-center rounded-lg border border-[#E5E5E5] hover:bg-[#F7F7F7] disabled:opacity-40 transition-colors"
           >
             {isRTL ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
@@ -654,7 +662,7 @@ export default function UsersManagement() {
           })}
           <button
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages || isLoading}
+            disabled={currentPage === totalPages || isFetching}
             className="w-9 h-9 flex items-center justify-center rounded-lg border border-[#E5E5E5] hover:bg-[#F7F7F7] disabled:opacity-40 transition-colors"
           >
             {isRTL ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}

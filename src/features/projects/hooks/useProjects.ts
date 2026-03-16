@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { getProjectsApi } from '../api/projectsApi';
+import { getProjectsApi, FetchProjectsParams } from '../api/projectsApi';
 
-export const useProjects = (page: number = 1, limit: number = 6) => {
+export const useProjects = (params: FetchProjectsParams = {}) => {
   return useQuery({
-    queryKey: ['projects', page, limit],
-    queryFn: () => getProjectsApi(page, limit),
-    placeholderData: (prev) => prev, // يخلي البيانات القديمة ظاهرة أثناء الـ fetch
+    queryKey: ['projects', params],
+    queryFn: () => getProjectsApi(params),
+    staleTime: 0,
+    placeholderData: (prev) => prev,
   });
 };

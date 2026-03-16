@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { getAllUnitsApi } from '../api/unitsApi';
+import { getAllUnitsApi, FetchUnitsParams } from '../api/unitsApi';
 
-export const useUnits = (page: number = 1) => {
+export const useUnits = (params: FetchUnitsParams = {}) => {
   return useQuery({
-    queryKey: ['units', page],
-    queryFn: () => getAllUnitsApi(page),
-    staleTime: 5 * 60 * 1000,
+    queryKey: ['units', params],
+    queryFn: () => getAllUnitsApi(params),
+    staleTime: 0,
     placeholderData: (prev) => prev,
   });
 };

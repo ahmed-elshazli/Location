@@ -21,7 +21,6 @@ interface Property {
   constructionStatus?: 'Ready' | 'Under Construction';
   type: 'Apartment' | 'Villa' | 'Commercial' | 'Leisure';
   area: string;
-  villaZone?: string;
   phase?: string;
   developer?: string;
   price: number;
@@ -126,7 +125,6 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
     constructionStatus: property?.constructionStatus || 'Ready',
     type: (property?.type?.toLowerCase() as any) || 'apartment',
     area: property?.area || '',
-    villaZone: property?.villaZone || '',
     phase: property?.phase || '',
     developer: property?.developer || 'Talaat Moustafa',
     price: property?.price?.toString() || '',
@@ -165,7 +163,6 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
     { _id: 'sharmbay', name: 'Sharm Bay', nameAr: 'خليج شرم' },
   ];
 
-  const villaZones = ['B1','B2','B3','B4','B5','B6','B7','B8','B9','B10','B11','B12'];
   const phases = ['B01','B02','B03','B04','B05','B06','B07','B08','B09','B010','B011','B012','B013','B014','B015','V02','V03','V04','V05','V06','V07'];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -209,7 +206,6 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
     if (formData.phase)     submissionData.append('phase', formData.phase);
     if (formData.floor)     submissionData.append('floor', formData.floor);
     if (formData.apartment) submissionData.append('apartment', formData.apartment);
-    if (formData.villaZone) submissionData.append('villaZone', formData.villaZone);
 
     // Only append images on CREATE - server rejects images on PATCH
     if (!property && newFiles.length > 0) {
@@ -463,21 +459,6 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
                   placeholder="e.g., 2"
                   dir="ltr"
                 />
-              </div>
-            )}
-
-            {/* Villa Zone */}
-            {formData.type === 'villa' && (
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-[#16100A]">{t('properties.villaZone')}</label>
-                <select
-                  value={formData.villaZone}
-                  onChange={(e) => setFormData({ ...formData, villaZone: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm bg-white"
-                >
-                  <option value="">{t('properties.selectZone')}</option>
-                  {villaZones.map(zone => <option key={zone} value={zone}>{zone}</option>)}
-                </select>
               </div>
             )}
 

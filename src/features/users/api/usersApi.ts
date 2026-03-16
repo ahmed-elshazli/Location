@@ -1,7 +1,19 @@
 import { api } from '../../../utils/axios';
 
-export const fetchUsers = async (page: number = 1) => {
-  const response = await api.get('/api/v1/users', { params: { page, limit: 10 } });
+export interface FetchUsersParams {
+  page?: number;
+  keyword?: string;
+  role?: string;
+  isActive?: string;
+}
+
+export const fetchUsers = async (params: FetchUsersParams = {}) => {
+  const { page = 1, keyword, role, isActive } = params;
+  const query: Record<string, any> = { page, limit: 10 };
+  if (keyword)  query.keyword  = keyword;
+  if (role)     query.role     = role;
+  if (isActive !== undefined) query.isActive = isActive;
+  const response = await api.get('/api/v1/users', { params: query });
   return response.data;
 };
 
@@ -34,7 +46,6 @@ export const getUserByIdApi = async (id: string) => {
   return response.data;
 };
 
-// backward compat alias
 export const deleteUser = deleteUserPermanently;
 
 export const changeUserPasswordApi = async (id: string, password: string) => {
