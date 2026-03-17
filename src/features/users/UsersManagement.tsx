@@ -202,8 +202,8 @@ export default function UsersManagement() {
     fd.append('fullName',  formData.nameEnglish);
     fd.append('email',     formData.email);
     fd.append('phone',     formatPhoneForBackend(formData.phone));
-    fd.append('role',      formData.role);
-    if (editingUser) fd.append('isActive', String(formData.status === 'active'));
+    if (editingUser) fd.append('role', formData.role);
+if (editingUser) fd.append('isActive', String(formData.status === 'active'));
     if (!editingUser) fd.append('password', formData.password);
 
     const fileFromInput = fileInputRef.current?.files?.[0];
