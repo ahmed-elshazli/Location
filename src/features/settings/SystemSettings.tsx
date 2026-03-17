@@ -123,7 +123,7 @@ export default function SystemSettings() { // ✅ جعلناه Default Export ل
         {/* Tabs under header */}
         <div className={`flex gap-2 overflow-x-auto pb-2 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
           {[
-            { id: 'deal-status', label: t('settings.dealStatus') },
+            // { id: 'deal-status', label: t('settings.dealStatus') },
             { id: 'property-types', label: t('settings.propertyTypes') },
             { id: 'roles', label: t('settings.userRoles') },
             { id: 'general', label: t('settings.general') },
@@ -144,7 +144,7 @@ export default function SystemSettings() { // ✅ جعلناه Default Export ل
       </div>
 
       {/* Deal Status Tab */}
-      {activeTab === 'deal-status' && (
+      {/* {activeTab === 'deal-status' && (
         <div className="space-y-6">
           <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
             <div className={isRTL ? 'text-right' : 'text-left'}>
@@ -211,7 +211,7 @@ export default function SystemSettings() { // ✅ جعلناه Default Export ل
             </table>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Property Types Tab */}
       {activeTab === 'property-types' && (
@@ -284,9 +284,9 @@ export default function SystemSettings() { // ✅ جعلناه Default Export ل
                       {role.users} {role.users !== 1 ? t('settings.users') : t('settings.user')}
                     </p>
                   </div>
-                  <button className="p-2 hover:bg-[#F7F7F7] rounded-lg transition-colors">
+                  {/* <button className="p-2 hover:bg-[#F7F7F7] rounded-lg transition-colors">
                     <Edit2 className="w-4 h-4 text-[#555555]" />
-                  </button>
+                  </button> */}
                 </div>
 
                 <div className="space-y-2">

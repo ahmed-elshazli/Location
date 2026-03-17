@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Calendar, Clock, User, MapPin, FileText, Tag } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useConfigStore } from '../../../store/useConfigStore';
@@ -14,7 +14,33 @@ interface EventModalProps {
   isLoading?: boolean;
 }
 
+// ✅ تحويل "03:06 PM" → "15:06" عشان input type="time" يقبله
+const convertTo24h = (time: string): string => {
+  if (!time) return '';
+  // لو بالفعل 24h format مش محتاج تحويل
+  if (!time.includes('AM') && !time.includes('PM')) return time.slice(0, 5);
+  const [timePart, modifier] = time.split(' ');
+  let [hours, minutes] = timePart.split(':');
+  let h = parseInt(hours, 10);
+  if (modifier === 'AM' && h === 12) h = 0;
+  if (modifier === 'PM' && h !== 12) h += 12;
+  return `${String(h).padStart(2, '0')}:${minutes}`;
+};
 
+const getEventFormData = (event: any) => ({
+  title:      event?.title      || '',
+  type:       event?.type       || 'PROPERTY_VIEWING',
+  date:       event?.date?.split('T')[0] || '',
+  time:       convertTo24h(event?.time || ''),
+  location:   event?.location   || '',
+  client:     typeof event?.client === 'object'
+                ? (event?.client?._id     || event?.client?.id     || '')
+                : (event?.client          || ''),
+  assignedTo: typeof event?.assignedTo === 'object'
+                ? (event?.assignedTo?._id || event?.assignedTo?.id || '')
+                : (event?.assignedTo      || ''),
+  notes:      event?.notes      || '',
+});
 
 export function EventModal({ event, show, onClose, onSave, isLoading }: EventModalProps) {
   const { t, i18n }      = useTranslation(['calendar', 'common']);
@@ -34,20 +60,12 @@ export function EventModal({ event, show, onClose, onSave, isLoading }: EventMod
     : Array.isArray(usersData)                 ? usersData
     : [];
 
-  const [formData, setFormData] = useState({
-    title:      event?.title      || '',
-    type:       event?.type       || 'PROPERTY_VIEWING',
-    date:       event?.date?.split('T')[0] || '',
-    time:       event?.time       || '',
-    location:   event?.location   || '',
-    client:     typeof event?.client === 'object'
-                  ? (event?.client?._id     || event?.client?.id     || '')
-                  : (event?.client          || ''),
-    assignedTo: typeof event?.assignedTo === 'object'
-                  ? (event?.assignedTo?._id || event?.assignedTo?.id || '')
-                  : (event?.assignedTo      || ''),
-    notes:      event?.notes      || '',
-  });
+  const [formData, setFormData] = useState(getEventFormData(event));
+
+  // ✅ لما الـ event يتغير (فتح تعديل حدث مختلف) حدّث الـ form
+  useEffect(() => {
+    setFormData(getEventFormData(event));
+  }, [event?._id || event?.id, show]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,24 +79,14 @@ export function EventModal({ event, show, onClose, onSave, isLoading }: EventMod
       return;
     }
 
-    // ✅ دمج date + time في ISO string كامل
-    let isoDate: string;
-    try {
-      const time = formData.time || '09:00';
-      isoDate = new Date(`${formData.date}T${time}:00`).toISOString();
-    } catch {
-      triggerToast(language === 'ar' ? 'صيغة التاريخ غير صالحة' : 'Invalid date format', 'error');
-      return;
-    }
-
     const payload: any = {
-  title:      formData.title,
-  type:       formData.type,
-  date:       formData.date,    // ✅ "YYYY-MM-DD" بدون تحويل
-  time:       formData.time,    // ✅ "HH:MM"
-  client:     formData.client,
-  assignedTo: formData.assignedTo,
-};
+      title:      formData.title,
+      type:       formData.type,
+      date:       formData.date,
+      time:       formData.time,
+      client:     formData.client,
+      assignedTo: formData.assignedTo,
+    };
 
     if (formData.location) payload.location = formData.location;
     if (formData.notes)    payload.notes    = formData.notes;
@@ -86,7 +94,6 @@ export function EventModal({ event, show, onClose, onSave, isLoading }: EventMod
     onSave(payload);
   };
 
-  // Today's date for min date
   const today = new Date().toISOString().split('T')[0];
 
   if (!show) return null;
@@ -116,15 +123,6 @@ export function EventModal({ event, show, onClose, onSave, isLoading }: EventMod
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6">
           <div className="space-y-5">
-
-            {/* Notice */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p className={`text-sm text-blue-800 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {language === 'ar'
-                  ? '💡 يمكنك الكتابة بأي لغة'
-                  : '💡 You can write in any language'}
-              </p>
-            </div>
 
             {/* Title */}
             <div>
@@ -172,7 +170,6 @@ export function EventModal({ event, show, onClose, onSave, isLoading }: EventMod
                   <input
                     type="date"
                     required
-                    min={today}
                     value={formData.date}
                     onChange={e => setFormData({ ...formData, date: e.target.value })}
                     className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A]`}
