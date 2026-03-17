@@ -163,7 +163,7 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
     { _id: 'sharmbay', name: 'Sharm Bay', nameAr: 'خليج شرم' },
   ];
 
-  const phases = ['B01','B02','B03','B04','B05','B06','B07','B08','B09','B010','B011','B012','B013','B014','B015','V02','V03','V04','V05','V06','V07'];
+  // const phases = ['B01','B02','B03','B04','B05','B06','B07','B08','B09','B010','B011','B012','B013','B014','B015','V02','V03','V04','V05','V06','V07'];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
@@ -337,16 +337,14 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
             {/* Phase */}
             <div className="space-y-1">
               <label className="text-sm font-medium text-[#16100A]">{t('properties.phase')}</label>
-              <select
-                value={formData.phase}
-                onChange={(e) => setFormData({ ...formData, phase: e.target.value })}
-                className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm bg-white"
-              >
-                <option value="">{t('properties.selectPhase')}</option>
-                {phases.map(phase => (
-                  <option key={phase} value={phase}>{phase}</option>
-                ))}
-              </select>
+              <input
+  type="text"
+  value={formData.phase}
+  onChange={(e) => setFormData({ ...formData, phase: e.target.value })}
+  className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm"
+  placeholder="e.g., B01, V02"
+  dir="ltr"
+/>
             </div>
 
             {/* Floor */}
