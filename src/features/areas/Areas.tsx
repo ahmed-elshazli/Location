@@ -19,15 +19,15 @@ interface Area {
   nameAr?: string;
   location: string;
   cityAr?: string;
-  // zone?: string;
-  // group?: string;
-  // groupAr?: string;
-  // type: AreaType;
-  // stats: {
-  //   totalUnits: number;
-  //   availableUnits: number;
-  //   availabilityPercentage: number;
-  // };
+  zone?: string;
+  group?: string;
+  groupAr?: string;
+  type?: string;
+  stats?: {
+    totalUnits: number;
+    availableUnits: number;
+    availabilityPercentage: number;
+  };
   description?: string;
   descriptionAr?: string;
   project?: string;
@@ -54,15 +54,15 @@ function AreaModal({ area, onClose, onSave, isPending }: AreaModalProps) {
     name:        area?.name        || '',
     nameAr:      area?.nameAr      || '',
     location:    area?.location    || '',
-    // zone:        area?.zone        || '',
-    // group:       area?.group       || '',
-    // groupAr:     area?.groupAr     || '',
-    // type:        area?.type        || 'villa Zone',
-    // stats: {
-    //   totalUnits:             area?.stats?.totalUnits            || 0,
-    //   availableUnits:         area?.stats?.availableUnits        || 0,
-    //   availabilityPercentage: area?.stats?.availabilityPercentage || 0,
-    // },
+    zone:        area?.zone        || '',
+    group:       area?.group       || '',
+    groupAr:     area?.groupAr     || '',
+    type:        area?.type        || 'villa Zone',
+    stats: {
+      totalUnits:             area?.stats?.totalUnits            || 0,
+      availableUnits:         area?.stats?.availableUnits        || 0,
+      availabilityPercentage: area?.stats?.availabilityPercentage || 0,
+    },
     description:   area?.description   || '',
     descriptionAr: area?.descriptionAr || '',
   });
@@ -112,19 +112,6 @@ function AreaModal({ area, onClose, onSave, isPending }: AreaModalProps) {
               </div>
             </div>
 
-            {/* <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-[#16100A]">{t('areas.zone', 'Zone')}</label>
-                <input value={formData.zone} onChange={(e) => setFormData({ ...formData, zone: e.target.value })}
-                  className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-[#16100A]">{t('areas.group', 'Group')}</label>
-                <input value={formData.group} onChange={(e) => setFormData({ ...formData, group: e.target.value })}
-                  className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm" />
-              </div>
-            </div> */}
-
             <div className="space-y-1">
               <label className="text-sm font-medium text-[#16100A]">{t('areas.project', 'Project')} *</label>
               <select required value={formData.project} onChange={(e) => setFormData({ ...formData, project: e.target.value })}
@@ -135,33 +122,6 @@ function AreaModal({ area, onClose, onSave, isPending }: AreaModalProps) {
                 ))}
               </select>
             </div>
-
-            {/* <div className="space-y-1">
-              <label className="text-sm font-medium text-[#16100A]">{t('areas.type', 'Type')} *</label>
-              <select required value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value as Area['type'] })}
-                className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm bg-white">
-                <option value="villa Zone">{t('areas:villaZone', 'Villa Zone')}</option>
-                <option value="apartment Zone">{t('areas:apartmentZone', 'Apartment Zone')}</option>
-                <option value="commercial Zone">{t('areas:commercialZone', 'Commercial Zone')}</option>
-                <option value="mixed">{t('areas:mixed', 'Mixed')}</option>
-                <option value="service Area">{t('areas:serviceArea', 'Service Area')}</option>
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-[#16100A]">{t('areas.totalUnits', 'Total Units')} *</label>
-                <input type="number" min="0" required value={formData.stats?.totalUnits}
-                  onChange={(e) => setFormData({ ...formData, stats: { ...formData.stats!, totalUnits: parseInt(e.target.value) || 0, availableUnits: formData.stats?.availableUnits || 0, availabilityPercentage: formData.stats?.availabilityPercentage || 0 } })}
-                  className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-[#16100A]">{t('areas.availableUnits', 'Available Units')}</label>
-                <input type="number" min="0" value={formData.stats?.availableUnits}
-                  onChange={(e) => setFormData({ ...formData, stats: { ...formData.stats!, availableUnits: parseInt(e.target.value) || 0, totalUnits: formData.stats?.totalUnits || 0, availabilityPercentage: formData.stats?.availabilityPercentage || 0 } })}
-                  className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm" />
-              </div>
-            </div> */}
 
             <div className="space-y-1">
               <label className="text-sm font-medium text-[#16100A]">{t('common:common.description', 'Description')}</label>
@@ -220,7 +180,7 @@ export default function Areas() {
     page:    currentPage,
     limit:   LIMIT,
     keyword: keyword   || undefined,
-    type:    filterType !== 'all' ? filterType : undefined,
+
   });
 
   const createArea = useCreateArea();
@@ -240,7 +200,6 @@ export default function Areas() {
     if (data.project)     formData.append('project',     data.project);
     if (data.name)        formData.append('name',        data.name);
     if (data.location)    formData.append('location',    data.location);
-    if (data.type)        formData.append('type',        data.type);
     if (data.group)       formData.append('group',       data.group);
     if (data.description) formData.append('description', data.description);
 
@@ -348,14 +307,11 @@ export default function Areas() {
           </div>
           <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {areaList.map((area) => {
-              const availability = area.stats?.availabilityPercentage ?? 0;
               return (
                 <div key={area._id} onClick={() => handleEditArea(area)}
                   className="aspect-square gradient-primary rounded-lg p-4 flex flex-col items-center justify-center text-white hover:shadow-lg transition-shadow cursor-pointer relative">
                   <Home className="w-6 h-6 mb-2 opacity-80" />
                   <span className="font-bold text-lg">{area.name}</span>
-                  <span className="text-xs mt-1 opacity-90">{area.stats?.totalUnits ?? 0} {t('areas.units')}</span>
-                  <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-white" style={{ opacity: availability / 100 }} />
                 </div>
               );
             })}
@@ -410,35 +366,9 @@ export default function Areas() {
               </div>
             </div>
 
-            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded text-xs font-medium border mb-4 ${getTypeColor(area.type)}`}>
-              {getTypeIcon(area.type)}
-              {getTypeLabel(area.type)}
-            </span>
-
             <p className={`text-sm text-[#555555] mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
               {language === 'ar' ? area.descriptionAr : area.description}
             </p>
-
-            <div className="grid grid-cols-2 gap-4 mb-4 pb-4 border-b border-[#E5E5E5]">
-              <div className={isRTL ? 'text-right' : 'text-left'}>
-                <p className="text-xs text-[#555555] mb-1">{t('developers:developers.totalUnits')}</p>
-                <p className="font-bold text-[#16100A]">{area.stats?.totalUnits ?? 0}</p>
-              </div>
-              <div className={isRTL ? 'text-right' : 'text-left'}>
-                <p className="text-xs text-[#555555] mb-1">{t('properties:properties.available')}</p>
-                <p className="font-bold text-[#B5752A]">{area.stats?.availableUnits ?? 0}</p>
-              </div>
-            </div>
-
-            <div>
-              <div className={`flex items-center justify-between text-xs text-[#555555] mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <span>{t('areas.availability')}</span>
-                <span>{area.stats?.availabilityPercentage ?? 0}%</span>
-              </div>
-              <div className="w-full bg-[#F7F7F7] rounded-full h-2">
-                <div className="h-2 rounded-full gradient-primary" style={{ width: `${area.stats?.availabilityPercentage ?? 0}%` }} />
-              </div>
-            </div>
 
             {area.group && (
               <div className={`mt-4 pt-4 border-t border-[#E5E5E5] ${isRTL ? 'text-right' : 'text-left'}`}>
