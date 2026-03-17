@@ -19,15 +19,15 @@ interface Area {
   nameAr?: string;
   location: string;
   cityAr?: string;
-  zone?: string;
-  group?: string;
-  groupAr?: string;
-  type: AreaType;
-  stats: {
-    totalUnits: number;
-    availableUnits: number;
-    availabilityPercentage: number;
-  };
+  // zone?: string;
+  // group?: string;
+  // groupAr?: string;
+  // type: AreaType;
+  // stats: {
+  //   totalUnits: number;
+  //   availableUnits: number;
+  //   availabilityPercentage: number;
+  // };
   description?: string;
   descriptionAr?: string;
   project?: string;
@@ -54,15 +54,15 @@ function AreaModal({ area, onClose, onSave, isPending }: AreaModalProps) {
     name:        area?.name        || '',
     nameAr:      area?.nameAr      || '',
     location:    area?.location    || '',
-    zone:        area?.zone        || '',
-    group:       area?.group       || '',
-    groupAr:     area?.groupAr     || '',
-    type:        area?.type        || 'villa Zone',
-    stats: {
-      totalUnits:             area?.stats?.totalUnits            || 0,
-      availableUnits:         area?.stats?.availableUnits        || 0,
-      availabilityPercentage: area?.stats?.availabilityPercentage || 0,
-    },
+    // zone:        area?.zone        || '',
+    // group:       area?.group       || '',
+    // groupAr:     area?.groupAr     || '',
+    // type:        area?.type        || 'villa Zone',
+    // stats: {
+    //   totalUnits:             area?.stats?.totalUnits            || 0,
+    //   availableUnits:         area?.stats?.availableUnits        || 0,
+    //   availabilityPercentage: area?.stats?.availabilityPercentage || 0,
+    // },
     description:   area?.description   || '',
     descriptionAr: area?.descriptionAr || '',
   });
@@ -112,7 +112,7 @@ function AreaModal({ area, onClose, onSave, isPending }: AreaModalProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            {/* <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm font-medium text-[#16100A]">{t('areas.zone', 'Zone')}</label>
                 <input value={formData.zone} onChange={(e) => setFormData({ ...formData, zone: e.target.value })}
@@ -123,7 +123,7 @@ function AreaModal({ area, onClose, onSave, isPending }: AreaModalProps) {
                 <input value={formData.group} onChange={(e) => setFormData({ ...formData, group: e.target.value })}
                   className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm" />
               </div>
-            </div>
+            </div> */}
 
             <div className="space-y-1">
               <label className="text-sm font-medium text-[#16100A]">{t('areas.project', 'Project')} *</label>
@@ -136,7 +136,7 @@ function AreaModal({ area, onClose, onSave, isPending }: AreaModalProps) {
               </select>
             </div>
 
-            <div className="space-y-1">
+            {/* <div className="space-y-1">
               <label className="text-sm font-medium text-[#16100A]">{t('areas.type', 'Type')} *</label>
               <select required value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value as Area['type'] })}
                 className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm bg-white">
@@ -161,7 +161,7 @@ function AreaModal({ area, onClose, onSave, isPending }: AreaModalProps) {
                   onChange={(e) => setFormData({ ...formData, stats: { ...formData.stats!, availableUnits: parseInt(e.target.value) || 0, totalUnits: formData.stats?.totalUnits || 0, availabilityPercentage: formData.stats?.availabilityPercentage || 0 } })}
                   className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm" />
               </div>
-            </div>
+            </div> */}
 
             <div className="space-y-1">
               <label className="text-sm font-medium text-[#16100A]">{t('common:common.description', 'Description')}</label>

@@ -11,12 +11,12 @@ export interface Area {
   nameAr?: string;
   city?: string;
   cityAr?: string;
-  zone?: string;
-  group?: string;
+  // zone?: string;
+  // group?: string;
   groupAr?: string;
-  type: string;
-  units?: number;
-  availableUnits?: number;
+  // type: string;
+  // units?: number;
+  // availableUnits?: number;
   description?: string;
   descriptionAr?: string;
 }
@@ -40,12 +40,12 @@ export default function AreaModal({ area, onClose, onSave, isPending }: AreaModa
     nameAr:          area?.nameAr          || '',
     city:            area?.city            || '',
     cityAr:          area?.cityAr          || '',
-    zone:            area?.zone            || '',
-    group:           area?.group           || '',
+    // zone:            area?.zone            || '',
+    // group:           area?.group           || '',
     groupAr:         area?.groupAr         || '',
-    type:            area?.type            || 'Villa Zone',
-    units:           area?.units           || 0,
-    availableUnits:  area?.availableUnits  || 0,
+    // type:            area?.type            || 'Villa Zone',
+    // units:           area?.units           || 0,
+    // availableUnits:  area?.availableUnits  || 0,
     description:     area?.description     || '',
     descriptionAr:   area?.descriptionAr   || '',
   });
@@ -102,7 +102,7 @@ export default function AreaModal({ area, onClose, onSave, isPending }: AreaModa
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm" />
           </div>
 
-          <div className="space-y-1">
+          {/* <div className="space-y-1">
             <label className="text-sm font-medium">{t('areas.type')} *</label>
             <select required value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value as Area['type'] })}
@@ -126,7 +126,7 @@ export default function AreaModal({ area, onClose, onSave, isPending }: AreaModa
             <input value={formData.group}
               onChange={(e) => setFormData({ ...formData, group: e.target.value })}
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm" />
-          </div>
+          </div> */}
 
           <div className="space-y-1">
             <label className="text-sm font-medium">{t('areas.groupAr')}</label>
@@ -135,7 +135,7 @@ export default function AreaModal({ area, onClose, onSave, isPending }: AreaModa
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm" />
           </div>
 
-          <div className="space-y-1">
+          {/* <div className="space-y-1">
             <label className="text-sm font-medium">{t('areas.totalUnits')}</label>
             <input type="number" min="0" value={formData.units}
               onChange={(e) => setFormData({ ...formData, units: parseInt(e.target.value) || 0 })}
@@ -147,7 +147,7 @@ export default function AreaModal({ area, onClose, onSave, isPending }: AreaModa
             <input type="number" min="0" value={formData.availableUnits}
               onChange={(e) => setFormData({ ...formData, availableUnits: parseInt(e.target.value) || 0 })}
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm" />
-          </div>
+          </div> */}
 
           <div className="space-y-1 md:col-span-2">
             <label className="text-sm font-medium">{t('common:common.description')}</label>
