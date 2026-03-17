@@ -226,8 +226,8 @@ export default function Leads() {
             <div key={lead._id || lead.id} className="bg-white rounded-lg border border-[#E5E5E5] p-6 hover:shadow-lg transition-shadow">
 
               {/* Card Header */}
-              <div className={`flex items-start justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <div className={`flex items-start justify-between mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <div className={`flex items-center gap-3 ${isRTL ? 'text-right' : 'text-left'}`}>
                   <div className="w-12 h-12 gradient-primary rounded-full flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
                     {(lead.fullName || '?').charAt(0).toUpperCase()}
                   </div>
@@ -250,12 +250,12 @@ export default function Leads() {
 
               {/* Contact Info */}
               <div className="space-y-2 mb-4">
-                <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? 'text-right' : 'text-left'}`}>
                   <Phone className="w-4 h-4 flex-shrink-0" />
                   <span dir="ltr">{lead.phone}</span>
                 </div>
                 {lead.email && (
-                  <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? 'text-right' : 'text-left'}`}>
                     <Mail className="w-4 h-4 flex-shrink-0" />
                     <span dir="ltr">{lead.email}</span>
                   </div>
@@ -265,13 +265,13 @@ export default function Leads() {
               {/* Details */}
               <div className="space-y-2 pt-4 border-t border-[#E5E5E5]">
                 {lead.source && (
-                  <div className={`flex items-center justify-between text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <div className={`flex items-center justify-between text-sm ${isRTL ? 'text-right' : 'text-left'}`}>
                     <span className="text-[#555555]">{t('leads.source')}</span>
                     <span className="font-medium text-[#16100A]">{getSourceLabel(lead.source)}</span>
                   </div>
                 )}
                 {lead.assignedTo && (
-                  <div className={`flex items-center justify-between text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <div className={`flex items-center justify-between text-sm ${isRTL ? 'text-right' : 'text-left'}`}>
                     <span className="text-[#555555]">{t('leads.assignedTo')}</span>
                     <span className="font-medium text-[#16100A]">
                       {typeof lead.assignedTo === 'object'
@@ -280,7 +280,7 @@ export default function Leads() {
                     </span>
                   </div>
                 )}
-                <div className={`flex items-center justify-between text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className={`flex items-center justify-between text-sm ${isRTL ? 'text-right' : 'text-left'}`}>
                   <span className="text-[#555555]">{t('common:common.created')}</span>
                   <span className="font-medium text-[#16100A]" dir="ltr">
                     {new Date(lead.createdAt).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US')}
@@ -303,7 +303,7 @@ export default function Leads() {
               )}
 
               {!isReadOnly && (
-                <div className={`mt-4 pt-4 border-t border-[#E5E5E5] flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className={`mt-4 pt-4 border-t border-[#E5E5E5] flex gap-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                   <button
                     onClick={() => { setEditingLead(lead); setModalOpen(true); }}
                     className="flex-1 px-3 py-2 bg-[#F7F7F7] text-[#555555] rounded-lg hover:bg-[#E5E5E5] transition-colors text-sm font-medium"
@@ -325,7 +325,7 @@ export default function Leads() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className={`flex items-center justify-center gap-2 mt-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className={`flex items-center justify-center gap-2 mt-6 ${isRTL ? 'text-right' : 'text-left'}`}>
           <button
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1 || isLoading}
@@ -390,7 +390,7 @@ export default function Leads() {
                 ? `هل أنت متأكد من حذف "${deleteConfig.name}"؟ لا يمكن التراجع عن هذا الإجراء.`
                 : `Are you sure you want to delete "${deleteConfig.name}"? This action cannot be undone.`}
             </p>
-            <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className={`flex gap-3 ${isRTL ? 'text-right' : 'text-left'}`}>
               <button onClick={confirmDelete} disabled={deleteLead.isPending}
                 className="flex-1 bg-red-500 text-white py-2.5 rounded-lg hover:bg-red-600 transition-colors font-medium disabled:opacity-50">
                 {deleteLead.isPending ? '...' : (language === 'ar' ? 'حذف' : 'Delete')}

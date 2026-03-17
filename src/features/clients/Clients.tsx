@@ -161,8 +161,8 @@ export default function Clients() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {clients.map((client: any) => (
           <div key={client._id || client.id} className="bg-white rounded-xl border border-[#E5E5E5] p-5 hover:shadow-md transition-shadow">
-            <div className={`flex items-start justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className={`flex items-start justify-between mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <div className={`flex items-center gap-3 ${isRTL ? 'text-right' : 'text-left'}`}>
                 <div className="w-11 h-11 gradient-primary rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
                   {client.fullName?.charAt(0)?.toUpperCase() || '?'}
                 </div>
@@ -175,7 +175,7 @@ export default function Clients() {
                 </div>
               </div>
               {!isReadOnly && (
-                <div className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className={`flex items-center gap-1 ${isRTL ? 'text-right' : 'text-left'}`}>
                   <button onClick={() => { setEditingClient(client); setModalOpen(true); }}
                     className="p-1.5 hover:bg-[#F7F7F7] rounded-lg transition-colors">
                     <Edit2 className="w-4 h-4 text-[#555555]" />
@@ -190,25 +190,25 @@ export default function Clients() {
 
             <div className="space-y-1.5 mb-4">
               {client.phone && (
-                <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? 'text-right' : 'text-left'}`}>
                   <Phone className="w-3.5 h-3.5 flex-shrink-0 text-[#B5752A]" />
                   <span dir="ltr">{client.phone}</span>
                 </div>
               )}
               {client.email && (
-                <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? 'text-right' : 'text-left'}`}>
                   <Mail className="w-3.5 h-3.5 flex-shrink-0 text-[#B5752A]" />
                   <span dir="ltr" className="truncate">{client.email}</span>
                 </div>
               )}
               {(client.city || client.country) && (
-                <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? 'text-right' : 'text-left'}`}>
                   <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-[#B5752A]" />
                   <span>{[client.city, client.country].filter(Boolean).join(', ')}</span>
                 </div>
               )}
               {(client.clientSince || client.createdAt) && (
-                <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? 'text-right' : 'text-left'}`}>
                   <Calendar className="w-3.5 h-3.5 flex-shrink-0 text-[#B5752A]" />
                   <span>
                     {language === 'ar' ? 'عميل منذ' : 'Client since'}{' '}
@@ -246,12 +246,12 @@ export default function Clients() {
 
       {/* Pagination */}
       {pagination && (
-        <div className={`flex items-center justify-between mt-8 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className={`flex items-center justify-between mt-8 ${isRTL ? 'text-right' : 'text-left'}`}>
           <p className="text-sm text-[#555555]">
             {isRTL ? `إجمالي ${clientsData?.results || 0} عميل` : `Total ${clientsData?.results || 0} clients`}
           </p>
           {pagination.numberOfPages > 1 && (
-            <div className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className={`flex items-center gap-1 ${isRTL ? 'text-right' : 'text-left'}`}>
               <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
                 className="p-2 rounded-lg border border-[#E5E5E5] hover:bg-[#F7F7F7] disabled:opacity-40 transition-colors">
                 {isRTL ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
