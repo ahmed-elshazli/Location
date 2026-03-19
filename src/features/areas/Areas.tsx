@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Search, MapPin, Building2, Home, Edit2, Trash2, X, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useConfigStore } from '../../store/useConfigStore';
-import { useAuthStore } from '../../store/useAuthStore';
 import { useToastStore } from '../../store/useToastStore';
 import { useAreas } from './hooks/useAreas';
 import { useProjects } from '../projects/hooks/useProjects';
@@ -10,7 +9,86 @@ import { useCreateArea } from './hooks/useCreateArea';
 import { useUpdateArea } from './hooks/useUpdateArea';
 import { useDeleteArea } from './hooks/useDeleteArea';
 
-type AreaType = 'villa Zone' | 'apartment Zone' | 'commercial Zone' | 'mixed' | 'service Area';
+// ── SearchableDropdown (نفس الـ DealModal) ────────────────────────────────
+interface SearchableDropdownProps {
+  value: string;
+  onChange: (id: string, label: string) => void;
+  options: { id: string; label: string }[];
+  placeholder: string;
+  loading?: boolean;
+  disabled?: boolean;
+  required?: boolean;
+  initialLabel?: string;
+}
+
+function SearchableDropdown({ value, onChange, options, placeholder, loading, disabled, initialLabel }: SearchableDropdownProps) {
+  const [search, setSearch] = useState('');
+  const [open, setOpen]     = useState(false);
+  const ref                 = useRef<HTMLDivElement>(null);
+
+  // الـ label المختار — من الـ options لو موجود، وإلا الـ initialLabel
+  const selectedLabel = options.find(o => o.id === value)?.label || initialLabel || '';
+
+  // لما الـ options تتحمل وفيه value محدد، نتأكد إن الـ display صح
+  const [resolvedLabel, setResolvedLabel] = useState(initialLabel || '');
+  useEffect(() => {
+    const found = options.find(o => o.id === value);
+    if (found) setResolvedLabel(found.label);
+  }, [options.length, value]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        setSearch('');
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filtered = options.filter(o =>
+    o.label.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleSelect = (opt: { id: string; label: string }) => {
+    onChange(opt.id, opt.label);
+    setResolvedLabel(opt.label);
+    setSearch('');
+    setOpen(false);
+  };
+
+  const displayValue = open ? search : resolvedLabel;
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        type="text"
+        value={displayValue}
+        onChange={e => setSearch(e.target.value)}
+        onFocus={() => { setOpen(true); setSearch(''); }}
+        placeholder={loading ? 'جاري التحميل...' : placeholder}
+        disabled={disabled || loading}
+        className={`w-full px-4 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm ${disabled ? 'bg-[#F7F7F7] cursor-not-allowed text-[#555]' : 'bg-white'}`}
+      />
+      {open && !disabled && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-[#E5E5E5] rounded-lg shadow-lg max-h-48 overflow-y-auto">
+          {filtered.length === 0 ? (
+            <div className="px-4 py-3 text-sm text-[#888]">لا توجد نتائج</div>
+          ) : (
+            filtered.map(opt => (
+              <div key={opt.id} onMouseDown={() => handleSelect(opt)}
+                className={`px-4 py-2.5 text-sm cursor-pointer hover:bg-[#FEF3E2] transition-colors ${opt.id === value ? 'bg-[#FEF3E2] font-medium text-[#B5752A]' : 'text-[#16100A]'}`}>
+                {opt.label}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+// ──────────────────────────────────────────────────────────────────────────
 
 interface Area {
   _id: string;
@@ -18,19 +96,19 @@ interface Area {
   name: string;
   nameAr?: string;
   location: string;
-  cityAr?: string;
   zone?: string;
   group?: string;
   groupAr?: string;
   type?: string;
-  stats?: {
-    totalUnits: number;
-    availableUnits: number;
-    availabilityPercentage: number;
-  };
+  project?: string;
+  // nested stats (القديم)
+  stats?: { totalUnits: number; availableUnits: number; availabilityPercentage: number };
+  // flat stats (الجديد)
+  totalUnits?: number;
+  availableUnits?: number;
+  availabilityPercentage?: number;
   description?: string;
   descriptionAr?: string;
-  project?: string;
 }
 
 interface AreaModalProps {
@@ -45,24 +123,30 @@ function AreaModal({ area, onClose, onSave, isPending }: AreaModalProps) {
   const { dir } = useConfigStore();
   const isRTL = dir === 'rtl';
 
-  const { data: projectsData } = useProjects({});
-  const projectList = projectsData?.data || projectsData || [];
+  const { data: projectsData, isLoading: isProjectsLoading } = useProjects({});
+  const projectList: { _id: string; name: string }[] = projectsData?.data || projectsData || [];
+
+  const areaProjectId = area?.project || '';
+  const projectInList = projectList.some(p => p._id === areaProjectId);
+  const allProjects   = [
+    ...(areaProjectId && !projectInList ? [{ _id: areaProjectId, name: areaProjectId }] : []),
+    ...projectList,
+  ];
+
+  const projectFromList     = projectList.find(p => p._id === areaProjectId);
+  const projectInitialLabel = projectFromList?.name || '';
+  const projectOptions      = allProjects.map(p => ({ id: p._id, label: p.name }));
 
   const [formData, setFormData] = useState<Partial<Area>>({
-    _id:         area?._id         || '',
-    project:     area?.project      || '',
-    name:        area?.name        || '',
-    nameAr:      area?.nameAr      || '',
-    location:    area?.location    || '',
-    zone:        area?.zone        || '',
-    group:       area?.group       || '',
-    groupAr:     area?.groupAr     || '',
-    type:        area?.type        || 'villa Zone',
-    stats: {
-      totalUnits:             area?.stats?.totalUnits            || 0,
-      availableUnits:         area?.stats?.availableUnits        || 0,
-      availabilityPercentage: area?.stats?.availabilityPercentage || 0,
-    },
+    _id:           area?._id           || '',
+    project:       areaProjectId,
+    name:          area?.name          || '',
+    nameAr:        area?.nameAr        || '',
+    location:      area?.location      || '',
+    zone:          area?.zone          || '',
+    group:         area?.group         || '',
+    groupAr:       area?.groupAr       || '',
+    type:          area?.type          || 'villa Zone',
     description:   area?.description   || '',
     descriptionAr: area?.descriptionAr || '',
   });
@@ -74,7 +158,7 @@ function AreaModal({ area, onClose, onSave, isPending }: AreaModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-xl w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in duration-300" dir={isRTL ? 'rtl' : 'ltr'}>
+      <div className="bg-white rounded-xl w-full max-w-lg shadow-2xl overflow-hidden" dir={isRTL ? 'rtl' : 'ltr'}>
         <div className="px-6 pt-6 pb-4 flex items-center justify-between">
           <h2 className="text-xl font-bold text-[#16100A]">
             {area ? t('areas.editArea') : t('areas.addArea')}
@@ -84,13 +168,10 @@ function AreaModal({ area, onClose, onSave, isPending }: AreaModalProps) {
           </button>
         </div>
 
-        <div className="mx-6 mb-4 px-4 py-3 bg-blue-50 rounded-lg border border-blue-100 flex items-center gap-2">
-          <span className="text-base">💡</span>
-          <p className="text-sm text-blue-700">{t('areas.autoTranslationHint', 'You can write in any language - auto-translation will handle the rest')}</p>
-        </div>
-
         <form onSubmit={handleSubmit}>
-          <div className="px-6 pb-6 flex flex-col gap-4 max-h-[60vh] overflow-y-auto">
+          <div className="px-6 pb-6 flex flex-col gap-4 max-h-[65vh] overflow-y-auto">
+
+            {/* Name + City */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm font-medium text-[#16100A]">{t('areas.name', 'Area Name')} *</label>
@@ -112,26 +193,32 @@ function AreaModal({ area, onClose, onSave, isPending }: AreaModalProps) {
               </div>
             </div>
 
+            {/* Project — SearchableDropdown (نفس الـ DealModal unit) */}
             <div className="space-y-1">
               <label className="text-sm font-medium text-[#16100A]">{t('areas.project', 'Project')} *</label>
-              <select required value={formData.project} onChange={(e) => setFormData({ ...formData, project: e.target.value })}
-                className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm bg-white">
-                <option value="">{t('areas.selectProject', 'Select Project')}</option>
-                {projectList.map((p: any) => (
-                  <option key={p._id} value={p._id}>{p.name}</option>
-                ))}
-              </select>
+              <SearchableDropdown
+                key={`project-${projectList.length}-${areaProjectId}`}
+                value={formData.project as string}
+                onChange={(id) => setFormData({ ...formData, project: id })}
+                options={projectOptions}
+                placeholder={isRTL ? 'ابحث عن مشروع...' : 'Search project...'}
+                loading={isProjectsLoading}
+                initialLabel={projectInitialLabel}
+              />
             </div>
 
+            {/* Description */}
             <div className="space-y-1">
               <label className="text-sm font-medium text-[#16100A]">{t('common:common.description', 'Description')}</label>
               <div className="relative">
                 <FileText className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-3 w-4 h-4 text-[#999]`} />
-                <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                <textarea value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder={t('areas.descriptionPlaceholder', 'Area description...')}
                   className={`w-full ${isRTL ? 'pr-9 pl-3' : 'pl-9 pr-3'} py-2.5 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#B5752A] outline-none text-sm h-24 resize-none`} />
               </div>
             </div>
+
           </div>
 
           <div className="px-6 py-4 border-t border-[#E5E5E5] grid grid-cols-2 gap-3">
@@ -151,68 +238,70 @@ function AreaModal({ area, onClose, onSave, isPending }: AreaModalProps) {
 }
 
 export default function Areas() {
-  const [searchTerm, setSearchTerm]   = useState('');
-  const [filterType, setFilterType]   = useState<string>('all');
-  const [keyword, setKeyword]         = useState('');
-  const [showModal, setShowModal]     = useState(false);
-  const [selectedArea, setSelectedArea] = useState<Area | null>(null);
+  const [searchTerm, setSearchTerm]         = useState('');
+  const [filterType, setFilterType]         = useState<string>('all');
+  const [keyword, setKeyword]               = useState('');
+  const [showModal, setShowModal]           = useState(false);
+  const [selectedArea, setSelectedArea]     = useState<Area | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage]       = useState(1);
   const LIMIT = 9;
 
-  const { t, i18n } = useTranslation(['areas', 'common', 'properties', 'developers']);
-  const { dir }     = useConfigStore();
+  const { t, i18n }      = useTranslation(['areas', 'common', 'properties']);
+  const { dir }          = useConfigStore();
   const { triggerToast } = useToastStore();
+  const isRTL            = dir === 'rtl';
+  const language         = i18n.language;
 
-  const isRTL    = dir === 'rtl';
-  const language = i18n.language;
-
-  // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => setKeyword(searchTerm), 500);
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Reset page on filter/search change
   useEffect(() => { setCurrentPage(1); }, [keyword, filterType]);
 
-  const { data: areasData, isLoading } = useAreas({
-    page:    currentPage,
-    limit:   LIMIT,
-    keyword: keyword   || undefined,
+  const { data: areasData, isLoading } = useAreas({ page: currentPage, limit: LIMIT, keyword: keyword || undefined });
 
-  });
+  // جلب المشاريع عشان نعرض الاسم في الكارد
+  const { data: projectsData } = useProjects({});
+  const projectList: { _id: string; name: string }[] = projectsData?.data || projectsData || [];
+
+  const getProjectName = (project: any): string => {
+    if (!project) return '';
+    if (typeof project === 'object' && project.name) return project.name;
+    const id = typeof project === 'object' ? (project._id || project.id) : project;
+    return projectList.find(p => p._id === id)?.name || '';
+  };
 
   const createArea = useCreateArea();
   const updateArea = useUpdateArea();
   const deleteArea = useDeleteArea();
 
-  const areaList: Area[] = areasData?.data || [];
-  const pagination = areasData?.pagination;
-  const totalPages = pagination?.numberOfPages ?? 1;
+  const areaList: Area[]  = areasData?.data || [];
+  const totalPages        = areasData?.pagination?.numberOfPages ?? 1;
 
   const handleAddArea  = () => { setSelectedArea(null); setShowModal(true); };
   const handleEditArea = (area: Area) => { setSelectedArea({ ...area }); setShowModal(true); };
   const closeModal     = () => { setShowModal(false); setSelectedArea(null); };
 
   const handleSaveArea = (data: Partial<Area>) => {
-    const formData = new FormData();
-    if (data.project)     formData.append('project',     data.project);
-    if (data.name)        formData.append('name',        data.name);
-    if (data.location)    formData.append('location',    data.location);
-    if (data.group)       formData.append('group',       data.group);
-    if (data.description) formData.append('description', data.description);
+    const fd = new FormData();
+    if (data.project)     fd.append('project',     data.project);
+    if (data.name)        fd.append('name',        data.name);
+    if (data.location)    fd.append('location',    data.location);
+    if (data.group)       fd.append('group',       data.group);
+    if (data.description) fd.append('description', data.description);
 
     if (selectedArea) {
       const areaId = selectedArea._id || selectedArea.id || (data as any)._id;
-      updateArea.mutate({ id: areaId, data: formData }, {
+      updateArea.mutate({ id: areaId, data: fd }, {
         onSuccess: () => { triggerToast(language === 'ar' ? 'تم تحديث المنطقة ✅' : 'Area updated ✅', 'success'); closeModal(); },
-        onError: (err: any) => { triggerToast(err.response?.data?.message || 'Update failed', 'error'); },
+        onError:   (err: any) => { triggerToast(err.response?.data?.message || 'Update failed', 'error'); },
       });
     } else {
-      createArea.mutate(formData, {
+      createArea.mutate(fd, {
         onSuccess: () => { triggerToast(language === 'ar' ? 'تمت إضافة المنطقة ✅' : 'Area added ✅', 'success'); closeModal(); },
-        onError: (err: any) => { triggerToast(err.response?.data?.message || 'Create failed', 'error'); },
+        onError:   (err: any) => { triggerToast(err.response?.data?.message || 'Create failed', 'error'); },
       });
     }
   };
@@ -221,37 +310,8 @@ export default function Areas() {
     if (!confirmDeleteId) return;
     deleteArea.mutate(confirmDeleteId, {
       onSuccess: () => { triggerToast(language === 'ar' ? 'تم حذف المنطقة 🗑️' : 'Area deleted 🗑️', 'success'); setConfirmDeleteId(null); },
-      onError: (err: any) => { triggerToast(err.response?.data?.message || 'Delete failed', 'error'); setConfirmDeleteId(null); },
+      onError:   (err: any) => { triggerToast(err.response?.data?.message || 'Delete failed', 'error'); setConfirmDeleteId(null); },
     });
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'villa Zone':      return 'bg-[#FEF3E2] text-[#B5752A] border-[#B5752A]';
-      case 'apartment Zone':  return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'commercial Zone': return 'bg-purple-50 text-purple-700 border-purple-200';
-      case 'mixed':           return 'bg-green-50 text-green-700 border-green-200';
-      case 'service Area':    return 'bg-gray-50 text-gray-600 border-gray-200';
-      default:                return 'bg-gray-50 text-gray-700 border-gray-200';
-    }
-  };
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'villa Zone': return <Home className="w-4 h-4" />;
-      default:           return <Building2 className="w-4 h-4" />;
-    }
-  };
-
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case 'villa Zone':      return t('areas:villaZone', 'Villa Zone');
-      case 'apartment Zone':  return t('areas:apartmentZone', 'Apartment Zone');
-      case 'commercial Zone': return t('areas:commercialZone', 'Commercial Zone');
-      case 'mixed':           return t('areas:mixed', 'Mixed');
-      case 'service Area':    return t('areas:serviceArea', 'Service Area');
-      default:                return type;
-    }
   };
 
   if (isLoading && !areasData) {
@@ -264,6 +324,7 @@ export default function Areas() {
 
   return (
     <div className="p-6" dir={isRTL ? 'rtl' : 'ltr'}>
+
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -277,7 +338,6 @@ export default function Areas() {
             {t('areas.addArea')}
           </button>
         </div>
-
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-5 h-5 text-[#555555]`} />
@@ -306,79 +366,141 @@ export default function Areas() {
             <p className="text-sm text-[#555555]">{t('areas.madinatyMapSubtitle')}</p>
           </div>
           <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            {areaList.map((area) => {
-              return (
-                <div key={area._id} onClick={() => handleEditArea(area)}
-                  className="aspect-square gradient-primary rounded-lg p-4 flex flex-col items-center justify-center text-white hover:shadow-lg transition-shadow cursor-pointer relative">
-                  <Home className="w-6 h-6 mb-2 opacity-80" />
-                  <span className="font-bold text-lg">{area.name}</span>
-                </div>
-              );
-            })}
+            {areaList.map((area) => (
+              <div key={area._id} onClick={() => handleEditArea(area)}
+                className="aspect-square gradient-primary rounded-lg p-4 flex flex-col items-center justify-center text-white hover:shadow-lg transition-shadow cursor-pointer">
+                <Home className="w-6 h-6 mb-2 opacity-80" />
+                <span className="font-bold text-lg">{area.name}</span>
+              </div>
+            ))}
           </div>
           <div className="mt-6 pt-6 border-t border-[#E5E5E5]">
             <div className={`flex items-center gap-6 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
               <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <div className="w-3 h-3 rounded-full bg-white opacity-100" />
-                <span className="text-[#555555]">{t('areas.highAvailability')}</span>
+                <div className="w-3 h-3 rounded-full bg-white opacity-100" /><span className="text-[#555555]">{t('areas.highAvailability')}</span>
               </div>
               <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <div className="w-3 h-3 rounded-full bg-white opacity-50" />
-                <span className="text-[#555555]">{t('areas.mediumAvailability')}</span>
+                <div className="w-3 h-3 rounded-full bg-white opacity-50" /><span className="text-[#555555]">{t('areas.mediumAvailability')}</span>
               </div>
               <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <div className="w-3 h-3 rounded-full bg-white opacity-20" />
-                <span className="text-[#555555]">{t('areas.lowAvailability')}</span>
+                <div className="w-3 h-3 rounded-full bg-white opacity-20" /><span className="text-[#555555]">{t('areas.lowAvailability')}</span>
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Empty */}
+      {areaList.length === 0 && !isLoading && (
+        <div className="bg-white rounded-lg border border-[#E5E5E5] p-16 text-center text-[#AAAAAA]">
+          <MapPin className="w-12 h-12 mx-auto mb-3 opacity-30" />
+          <p className="text-lg font-medium">{language === 'ar' ? 'لا توجد مناطق' : 'No areas found'}</p>
         </div>
       )}
 
       {/* Areas Grid */}
-      {areaList.length === 0 && !isLoading && (
-        <div className="bg-white rounded-lg border border-[#E5E5E5] p-16 text-center text-[#AAAAAA]">
-          <MapPin className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="text-lg font-medium">
-            {language === 'ar' ? 'لا توجد مناطق' : 'No areas found'}
-          </p>
-        </div>
-      )}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {areaList.map((area) => (
-          <div key={area._id || area.id} className="bg-white rounded-lg border border-[#E5E5E5] p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-start justify-between mb-4">
-              <div className={isRTL ? 'text-right' : 'text-left'}>
-                <h3 className="font-bold text-[#16100A] mb-1">{language === 'ar' ? area.nameAr : area.name}</h3>
-                <div className={`flex items-center gap-2 text-sm text-[#555555] ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <MapPin className="w-4 h-4 flex-shrink-0" />
-                  {area.location}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {areaList.map((area) => {
+          const projectName = getProjectName(area.project);
+          const total       = area.totalUnits             ?? area.stats?.totalUnits             ?? 0;
+          const available   = area.availableUnits         ?? area.stats?.availableUnits         ?? 0;
+          const percentage  = area.availabilityPercentage ?? area.stats?.availabilityPercentage ?? 0;
+          const sold        = total - available;
+
+          const barColor = 'bg-[#B5752A]';
+          const pctColor = 'text-[#B5752A]';
+
+          return (
+            <div key={area._id || area.id} className="bg-white rounded-xl border border-[#E5E5E5] p-5 hover:shadow-md transition-shadow flex flex-col gap-4">
+
+              {/* Row 1: Name + actions */}
+              <div className={`flex items-start justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className={`flex flex-col gap-1 ${isRTL ? 'items-end' : ''}`}>
+                  <h3 className="font-bold text-[#16100A] text-base leading-tight">
+                    {language === 'ar' ? (area.nameAr || area.name) : area.name}
+                  </h3>
+                  {area.location && (
+                    <div className={`flex items-center gap-1 text-sm text-[#777] ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <MapPin className="w-3.5 h-3.5 text-[#777]" />
+                      <span>{area.location}</span>
+                    </div>
+                  )}
+                </div>
+                <div className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <button onClick={() => handleEditArea(area)} className="p-1.5 hover:bg-[#F7F7F7] rounded-lg transition-colors">
+                    <Edit2 className="w-4 h-4 text-[#888]" />
+                  </button>
+                  <button onClick={() => setConfirmDeleteId(area._id || area.id!)} disabled={deleteArea.isPending}
+                    className="p-1.5 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50">
+                    <Trash2 className="w-4 h-4 text-red-500" />
+                  </button>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => handleEditArea(area)} className="p-2 hover:bg-[#F7F7F7] rounded-lg transition-colors">
-                  <Edit2 className="w-4 h-4 text-[#555555]" />
-                </button>
-                <button onClick={() => setConfirmDeleteId(area._id || area.id!)} disabled={deleteArea.isPending}
-                  className="p-2 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50">
-                  <Trash2 className="w-4 h-4 text-red-600" />
-                </button>
+
+              {/* Row 2: Type badge + project */}
+              <div className={`flex items-center gap-2 flex-wrap ${isRTL ? 'flex-row-reverse' : ''}`}>
+                {area.type && (
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-medium
+                    ${area.type === 'villa Zone'      ? 'bg-[#FEF3E2] text-[#B5752A] border-[#B5752A]/30' :
+                      area.type === 'apartment Zone'  ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                      area.type === 'commercial Zone' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                      'bg-gray-50 text-gray-600 border-gray-200'}`}>
+                    <Home className="w-3 h-3" />
+                    {area.type === 'villa Zone'      ? (language === 'ar' ? 'منطقة فيلات' : 'Villa Zone') :
+                     area.type === 'apartment Zone'  ? (language === 'ar' ? 'منطقة شقق'  : 'Apartment Zone') :
+                     area.type === 'commercial Zone' ? (language === 'ar' ? 'منطقة تجارية' : 'Commercial Zone') :
+                     area.type}
+                  </span>
+                )}
+                {projectName && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-[#E5E5E5] text-xs text-[#555] bg-[#F7F7F7]">
+                    <Building2 className="w-3 h-3 text-[#B5752A]" />
+                    {projectName}
+                  </span>
+                )}
               </div>
+
+              {/* Row 3: Description */}
+              {(area.description || area.descriptionAr) && (
+                <p className={`text-sm text-[#777] leading-relaxed line-clamp-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {language === 'ar' ? (area.descriptionAr || area.description) : area.description}
+                </p>
+              )}
+
+              {/* Row 4: Stats — Total + Available */}
+              <div className={`flex items-end gap-10 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className={isRTL ? 'text-right' : 'text-left'}>
+                  <p className="text-xs text-[#888] mb-0.5">{language === 'ar' ? 'إجمالي الوحدات' : 'Total Units'}</p>
+                  <p className="text-xl font-bold text-[#16100A]">{total}</p>
+                </div>
+                <div className={isRTL ? 'text-right' : 'text-left'}>
+                  <p className="text-xs text-[#888] mb-0.5">{language === 'ar' ? 'المتاحة' : 'Available'}</p>
+                  <p className="text-xl font-bold text-[#B5752A]">{available}</p>
+                </div>
+              </div>
+
+              {/* Row 5: Progress bar + % */}
+              <div className="space-y-1.5">
+                <div className={`flex items-center justify-between text-xs text-[#888] ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <span>{language === 'ar' ? 'التوافر' : 'Availability'}</span>
+                  <span className={`font-semibold ${pctColor}`}>{percentage}%</span>
+                </div>
+                <div className="w-full h-2 bg-[#F0F0F0] rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full ${barColor}`} style={{ width: `${Math.min(percentage, 100)}%` }} />
+                </div>
+              </div>
+
+              {/* Row 6: Group */}
+              {area.group && (
+                <p className={`text-xs text-[#555] ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {language === 'ar' ? 'المجموعة' : 'Group'}:{' '}
+                  <span className="font-semibold text-[#16100A]">{language === 'ar' ? (area.groupAr || area.group) : area.group}</span>
+                </p>
+              )}
+
             </div>
-
-            <p className={`text-sm text-[#555555] mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-              {language === 'ar' ? area.descriptionAr : area.description}
-            </p>
-
-            {area.group && (
-              <div className={`mt-4 pt-4 border-t border-[#E5E5E5] ${isRTL ? 'text-right' : 'text-left'}`}>
-                <span className="text-xs text-[#555555]">
-                  {t('areas.group')}: <span className="font-medium text-[#16100A]">{area.groupAr || area.group}</span>
-                </span>
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Pagination */}
@@ -414,7 +536,7 @@ export default function Areas() {
       {/* Confirm Delete */}
       {confirmDeleteId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in duration-300" dir={isRTL ? 'rtl' : 'ltr'}>
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden" dir={isRTL ? 'rtl' : 'ltr'}>
             <div className="p-6 text-center">
               <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Trash2 className="w-7 h-7 text-red-500" />
