@@ -28,9 +28,13 @@ export const getAllUnitsApi = async (params: FetchUnitsParams = {}) => {
   return response.data;
 };
 
-export const updateUnitApi = async ({ id, data }: { id: string; data: FormData }) => {
+// يقبل FormData (create) أو JSON object (update)
+export const updateUnitApi = async ({ id, data }: { id: string; data: FormData | Record<string, any> }) => {
+  const isFormData = data instanceof FormData;
   const response = await api.patch(`/api/v1/units/${id}`, data, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    headers: {
+      'Content-Type': isFormData ? 'multipart/form-data' : 'application/json',
+    },
   });
   return response.data;
 };
