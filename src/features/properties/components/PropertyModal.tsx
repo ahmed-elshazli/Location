@@ -53,38 +53,19 @@ function getVillaGroup(villaNum: number): number {
   return 0;
 }
 
-// ── Parse apartment code: xxx/xxx/xx or xx/xxx/xx ─────────────────────────
+// ── Parse apartment code ───────────────────────────────────────────────────
 function parseApartmentCode(code: string) {
   const parts = code.split('/');
   if (parts.length !== 3) return null;
   const [p1, p2, p3] = parts.map(p => p.trim());
   if (!p1 || !p2 || !p3) return null;
-
-  const areaNum   = p1.length === 3 ? p1.substring(0, 2) : p1; // first 2 digits if 3-digit
-  const area      = `B${areaNum}`;
-  const group     = p1;
-  const building  = p2;
-  // p3: last digit = floor, preceding = unit
-  const floor     = p3.slice(-1);
-  const unit      = p3.slice(0, -1) || p3;
-
+  const areaNum  = p1.length === 3 ? p1.substring(0, 2) : p1;
+  const area     = `B${areaNum}`;
+  const group    = p1;
+  const building = p2;
+  const floor    = p3.slice(-1);
+  const unit     = p3.slice(0, -1) || p3;
   return { area, group, building, unit, floor };
-}
-
-// ── Parse villa code: xx/xxx/x or x/xxx/x ────────────────────────────────
-function parseVillaCode(code: string) {
-  const parts = code.split('/');
-  if (parts.length !== 3) return null;
-  const [p1, p2, p3] = parts.map(p => p.trim());
-  if (!p1 || !p2 || !p3) return null;
-
-  const area        = `V${p1}`;
-  const villaNum    = parseInt(p1, 10); // الجروب بيتحسب من p1
-  const group       = isNaN(villaNum) ? 0 : getVillaGroup(villaNum);
-  const block       = p2;
-  const villaNumber = p3;
-
-  return { area, group: group.toString(), block, villaNumber };
 }
 
 // ── Searchable Dropdown ────────────────────────────────────────────────────
@@ -99,8 +80,8 @@ interface SearchableDropdownProps {
 }
 
 function SearchableDropdown({ value, onChange, options, placeholder, loading, required, initialLabel }: SearchableDropdownProps) {
-  const [search, setSearch]   = useState('');
-  const [open, setOpen]       = useState(false);
+  const [search, setSearch]     = useState('');
+  const [open, setOpen]         = useState(false);
   const [resolved, setResolved] = useState(initialLabel || '');
   const ref = useRef<HTMLDivElement>(null);
 
@@ -146,7 +127,6 @@ function SearchableDropdown({ value, onChange, options, placeholder, loading, re
     </div>
   );
 }
-// ──────────────────────────────────────────────────────────────────────────
 
 // ── Read-only auto-filled field ───────────────────────────────────────────
 function AutoField({ label, value }: { label: string; value: string }) {
@@ -158,7 +138,6 @@ function AutoField({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-// ──────────────────────────────────────────────────────────────────────────
 
 export function PropertyModal({ property, onClose, onSave }: PropertyModalProps) {
   const { t, i18n }      = useTranslation('properties');
@@ -179,69 +158,47 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
 
   // ── Code parts (3 inputs) ─────────────────────────────────────────────────
   const initParts = () => {
-    const code = property?.unitCode || '';
+    const code  = property?.unitCode || '';
     const parts = code.split('/');
     return { p1: parts[0] || '', p2: parts[1] || '', p3: parts[2] || '' };
   };
   const [codeParts, setCodeParts] = useState(initParts);
-  // rawCode مجمع للـ submit
   const rawCode = [codeParts.p1, codeParts.p2, codeParts.p3].filter(Boolean).join('/');
 
   // ── Auto-parsed fields ────────────────────────────────────────────────────
   const [parsed, setParsed] = useState({
-    area:        property?.area        || '',
-    group:       property?.group       || '',
+    areaName:    '',   // اسم الـ area المستخرج من الكود (B11, V11)
+    group:       property?.group              || '',
     building:    property?.building?.toString() || '',
-    block:       property?.block       || '',
+    block:       property?.block              || '',
     unit:        property?.apartmentNumber?.toString() || '',
     floor:       property?.floor?.toString()           || '',
     villaNumber: property?.villaNumber?.toString()     || '',
   });
 
+  // ── Selected area ID (للـ select وللـ submit) ─────────────────────────────
+  const [selectedAreaId, setSelectedAreaId] = useState<string>(property?.area || '');
+
   // ── Other form fields ─────────────────────────────────────────────────────
   const [formData, setFormData] = useState({
-    city:        property?.city        || '',
-    project:     getProjectId(property?.project),
-    type:        property?.type?.toLowerCase() || 'apartment',
-    purpose:     property?.purpose?.toLowerCase() || 'sale',
-    status:      property?.status?.toLowerCase()  || 'available',
-    price:       property?.price?.toString()  || '',
-    size:        property?.size?.toString()   || '',
-    bedrooms:    property?.bedrooms?.toString()  || '',
-    bathrooms:   property?.bathrooms?.toString() || '',
-    notes:       property?.notes || '',
-    developer:   property?.developer || 'Talaat Moustafa',
-    phase:       property?.phase || '',
+    city:      property?.city              || '',
+    project:   getProjectId(property?.project),
+    type:      property?.type?.toLowerCase()    || 'apartment',
+    purpose:   property?.purpose?.toLowerCase() || 'sale',
+    status:    property?.status?.toLowerCase()  || 'available',
+    price:     property?.price?.toString()  || '',
+    size:      property?.size?.toString()   || '',
+    bedrooms:  property?.bedrooms?.toString()  || '',
+    bathrooms: property?.bathrooms?.toString() || '',
+    notes:     property?.notes  || '',
+    developer: property?.developer || 'Talaat Moustafa',
+    phase:     property?.phase  || '',
   });
 
-  const [existingImages, setExistingImages] = useState<string[]>(property?.images || []);
-  const [newFiles, setNewFiles]             = useState<File[]>([]);
-  const [previews, setPreviews]             = useState<string[]>([]);
+  const [existingImages, setExistingImages]   = useState<string[]>(property?.images || []);
+  const [newFiles, setNewFiles]               = useState<File[]>([]);
+  const [previews, setPreviews]               = useState<string[]>([]);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
-
-  // ── 3 separate code parts ─────────────────────────────────────────────────
-  const parseCodeFromParts = (p1: string, p2: string, p3: string, category: 'apartment' | 'villa') => {
-    if (category === 'villa') {
-      // الجروب والـ area يتحسبوا من p1 فوراً
-      if (p1) {
-        const villaNum = parseInt(p1, 10);
-        const group    = isNaN(villaNum) ? '' : getVillaGroup(villaNum).toString();
-        const area     = `V${p1}`;
-        setParsed(prev => ({
-          ...prev,
-          area,
-          group,
-          ...(p2 && { block: p2 }),
-          ...(p3 && { villaNumber: p3 }),
-        }));
-      }
-    } else {
-      if (!p1 || !p2 || !p3) return;
-      const combined = `${p1}/${p2}/${p3}`;
-      const result = parseApartmentCode(combined);
-      if (result) setParsed(prev => ({ ...prev, area: result.area, group: result.group, building: result.building, unit: result.unit, floor: result.floor }));
-    }
-  };
 
   // ── Projects ───────────────────────────────────────────────────────────────
   const { data: projectsData, isLoading: isProjectsLoading } = useProjects();
@@ -253,14 +210,52 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
     return projectList.find((p: any) => (p._id || p.id) === property.project)?.name || '';
   })();
 
-  // ── Areas ──────────────────────────────────────────────────────────────────
-  const { data: areasData } = useAreas?.() || { data: null };
+  // ── Areas — كل الـ areas بدون pagination ─────────────────────────────────
+  const { data: areasData } = useAreas({ limit: 1000 } as any) || { data: null };
   const areaList: { _id: string; name: string; nameAr?: string }[] = areasData?.data || areasData || [];
 
-  const createUnit = useCreateUnit();
-  const updateUnit = useUpdateUnit();
+  // لما areaList يتحمل + عندنا areaName من الكود → نبحث عن الـ _id تلقائياً
+  useEffect(() => {
+    if (!parsed.areaName || areaList.length === 0) return;
+    const match = areaList.find(a => a.name === parsed.areaName);
+    if (match) setSelectedAreaId(match._id);
+  }, [parsed.areaName, areaList.length]);
 
-  // ── Upload images via backend (POST temp unit) ────────────────────────────
+  // ── Parse code from 3 inputs ──────────────────────────────────────────────
+  const parseCodeFromParts = (p1: string, p2: string, p3: string, category: 'apartment' | 'villa') => {
+    if (category === 'villa') {
+      if (!p1) return;
+      const villaNum = parseInt(p1, 10);
+      const group    = isNaN(villaNum) ? '' : getVillaGroup(villaNum).toString();
+      const areaName = `V${p1}`;
+      setParsed(prev => ({
+        ...prev,
+        areaName,
+        group,
+        ...(p2 && { block: p2 }),
+        ...(p3 && { villaNumber: p3 }),
+      }));
+    } else {
+      // الـ area تتحسب من p1 فوراً بدون انتظار p2 و p3
+      if (p1) {
+        const areaNum  = p1.length === 3 ? p1.substring(0, 2) : p1;
+        const areaName = `B${areaNum}`;
+        const group    = p1;
+        setParsed(prev => ({
+          ...prev,
+          areaName,
+          group,
+          ...(p2 && { building: p2 }),
+          ...(p3 && {
+            floor: p3.slice(-1),
+            unit:  p3.slice(0, -1) || p3,
+          }),
+        }));
+      }
+    }
+  };
+
+  // ── Images ────────────────────────────────────────────────────────────────
   const uploadImagesViaBackend = async (files: File[]): Promise<string[]> => {
     const fd = new FormData();
     fd.append('unitCode',  `__temp_${Date.now()}`);
@@ -268,13 +263,13 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
     fd.append('type',      unitCategory === 'villa' ? 'villa' : formData.type);
     fd.append('purpose',   formData.purpose);
     fd.append('status',    'available');
-    fd.append('area',      parsed.area || 'temp');
+    fd.append('area',      selectedAreaId || 'temp');
     fd.append('price',     String(formData.price || 1));
     fd.append('size',      String(formData.size  || 1));
     fd.append('bedrooms',  '0');
     fd.append('bathrooms', '0');
     files.forEach(file => fd.append('images', file));
-    const res  = await createUnitApi(fd);
+    const res    = await createUnitApi(fd);
     const urls: string[] = res?.images || res?.data?.images || [];
     const tempId = res?._id || res?.data?._id;
     if (tempId) deleteUnitApi(tempId).catch(() => {});
@@ -310,13 +305,7 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
       },
     };
 
-    // build unitCode from parsed
-    const finalUnitCode = rawCode;
-    // build area ID — try to match from areaList by name, fallback to parsed.area string
-    const areaId = areaList.find(a => a.name === parsed.area || a._id === parsed.area)?._id || parsed.area;
-
     if (property) {
-      // UPDATE
       let uploadedUrls: string[] = [];
       if (imagesChanged && newFiles.length > 0) {
         setIsUploadingImages(true);
@@ -324,65 +313,63 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
         catch { triggerToast('فشل رفع الصور', 'error'); setIsUploadingImages(false); return; }
         setIsUploadingImages(false);
       }
-      const allImages = [...existingImages, ...uploadedUrls];
       const jsonData: Record<string, any> = {
-        unitCode:  finalUnitCode,
+        unitCode:  rawCode,
         project:   formData.project,
         type:      unitCategory === 'villa' ? 'villa' : formData.type,
         purpose:   formData.purpose,
         status:    formData.status,
-        area:      areaId,
+        area:      selectedAreaId,
         price:     Number(formData.price),
         size:      Number(formData.size),
         bedrooms:  Math.max(0, Number(formData.bedrooms)  || 0),
         bathrooms: Math.max(0, Number(formData.bathrooms) || 0),
-        images:    allImages,
-        ...(formData.notes    && { notes:    formData.notes }),
-        ...(formData.phase    && { phase:    formData.phase }),
-        ...(parsed.group      && { group:    parsed.group }),
-        ...(parsed.floor      && { floor:    Number(parsed.floor) }),
-        ...(parsed.building   && { building: Number(parsed.building) }),
-        ...(parsed.block      && { block:    parsed.block }),
-        ...(parsed.unit       && { apartmentNumber: Number(parsed.unit) }),
-        ...(parsed.villaNumber && { villaNumber: Number(parsed.villaNumber) }),
+        images:    [...existingImages, ...uploadedUrls],
+        ...(formData.notes     && { notes:    formData.notes }),
+        ...(formData.phase     && { phase:    formData.phase }),
+        ...(parsed.group       && { group:    parsed.group }),
+        ...(parsed.floor       && { floor:    Number(parsed.floor) }),
+        ...(parsed.building    && { building: Number(parsed.building) }),
+        ...(parsed.block       && { block:    parsed.block }),
+        ...(parsed.unit        && { apartmentNumber: Number(parsed.unit) }),
+        ...(parsed.villaNumber && { villaNumber:     Number(parsed.villaNumber) }),
       };
       updateUnit.mutate({ id: property._id || property.id!, data: jsonData }, mutateOptions);
-
     } else {
-      // CREATE
       const fd = new FormData();
-      fd.append('unitCode',  finalUnitCode);
+      fd.append('unitCode',  rawCode);
       fd.append('project',   formData.project);
       fd.append('type',      unitCategory === 'villa' ? 'villa' : formData.type);
       fd.append('purpose',   formData.purpose);
       fd.append('status',    formData.status);
-      fd.append('area',      areaId);
+      fd.append('area',      selectedAreaId);
       fd.append('price',     String(formData.price));
       fd.append('size',      String(formData.size));
       fd.append('bedrooms',  String(Math.max(0, Number(formData.bedrooms)  || 0)));
       fd.append('bathrooms', String(Math.max(0, Number(formData.bathrooms) || 0)));
-      if (formData.notes)    fd.append('notes',    formData.notes);
-      if (formData.phase)    fd.append('phase',    formData.phase);
-      if (parsed.group)      fd.append('group',    parsed.group);
-      if (parsed.floor)      fd.append('floor',    parsed.floor);
-      if (parsed.building)   fd.append('building', parsed.building);
-      if (parsed.block)      fd.append('block',    parsed.block);
-      if (parsed.unit)       fd.append('apartmentNumber', parsed.unit);
-      if (parsed.villaNumber) fd.append('villaNumber', parsed.villaNumber);
+      if (formData.notes)     fd.append('notes',    formData.notes);
+      if (formData.phase)     fd.append('phase',    formData.phase);
+      if (parsed.group)       fd.append('group',    parsed.group);
+      if (parsed.floor)       fd.append('floor',    parsed.floor);
+      if (parsed.building)    fd.append('building', parsed.building);
+      if (parsed.block)       fd.append('block',    parsed.block);
+      if (parsed.unit)        fd.append('apartmentNumber', parsed.unit);
+      if (parsed.villaNumber) fd.append('villaNumber',     parsed.villaNumber);
       newFiles.forEach(file => fd.append('images', file));
       createUnit.mutate(fd, mutateOptions);
     }
   };
 
-  const isPending = createUnit.isPending || updateUnit.isPending || isUploadingImages;
-  const isApt     = unitCategory === 'apartment';
-  const T         = (ar: string, en: string) => language === 'ar' ? ar : en;
+  const createUnit = useCreateUnit();
+  const updateUnit = useUpdateUnit();
+  const isPending  = createUnit.isPending || updateUnit.isPending || isUploadingImages;
+  const isApt      = unitCategory === 'apartment';
+  const T          = (ar: string, en: string) => language === 'ar' ? ar : en;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden" dir={isRTL ? 'rtl' : 'ltr'}>
 
-        {/* Header */}
         <div className="px-6 py-4 border-b border-[#E5E5E5] flex items-center justify-between bg-white">
           <h2 className="text-lg font-bold text-[#16100A]">
             {property ? t('properties.editProperty') : t('properties.addProperty')}
@@ -401,11 +388,14 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
               <div className="grid grid-cols-2 gap-3">
                 {(['apartment', 'villa'] as const).map(cat => (
                   <button key={cat} type="button"
-                    onClick={() => { setUnitCategory(cat); setCodeParts({ p1:'', p2:'', p3:'' }); setParsed({ area:'', group:'', building:'', block:'', unit:'', floor:'', villaNumber:'' }); }}
+                    onClick={() => {
+                      setUnitCategory(cat);
+                      setCodeParts({ p1: '', p2: '', p3: '' });
+                      setParsed({ areaName: '', group: '', building: '', block: '', unit: '', floor: '', villaNumber: '' });
+                      setSelectedAreaId('');
+                    }}
                     className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all flex items-center justify-center gap-2
-                      ${unitCategory === cat
-                        ? 'border-[#B5752A] bg-[#FEF3E2] text-[#B5752A]'
-                        : 'border-[#E5E5E5] text-[#555] hover:border-[#B5752A]/40'}`}>
+                      ${unitCategory === cat ? 'border-[#B5752A] bg-[#FEF3E2] text-[#B5752A]' : 'border-[#E5E5E5] text-[#555] hover:border-[#B5752A]/40'}`}>
                     <span>{cat === 'apartment' ? '🏢' : '🏡'}</span>
                     {cat === 'apartment' ? T('شقة', 'Apartment') : T('فيلا', 'Villa')}
                   </button>
@@ -423,7 +413,7 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
               />
             </div>
 
-            {/* 3. Code — 3 inputs منفصلة */}
+            {/* 3. Code — 3 inputs */}
             <div className="col-span-2 space-y-1">
               <label className="text-sm font-medium text-[#16100A]">
                 {T('الكود', 'Code')} *
@@ -432,40 +422,26 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
                 </span>
               </label>
               <div className="flex items-center gap-2" dir="ltr">
-                <input type="text" value={codeParts.p1} required
-                  onChange={e => {
-                    const p1 = e.target.value;
-                    setCodeParts(prev => ({ ...prev, p1 }));
-                    parseCodeFromParts(p1, codeParts.p2, codeParts.p3, unitCategory);
-                  }}
-                  placeholder={isApt ? '112' : '11'}
-                  className="w-1/3 px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm font-mono text-center"
-                />
-                <span className="text-[#AAAAAA] font-bold text-lg">/</span>
-                <input type="text" value={codeParts.p2} required
-                  onChange={e => {
-                    const p2 = e.target.value;
-                    setCodeParts(prev => ({ ...prev, p2 }));
-                    parseCodeFromParts(codeParts.p1, p2, codeParts.p3, unitCategory);
-                  }}
-                  placeholder={isApt ? '100' : '123'}
-                  className="w-1/3 px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm font-mono text-center"
-                />
-                <span className="text-[#AAAAAA] font-bold text-lg">/</span>
-                <input type="text" value={codeParts.p3} required
-                  onChange={e => {
-                    const p3 = e.target.value;
-                    setCodeParts(prev => ({ ...prev, p3 }));
-                    parseCodeFromParts(codeParts.p1, codeParts.p2, p3, unitCategory);
-                  }}
-                  placeholder={isApt ? '24' : '4'}
-                  className="w-1/3 px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm font-mono text-center"
-                />
+                {(['p1', 'p2', 'p3'] as const).map((key, idx) => (
+                  <React.Fragment key={key}>
+                    {idx > 0 && <span className="text-[#AAAAAA] font-bold text-lg">/</span>}
+                    <input type="text" value={codeParts[key]} required
+                      onChange={e => {
+                        const val = e.target.value;
+                        const next = { ...codeParts, [key]: val };
+                        setCodeParts(next);
+                        parseCodeFromParts(next.p1, next.p2, next.p3, unitCategory);
+                      }}
+                      placeholder={key === 'p1' ? (isApt ? '112' : '11') : key === 'p2' ? (isApt ? '100' : '123') : (isApt ? '24' : '4')}
+                      className="w-1/3 px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm font-mono text-center"
+                    />
+                  </React.Fragment>
+                ))}
               </div>
             </div>
 
-            {/* ── Divider: Auto-filled ── */}
-            {(parsed.area || parsed.group) && (
+            {/* Auto-extracted divider */}
+            {(parsed.areaName || parsed.group) && (
               <div className="col-span-2">
                 <div className="flex items-center gap-2">
                   <div className="flex-1 h-px bg-[#E5E5E5]" />
@@ -477,16 +453,16 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
               </div>
             )}
 
-            {/* 4. Auto fields */}
-            {parsed.area      && <AutoField label={T('المنطقة', 'Area')}    value={parsed.area} />}
-            {parsed.group     && <AutoField label={T('الجروب', 'Group')}   value={parsed.group} />}
-            {isApt && parsed.building  && <AutoField label={T('المبنى', 'Building')}  value={parsed.building} />}
-            {isApt && parsed.unit      && <AutoField label={T('رقم الشقة', 'Unit #')} value={parsed.unit} />}
-            {isApt && parsed.floor     && <AutoField label={T('الدور', 'Floor')}      value={parsed.floor} />}
-            {!isApt && parsed.block    && <AutoField label={T('البلوك', 'Block')}     value={parsed.block} />}
+            {/* Auto fields */}
+            {parsed.areaName   && <AutoField label={T('المنطقة', 'Area')}       value={parsed.areaName} />}
+            {parsed.group      && <AutoField label={T('الجروب', 'Group')}        value={parsed.group} />}
+            {isApt && parsed.building   && <AutoField label={T('المبنى', 'Building')}   value={parsed.building} />}
+            {isApt && parsed.unit       && <AutoField label={T('رقم الشقة', 'Unit #')}  value={parsed.unit} />}
+            {isApt && parsed.floor      && <AutoField label={T('الدور', 'Floor')}        value={parsed.floor} />}
+            {!isApt && parsed.block     && <AutoField label={T('البلوك', 'Block')}       value={parsed.block} />}
             {!isApt && parsed.villaNumber && <AutoField label={T('رقم الفيلا', 'Villa #')} value={parsed.villaNumber} />}
 
-            {/* ── Divider: Unit details ── */}
+            {/* Unit details divider */}
             <div className="col-span-2">
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-px bg-[#E5E5E5]" />
@@ -499,9 +475,9 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
             {isApt && (
               <div className="space-y-1">
                 <label className="text-sm font-medium text-[#16100A]">{T('نوع الشقة', 'Apt Type')} *</label>
-                <select value={formData.type}
+                <select value={formData.type} required
                   onChange={e => setFormData({ ...formData, type: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm bg-white" required>
+                  className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm bg-white">
                   <option value="apartment">{T('شقة', 'Apartment')}</option>
                   <option value="studio">{T('استوديو', 'Studio')}</option>
                   <option value="duplex">{T('دوبلكس', 'Duplex')}</option>
@@ -514,9 +490,9 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
             {/* Purpose */}
             <div className="space-y-1">
               <label className="text-sm font-medium text-[#16100A]">{t('properties.purpose')} *</label>
-              <select value={formData.purpose}
+              <select value={formData.purpose} required
                 onChange={e => setFormData({ ...formData, purpose: e.target.value })}
-                className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm bg-white" required>
+                className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm bg-white">
                 <option value="sale">{t('properties.sale')}</option>
                 <option value="resale">{t('properties.resale')}</option>
                 <option value="rent">{t('properties.rent')}</option>
@@ -539,14 +515,15 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
               />
             </div>
 
-            {/* Area select — for manual override */}
+            {/* Area — يتحدد تلقائياً من الكود، ويمكن التعديل يدوياً */}
             <div className="space-y-1">
               <label className="text-sm font-medium text-[#16100A]">
                 {t('properties.area')}
                 <span className="text-xs font-normal text-[#AAAAAA] mx-1">{T('(تلقائي من الكود)', '(auto from code)')}</span>
               </label>
-              <select value={parsed.area}
-                onChange={e => setParsed({ ...parsed, area: e.target.value })}
+              <select
+                value={selectedAreaId}
+                onChange={e => setSelectedAreaId(e.target.value)}
                 className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm bg-white">
                 <option value="">{t('properties.selectArea') || 'Select Area'}</option>
                 {areaList.map(a => (
@@ -589,7 +566,7 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
               </select>
             </div>
 
-            {/* Bedrooms + Bathrooms — apartments only */}
+            {/* Bedrooms + Bathrooms */}
             {isApt && <>
               <div className="space-y-1">
                 <label className="text-sm font-medium text-[#16100A]">{t('properties.bedrooms')}</label>
@@ -612,10 +589,9 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
             {/* Notes */}
             <div className="col-span-2 space-y-1">
               <label className="text-sm font-medium text-[#16100A]">{T('ملاحظات', 'Notes')}</label>
-              <textarea value={formData.notes}
+              <textarea value={formData.notes} rows={2}
                 onChange={e => setFormData({ ...formData, notes: e.target.value })}
                 placeholder={T('أي ملاحظات إضافية...', 'Any additional notes...')}
-                rows={2}
                 className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm resize-none"
               />
             </div>
@@ -653,7 +629,6 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
 
           </div>
 
-          {/* Footer */}
           <div className="flex items-center justify-end gap-3 mt-6 pt-5 border-t border-[#E5E5E5]">
             <button type="button" onClick={onClose}
               className="px-6 py-2 border border-[#E5E5E5] rounded-lg text-sm text-[#555555] hover:bg-gray-50 transition-colors">
