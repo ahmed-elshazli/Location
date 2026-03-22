@@ -79,7 +79,7 @@ function parseVillaCode(code: string) {
   if (!p1 || !p2 || !p3) return null;
 
   const area        = `V${p1}`;
-  const villaNum    = parseInt(p3, 10);
+  const villaNum    = parseInt(p1, 10); // الجروب بيتحسب من p1
   const group       = isNaN(villaNum) ? 0 : getVillaGroup(villaNum);
   const block       = p2;
   const villaNumber = p3;
@@ -177,8 +177,15 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
     property ? (property.type?.toLowerCase().includes('villa') ? 'villa' : 'apartment') : 'apartment'
   );
 
-  // ── Raw code input ────────────────────────────────────────────────────────
-  const [rawCode, setRawCode] = useState(property?.unitCode || '');
+  // ── Code parts (3 inputs) ─────────────────────────────────────────────────
+  const initParts = () => {
+    const code = property?.unitCode || '';
+    const parts = code.split('/');
+    return { p1: parts[0] || '', p2: parts[1] || '', p3: parts[2] || '' };
+  };
+  const [codeParts, setCodeParts] = useState(initParts);
+  // rawCode مجمع للـ submit
+  const rawCode = [codeParts.p1, codeParts.p2, codeParts.p3].filter(Boolean).join('/');
 
   // ── Auto-parsed fields ────────────────────────────────────────────────────
   const [parsed, setParsed] = useState({
@@ -212,17 +219,29 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
   const [previews, setPreviews]             = useState<string[]>([]);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
 
-  // ── Auto-parse code on change ─────────────────────────────────────────────
-  useEffect(() => {
-    if (!rawCode.includes('/')) return;
-    if (unitCategory === 'apartment') {
-      const result = parseApartmentCode(rawCode);
-      if (result) setParsed(prev => ({ ...prev, area: result.area, group: result.group, building: result.building, unit: result.unit, floor: result.floor }));
+  // ── 3 separate code parts ─────────────────────────────────────────────────
+  const parseCodeFromParts = (p1: string, p2: string, p3: string, category: 'apartment' | 'villa') => {
+    if (category === 'villa') {
+      // الجروب والـ area يتحسبوا من p1 فوراً
+      if (p1) {
+        const villaNum = parseInt(p1, 10);
+        const group    = isNaN(villaNum) ? '' : getVillaGroup(villaNum).toString();
+        const area     = `V${p1}`;
+        setParsed(prev => ({
+          ...prev,
+          area,
+          group,
+          ...(p2 && { block: p2 }),
+          ...(p3 && { villaNumber: p3 }),
+        }));
+      }
     } else {
-      const result = parseVillaCode(rawCode);
-      if (result) setParsed(prev => ({ ...prev, area: result.area, group: result.group, block: result.block, villaNumber: result.villaNumber }));
+      if (!p1 || !p2 || !p3) return;
+      const combined = `${p1}/${p2}/${p3}`;
+      const result = parseApartmentCode(combined);
+      if (result) setParsed(prev => ({ ...prev, area: result.area, group: result.group, building: result.building, unit: result.unit, floor: result.floor }));
     }
-  }, [rawCode, unitCategory]);
+  };
 
   // ── Projects ───────────────────────────────────────────────────────────────
   const { data: projectsData, isLoading: isProjectsLoading } = useProjects();
@@ -382,7 +401,7 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
               <div className="grid grid-cols-2 gap-3">
                 {(['apartment', 'villa'] as const).map(cat => (
                   <button key={cat} type="button"
-                    onClick={() => { setUnitCategory(cat); setRawCode(''); setParsed({ area:'', group:'', building:'', block:'', unit:'', floor:'', villaNumber:'' }); }}
+                    onClick={() => { setUnitCategory(cat); setCodeParts({ p1:'', p2:'', p3:'' }); setParsed({ area:'', group:'', building:'', block:'', unit:'', floor:'', villaNumber:'' }); }}
                     className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all flex items-center justify-center gap-2
                       ${unitCategory === cat
                         ? 'border-[#B5752A] bg-[#FEF3E2] text-[#B5752A]'
@@ -404,19 +423,45 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
               />
             </div>
 
-            {/* 3. Code */}
-            <div className="space-y-1">
+            {/* 3. Code — 3 inputs منفصلة */}
+            <div className="col-span-2 space-y-1">
               <label className="text-sm font-medium text-[#16100A]">
                 {T('الكود', 'Code')} *
                 <span className="text-xs font-normal text-[#AAAAAA] mx-2">
-                  {isApt ? T('مثال: 112/100/24', 'e.g., 112/100/24') : T('مثال: 11/123/4', 'e.g., 11/123/4')}
+                  {isApt ? T('مثال: 112 / 100 / 24', 'e.g., 112 / 100 / 24') : T('مثال: 11 / 123 / 4', 'e.g., 11 / 123 / 4')}
                 </span>
               </label>
-              <input type="text" value={rawCode} required dir="ltr"
-                onChange={e => setRawCode(e.target.value)}
-                placeholder={isApt ? '112/100/24' : '11/123/4'}
-                className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm font-mono"
-              />
+              <div className="flex items-center gap-2" dir="ltr">
+                <input type="text" value={codeParts.p1} required
+                  onChange={e => {
+                    const p1 = e.target.value;
+                    setCodeParts(prev => ({ ...prev, p1 }));
+                    parseCodeFromParts(p1, codeParts.p2, codeParts.p3, unitCategory);
+                  }}
+                  placeholder={isApt ? '112' : '11'}
+                  className="w-1/3 px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm font-mono text-center"
+                />
+                <span className="text-[#AAAAAA] font-bold text-lg">/</span>
+                <input type="text" value={codeParts.p2} required
+                  onChange={e => {
+                    const p2 = e.target.value;
+                    setCodeParts(prev => ({ ...prev, p2 }));
+                    parseCodeFromParts(codeParts.p1, p2, codeParts.p3, unitCategory);
+                  }}
+                  placeholder={isApt ? '100' : '123'}
+                  className="w-1/3 px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm font-mono text-center"
+                />
+                <span className="text-[#AAAAAA] font-bold text-lg">/</span>
+                <input type="text" value={codeParts.p3} required
+                  onChange={e => {
+                    const p3 = e.target.value;
+                    setCodeParts(prev => ({ ...prev, p3 }));
+                    parseCodeFromParts(codeParts.p1, codeParts.p2, p3, unitCategory);
+                  }}
+                  placeholder={isApt ? '24' : '4'}
+                  className="w-1/3 px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm font-mono text-center"
+                />
+              </div>
             </div>
 
             {/* ── Divider: Auto-filled ── */}
