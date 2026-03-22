@@ -422,21 +422,31 @@ export function PropertyModal({ property, onClose, onSave }: PropertyModalProps)
                 </span>
               </label>
               <div className="flex items-center gap-2" dir="ltr">
-                {(['p1', 'p2', 'p3'] as const).map((key, idx) => (
-                  <React.Fragment key={key}>
-                    {idx > 0 && <span className="text-[#AAAAAA] font-bold text-lg">/</span>}
-                    <input type="text" value={codeParts[key]} required
-                      onChange={e => {
-                        const val = e.target.value;
-                        const next = { ...codeParts, [key]: val };
-                        setCodeParts(next);
-                        parseCodeFromParts(next.p1, next.p2, next.p3, unitCategory);
-                      }}
-                      placeholder={key === 'p1' ? (isApt ? '112' : '11') : key === 'p2' ? (isApt ? '100' : '123') : (isApt ? '24' : '4')}
-                      className="w-1/3 px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm font-mono text-center"
-                    />
-                  </React.Fragment>
-                ))}
+                {(['p1', 'p2', 'p3'] as const).map((key, idx) => {
+                  // شقة: p1=3, p2=3, p3=2 | فيلا: p1=2, p2=3, p3=2
+                  const maxLen = isApt
+                    ? (key === 'p3' ? 2 : 3)
+                    : (key === 'p1' ? 2 : key === 'p2' ? 3 : 2);
+                  return (
+                    <React.Fragment key={key}>
+                      {idx > 0 && <span className="text-[#AAAAAA] font-bold text-lg">/</span>}
+                      <input
+                        type="text"
+                        value={codeParts[key]}
+                        required
+                        maxLength={maxLen}
+                        onChange={e => {
+                          const val = e.target.value.replace(/\D/g, '').slice(0, maxLen);
+                          const next = { ...codeParts, [key]: val };
+                          setCodeParts(next);
+                          parseCodeFromParts(next.p1, next.p2, next.p3, unitCategory);
+                        }}
+                        placeholder={key === 'p1' ? (isApt ? '112' : '11') : key === 'p2' ? (isApt ? '100' : '123') : (isApt ? '24' : '4')}
+                        className="w-1/3 px-3 py-2 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B5752A] text-sm font-mono text-center"
+                      />
+                    </React.Fragment>
+                  );
+                })}
               </div>
             </div>
 
